@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Business Dev Request — Rival Eclipse</title>
+<meta name="description" content="Hire Rival Eclipse for custom websites, web apps, Discord bots, and AI chatbots. Fixed-price quotes in writing, you own 100% of the code.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.swatches{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 4px}
+.sw{display:flex;align-items:center;gap:8px;background:#0d0d15;border:1px solid var(--line);border-radius:999px;
+  padding:7px 14px 7px 8px;font-size:.85rem;color:var(--muted);cursor:pointer}
+.sw input{accent-color:var(--accent)}
+.sw .chip{width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,.25);display:inline-block}
+.sw:has(input:checked){border-color:var(--accent);color:var(--text)}
+.radios{display:flex;flex-direction:column;gap:8px;margin:10px 0 4px;font-size:.9rem;color:var(--muted)}
+.radios input{accent-color:var(--accent)}
+.img-preview{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.img-preview img{width:90px;height:90px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.fineprint{font-size:.8rem;color:var(--muted);margin-top:8px}
+input[type=file]{padding:10px}
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+  <div class="wrap">
+    <div class="crumb"><a href="/dev-request/">← Dev Request</a></div>
+    <h1 class="page-title">Request Custom Dev Services</h1>
+    <p class="page-sub">Custom websites, web apps, Discord bots, and AI chatbots — built by people who've shipped them. Fixed-price quotes in writing, clean code in your repo from day one, and you own 100% of it.</p>
+
+    <div class="stats-row">
+      <div class="stat"><b>8</b><span>products shipped &amp; live</span></div>
+      <div class="stat"><b>400+</b><span>automated tests passing</span></div>
+      <div class="stat"><b>Live</b><span>Stripe payments in production</span></div>
+      <div class="stat"><b>24/7</b><span>production hosting</span></div>
+    </div>
+
+    <div class="block">
+      <h2>What we build</h2>
+      <p class="sub">If it's a website, a web app, or a bot that talks — we've shipped one before.</p>
+      <div class="svc-grid">
+        <div class="svc"><div class="ic">🌐</div><h3>Custom Websites</h3><p>Business sites, landing pages, portfolios. Fast, mobile-friendly, no page-builder lock-in.</p><div class="from">from $250</div></div>
+        <div class="svc"><div class="ic">⚙️</div><h3>Web Apps &amp; Dashboards</h3><p>Customer portals, admin dashboards, SaaS MVPs, booking systems. Auth, payments, databases — the full stack.</p><div class="from">from $500</div></div>
+        <div class="svc"><div class="ic">🤖</div><h3>Discord Bots</h3><p>Moderation, automation, tickets, game integrations, custom commands. Five production bots shipped.</p><div class="from">from $300</div></div>
+        <div class="svc"><div class="ic">💬</div><h3>AI Chatbots</h3><p>ChatGPT/Claude-powered assistants for your site or Discord — trained on your content, your branding.</p><div class="from">from $300</div></div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>How it works</h2>
+      <p class="sub">No surprises. You know the price, the plan, and the timeline before anything starts.</p>
+      <div class="steps">
+        <div class="step"><div class="n">1</div><h3>You describe it</h3><p>Fill out the quote form below — what you need, in plain language. No tech spec required.</p></div>
+        <div class="step"><div class="n">2</div><h3>Fixed quote, in writing</h3><p>Fixed price, scope, milestones, timeline. The price doesn't move unless the scope does.</p></div>
+        <div class="step"><div class="n">3</div><h3>We build it</h3><p>Clean, commented code in your repo from day one. Progress updates as we go.</p></div>
+        <div class="step"><div class="n">4</div><h3>Walkthrough &amp; support</h3><p>Video walkthrough, documentation, and 7 days of post-launch support included.</p></div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>Proof, not promises</h2>
+      <p class="sub">Production systems running 24/7 under this domain right now.</p>
+      <div class="svc-grid">
+        <div class="svc"><h3>🛡️ Bouncer Bot</h3><p>Cross-server anti-scam network. 217 automated tests.</p><a href="https://bouncer.rivaleclipse.dev">Visit →</a></div>
+        <div class="svc"><h3>💬 Chat-Mate</h3><p>Self-learning Discord moderation. 124 automated tests.</p><a href="https://chatmate.rivaleclipse.dev">Visit →</a></div>
+        <div class="svc"><h3>🧠 Tim</h3><p>Bring-your-own-key AI chatbot for Discord.</p><a href="https://tim.rivaleclipse.dev">Visit →</a></div>
+        <div class="svc"><h3>🎵 FreeMium JayRain</h3><p>Music bot with live $1.49/mo Stripe subscriptions.</p><a href="https://freemiumjayrain.rivaleclipse.dev">Visit →</a></div>
+        <div class="svc"><h3>🔳 GIF-to-QR Converter</h3><p>Artistic QR codes, live $0.99 Stripe paywall.</p><a href="https://customqr.rivaleclipse.dev">Visit →</a></div>
+        <div class="svc"><h3>📊 VibeCheck</h3><p>Community sentiment &amp; reputation bot.</p><a href="https://vibecheck.rivaleclipse.dev">Visit →</a></div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>Questions</h2>
+      <div class="faq">
+        <details><summary>How long does a typical project take?</summary><p>Simple sites: under a week. Web apps and bots: 1–4 weeks depending on scope. Your written quote includes an exact timeline.</p></details>
+        <details><summary>Do I own the code?</summary><p>Yes — 100%. It lives in your repo from day one. No lock-in, no hostage code.</p></details>
+        <details><summary>Why you instead of a cheaper no-code freelancer?</summary><p>Most automation freelancers hit a wall at custom API integrations, real error handling, or dashboards. We write code, so those are the easy parts — and everything ships with automated tests behind it.</p></details>
+        <details><summary>How do payments work?</summary><p>Fixed price agreed in writing, paid per milestone as each one is delivered. You never pay for work you haven't seen.</p></details>
+        <details><summary>What if I need changes after launch?</summary><p>7 days of post-launch support is included. After that, small changes are quoted fixed-price.</p></details>
+      </div>
+    </div>
+
+    <div class="block" id="quote">
+      <h2>Get a free quote</h2>
+      <p class="sub">Tell us what you need — the more detail, the more accurate your fixed quote. We reply personally, usually within a day.</p>
+      <form class="quote" id="quote-form" enctype="multipart/form-data">
+        <input type="hidden" name="category" value="business">
+        <label for="q-name">Your name *</label>
+        <input id="q-name" name="name" required maxlength="80" autocomplete="name">
+        <label for="q-email">Email *</label>
+        <input id="q-email" name="email" type="email" required maxlength="120" autocomplete="email">
+        <label for="q-phone">Phone number</label>
+        <input id="q-phone" name="phone" type="tel" maxlength="40" autocomplete="tel">
+        <label for="q-type">Project type</label>
+        <select id="q-type" name="type">
+          <option>Website</option><option>Web app / dashboard</option><option>Discord bot</option>
+          <option>AI chatbot</option><option>API integration / automation</option><option>Something else</option>
+        </select>
+        <label for="q-budget">Budget range</label>
+        <select id="q-budget" name="budget">
+          <option>Under $500</option><option>$500 – $1,500</option><option>$1,500 – $5,000</option><option>$5,000+</option>
+        </select>
+
+        <label>Brand colors — tick the ones you want used</label>
+        <div class="swatches" id="q-colors">
+          <label class="sw"><input type="checkbox" name="colors" value="Red"><span class="chip" style="background:#e53935"></span>Red</label>
+          <label class="sw"><input type="checkbox" name="colors" value="Orange"><span class="chip" style="background:#fb8c00"></span>Orange</label>
+          <label class="sw"><input type="checkbox" name="colors" value="Yellow"><span class="chip" style="background:#fdd835"></span>Yellow</label>
+          <label class="sw"><input type="checkbox" name="colors" value="Green"><span class="chip" style="background:#43a047"></span>Green</label>
+          <label class="sw"><input type="checkbox" name="colors" value="Teal"><span class="chip" style="background:#00897b"></span>Teal</label>
+          <label class="sw"><input type="checkbox" name="colors" value="Blue"><span class="chip" style="background:#1e88e5"></span>Blue</label>
+          <label class="sw"><input type="checkbox" name="colors" value="Navy"><span class="chip" style="background:#0d1b3e"></span>Navy</label>
+          <label class="sw"><input type="checkbox" name="colors" value="Purple"><span class="chip" style="background:#8e24aa"></span>Purple</label>
+          <label class="sw"><input type="checkbox" name="colors" value="Pink"><span class="chip" style="background:#ec407a"></span>Pink</label>
+          <label class="sw"><input type="checkbox" name="colors" value="Brown"><span class="chip" style="background:#6d4c41"></span>Brown</label>
+          <label class="sw"><input type="checkbox" name="colors" value="Black"><span class="chip" style="background:#111;border-color:#555"></span>Black</label>
+          <label class="sw"><input type="checkbox" name="colors" value="White"><span class="chip" style="background:#fff"></span>White</label>
+          <label class="sw"><input type="checkbox" name="colors" value="Gray"><span class="chip" style="background:#9e9e9e"></span>Gray</label>
+          <label class="sw"><input type="checkbox" name="colors" value="Gold"><span class="chip" style="background:#c9a227"></span>Gold</label>
+          <label class="sw"><input type="checkbox" name="colors" value="Silver"><span class="chip" style="background:#c0c0c0"></span>Silver</label>
+        </div>
+        <div class="radios">
+          <label><input type="radio" name="color_mode" value="exclusive"> Use <b>only</b> the colors I ticked</label>
+          <label><input type="radio" name="color_mode" value="preference" checked> Ticked colors are a preference — use your judgment</label>
+        </div>
+
+        <label for="q-images">Upload up to 3 images <span style="font-weight:normal">(icon, logo, mascot, or other business imagery — large images are resized automatically)</span></label>
+        <input id="q-images" name="images" type="file" accept="image/*" multiple>
+        <div id="img-preview" class="img-preview"></div>
+        <p class="fineprint">Uploads are automatically screened — adult, shock, and gore content is rejected.</p>
+
+        <label for="q-address">Business address</label>
+        <input id="q-address" name="address" maxlength="300" placeholder="Street, city, state/region">
+        <label for="q-hours">Business hours</label>
+        <input id="q-hours" name="hours" maxlength="200" placeholder="e.g. Mon–Fri 9am–5pm">
+        <label for="q-slogan">Slogan / tagline</label>
+        <input id="q-slogan" name="slogan" maxlength="200">
+        <label for="q-services">Services and/or products you provide</label>
+        <textarea id="q-services" name="services" maxlength="2000" rows="3" placeholder="One per line is fine"></textarea>
+        <label for="q-details">Project details *</label>
+        <textarea id="q-details" name="details" required maxlength="2000" placeholder="What should it do? Who is it for? Anything it needs to connect to?"></textarea>
+        <label for="q-extra">Extra information</label>
+        <textarea id="q-extra" name="extra" maxlength="2000" rows="3" placeholder="Anything else we should know"></textarea>
+
+        <input class="hp" type="text" name="company" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <div style="margin-top:22px"><button class="btn" type="submit" id="q-submit">Submit</button></div>
+        <div id="form-msg"></div>
+      </form>
+    </div>
+  </div>
+</main>
+<footer>
+  <div class="wrap">
+    <div>© 2026 Rival Eclipse. All things under rivaleclipse.dev.</div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="https://bouncer.rivaleclipse.dev/terms">Terms of Service</a>
+      <a href="https://bouncer.rivaleclipse.dev/privacy">Privacy Policy</a>
+    </nav>
+  </div>
+</footer>
+<script src="/sky.js"></script>
+<script>
+const imgInput = document.getElementById('q-images');
+const imgPreview = document.getElementById('img-preview');
+
+// Downscale huge uploads (max 1600px) so screening + delivery stay fast.
+// PNG stays PNG (keeps transparency for logos); everything else becomes JPEG.
+function prepImage(file) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX = 1600;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      if (scale === 1 && (file.type === 'image/png' || file.type === 'image/jpeg')) {
+        resolve(file); return;
+      }
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale);
+      c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      const isPng = file.type === 'image/png';
+      c.toBlob((blob) => {
+        resolve(new File([blob], file.name.replace(/\.[a-z]+$/i, '') + (isPng ? '.png' : '.jpg'),
+          { type: isPng ? 'image/png' : 'image/jpeg' }));
+      }, isPng ? 'image/png' : 'image/jpeg', 0.85);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+imgInput.addEventListener('change', () => {
+  imgPreview.innerHTML = '';
+  const files = [...imgInput.files].slice(0, 3);
+  if (imgInput.files.length > 3) {
+    imgPreview.innerHTML = '<span class="fineprint">Only the first 3 images will be sent.</span>';
+  }
+  for (const f of files) {
+    if (!f.type.startsWith('image/')) continue;
+    const url = URL.createObjectURL(f);
+    const img = document.createElement('img');
+    img.src = url; img.alt = f.name;
+    imgPreview.appendChild(img);
+  }
+});
+document.getElementById('quote-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('form-msg');
+  const btn = document.getElementById('q-submit');
+  const rawFiles = [...imgInput.files];
+  if (rawFiles.length > 3) { msg.className = 'err'; msg.textContent = 'Please upload no more than 3 images.'; return; }
+  for (const f of rawFiles) {
+    if (!f.type.startsWith('image/')) { msg.className = 'err'; msg.textContent = f.name + ' is not an image file.'; return; }
+  }
+  btn.disabled = true; btn.textContent = 'Preparing…';
+  msg.className = ''; msg.textContent = '';
+  let files;
+  try {
+    files = await Promise.all(rawFiles.map(prepImage));
+  } catch {
+    msg.className = 'err'; msg.textContent = 'Could not read one of the images. Please try again.';
+    btn.disabled = false; btn.textContent = 'Submit'; return;
+  }
+  for (const f of files) {
+    if (f.size > 4 * 1024 * 1024) { msg.className = 'err'; msg.textContent = f.name + ' is still over 4 MB after resizing — please use a smaller image.'; btn.disabled = false; btn.textContent = 'Submit'; return; }
+  }
+  btn.textContent = 'Sending…';
+  const fd = new FormData(e.target);
+  fd.delete('images');
+  files.forEach((f) => fd.append('images', f, f.name));
+  const ERRORS = {
+    invalid: 'Please fill in your name, a valid email, and the project details.',
+    too_many_files: 'Please upload no more than 3 images.',
+    bad_file_type: 'One of the files is not an image.',
+    file_too_large: 'One of the images is over 4 MB.',
+    image_rejected: 'One of your images was rejected by our content check — adult, shock, and gore content is not accepted. Please remove it and try again.',
+    uploads_unavailable: 'Image uploads are temporarily unavailable — please submit without images for now, or try again later.',
+    delivery_failed: 'Something went wrong on our end. Please try again in a minute.',
+  };
+  try {
+    const res = await fetch('/quote', { method: 'POST', body: fd });
+    const out = await res.json();
+    if (out.ok) {
+      msg.className = 'ok';
+      msg.textContent = 'Brief received — we\'ll reply personally, usually within a day.';
+      e.target.reset(); imgPreview.innerHTML = '';
+    } else { throw new Error(out.error || 'delivery_failed'); }
+  } catch (err) {
+    msg.className = 'err';
+    msg.textContent = ERRORS[err.message] || 'Something went wrong sending that. Please try again in a minute.';
+  }
+  btn.disabled = false; btn.textContent = 'Submit';
+});
+</script></script>
+</body>
+</html>
