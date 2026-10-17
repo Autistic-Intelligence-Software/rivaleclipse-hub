@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in — Rival Eclipse</title>
+<meta name="description" content="Sign in to your Rival Eclipse account — one login for every bot dashboard, web app, and service.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.auth-card { max-width: 460px; margin: 30px auto 0; }
+.auth-card .block { margin-top: 0; }
+.auth-methods { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
+.auth-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
+  padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: #0d0d15;
+  color: var(--text); font-size: 1rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+.auth-btn:hover { border-color: var(--accent); }
+.auth-btn.discord { background: #5865F2; border-color: #5865F2; color: #fff; }
+.auth-btn.discord:hover { background: #4752c4; }
+.divider { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: .85rem; margin: 18px 0 6px; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+<div class="wrap">
+  <div class="crumb"><a href="/">← Rival Eclipse</a></div>
+  <div class="auth-card">
+    <div class="block">
+      <h2>Sign in</h2>
+      <p class="sub">One account for every Rival Eclipse dashboard, bot, and web app.</p>
+      <div class="auth-methods">
+        <button class="auth-btn discord" id="discord-btn">Continue with Discord</button>
+        <button class="auth-btn" id="passkey-btn">🔐 Sign in with passkey / biometrics</button>
+      </div>
+      <div class="divider">or email me a sign-in link</div>
+      <form class="quote" id="magic-form">
+        <label for="email">Email address</label>
+        <input type="email" id="email" required autocomplete="email" placeholder="you@example.com">
+        <button class="btn" type="submit" style="width:100%; margin-top: 14px;">Email me a link</button>
+      </form>
+      <p id="form-msg"></p>
+      <p class="sub" style="margin-top:18px; font-size:.85rem;">New here? <a href="/sign-up/">Create an account</a> — it takes a minute and pairs your Discord once.</p>
+    </div>
+  </div>
+</div>
+</main>
+<script src="/sky.js"></script>
+<script type="module">
+import { session, requestMagicLink, discordLogin, passkeyLogin, nextUrl } from '/auth.js';
+const msg = document.getElementById('form-msg');
+const next = nextUrl();
+function say(t, ok) { msg.textContent = t; msg.className = ok ? 'ok' : 'err'; }
+
+// Already signed in? bounce to destination.
+session().then((s) => { if (s) location.href = next || '/dashboards/'; });
+
+document.getElementById('discord-btn').onclick = () => discordLogin(next);
+document.getElementById('passkey-btn').onclick = async () => {
+  const email = document.getElementById('email').value.trim();
+  if (!email) { say('Enter your email first so we can find your passkey.', false); return; }
+  say('Waiting for your device…', true);
+  const r = await passkeyLogin(email);
+  if (r.ok) {
+    if (r.needsDiscord) { discordLogin(next, 'pair'); return; }
+    location.href = next || '/dashboards/';
+  } else {
+    say({ no_passkey: 'No passkey on this device for that email yet — sign in another way, then add one in your dashboard.', cancelled: 'Cancelled.', unsupported: 'This browser doesn’t support passkeys.' }[r.error] || 'Passkey sign-in failed.', false);
+  }
+};
+document.getElementById('magic-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('email').value.trim();
+  say('Sending…', true);
+  const { status, data } = await requestMagicLink(email, next);
+  say(status === 200 ? 'Check your inbox — the link expires in 15 minutes.' : (data.error === 'rate_limited' ? 'Too many requests — wait a few minutes.' : 'Couldn’t send the email. Try again.'), status === 200);
+};
+</script>
+</body>
+</html>
