@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Dashboard — Rival Eclipse</title>
+<meta name="description" content="Your Rival Eclipse client dashboard — requests, projects, and billing, all in one place.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.dash-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.user-chip { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .92rem; }
+.user-chip button { background: none; border: 1px solid var(--line); color: var(--muted);
+  border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: .85rem; }
+.user-chip button:hover { color: var(--text); border-color: var(--accent); }
+.sub-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0;
+  border-bottom: 1px solid var(--line); font-size: .93rem; }
+.sub-row:last-child { border-bottom: none; }
+.pill { font-size: .75rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.pill.active { color: #8fe3a8; border-color: #2c4a35; }
+.pill.trial { color: #f3d27a; border-color: #5a4a1c; }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+<div class="wrap">
+  <div class="crumb"><a href="/">← Rival Eclipse</a></div>
+  <div class="dash-head">
+    <div><h1 class="page-title">Client dashboard</h1>
+    <p class="page-sub">Your requests, projects, and subscriptions — each billed separately per app.</p></div>
+    <div class="user-chip"><span id="who"></span><button id="logout">Sign out</button></div>
+  </div>
+
+  <div class="section-label">My requests</div>
+  <div class="block" id="requests-block"><p class="sub">No requests yet. <a href="/dev-request/">Start one</a> — quotes are free.</p></div>
+
+  <div class="section-label">My subscriptions</div>
+  <div class="block" id="subs-block"><p class="sub">Loading…</p></div>
+
+  <div class="section-label">Security</div>
+  <div class="block">
+    <h2>Sign-in methods</h2>
+    <p class="sub" id="methods-sub">Loading…</p>
+    <div class="pk-row" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+      <button class="auth-btn" id="add-passkey" style="width:auto;padding:10px 18px;">Add a passkey on this device</button>
+    </div>
+    <p id="pk-msg" class="sub" style="margin-top:10px;"></p>
+  </div>
+</div>
+</main>
+<footer><div class="wrap"><span>© 2026 Rival Eclipse</span><nav><a href="/help/">Help</a><a href="/ToS-Privacy-legal/">ToS &amp; Privacy</a></nav></div></footer>
+<script src="/sky.js"></script>
+<script type="module">
+import { session, logout, passkeyRegister } from '/auth.js';
+const AUTH = 'https://auth.rivaleclipse.dev';
+
+const s = await session();
+if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent(location.href); throw new Error('redirect'); }
+document.getElementById('who').textContent = (s.discord?.username ? '@' + s.discord.username : s.user.email);
+document.getElementById('logout').onclick = logout;
+
+const methods = [
+  s.discord ? 'Discord paired (@' + s.discord.username + ')' : 'Discord not paired',
+  'Magic link (' + s.user.email + ')',
+  (s.passkeys?.length || 0) + ' passkey(s)',
+];
+document.getElementById('methods-sub').textContent = 'Active: ' + methods.join(' · ');
+
+// Subscriptions are per-app isolated — each can be managed/cancelled individually.
+try {
+  const r = await fetch(AUTH + '/api/billing/subscriptions', { credentials: 'include' });
+  const d = await r.json();
+  const subs = (d.subscriptions || []).concat((d.bundles || []).map((b) => ({ ...b, isBundle: true })));
+  document.getElementById('subs-block').innerHTML = subs.length ? subs.map((x) => `
+    <div class="sub-row"><span><b>${x.isBundle ? x.bundle_name + ' (bundle)' : x.package_name}</b></span>
+    <span class="pill ${x.status === 'active' ? 'active' : x.status === 'trialing' ? 'trial' : ''}">${x.status}</span></div>`).join('')
+    : '<p class="sub">No subscriptions yet. Each app\'s plan is separate — subscribe, trial, or cancel any one without affecting the others.</p>';
+} catch { document.getElementById('subs-block').innerHTML = '<p class="sub">Couldn’t load subscriptions right now.</p>'; }
+
+document.getElementById('add-passkey').onclick = async () => {
+  const msg = document.getElementById('pk-msg');
+  msg.textContent = 'Waiting for your device…';
+  const r = await passkeyRegister('This device');
+  msg.textContent = r.ok ? 'Passkey added.' : 'Couldn’t add the passkey (' + (r.error || 'error') + ').';
+  if (r.ok) location.reload();
+};
+</script>
+</body>
+</html>
