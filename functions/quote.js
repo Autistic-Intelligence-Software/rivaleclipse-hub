@@ -11,7 +11,7 @@
 //   FROM_EMAIL          - sender on verified domain (default: hire@rivaleclipse.dev)
 //   DISCORD_WEBHOOK_URL - channel webhook for brief delivery (optional for now)
 // Bindings:
-//   AI                  - Workers AI binding (image moderation via LLaVA vision model)
+//   AI                  - Workers AI binding (redeploy trigger) (image moderation via LLaVA vision model)
 
 const MAX_FILES = 3;
 const MAX_FILE_BYTES = 4 * 1024 * 1024; // 4 MB per image
