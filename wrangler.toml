@@ -1,0 +1,8 @@
+# rivaleclipse-hub — Cloudflare Pages (Git-connected).
+# NOTE: for Git-connected Pages projects, bindings must be declared here;
+# dashboard Settings -> Bindings alone does not attach them to deployments.
+
+compatibility_date = "2025-06-01"
+
+[ai]
+binding = "AI"
