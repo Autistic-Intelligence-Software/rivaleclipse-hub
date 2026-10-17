@@ -125,7 +125,7 @@ input[type=file]{padding:10px}
           <label><input type="radio" name="color_mode" value="preference" checked> Ticked colors are a preference — use your judgment</label>
         </div>
 
-        <label for="q-images">Upload up to 3 images <span style="font-weight:normal">(icon, logo, mascot, or other business imagery — each under 4&nbsp;MB)</span></label>
+        <label for="q-images">Upload up to 3 images <span style="font-weight:normal">(icon, logo, mascot, or other business imagery — large images are resized automatically)</span></label>
         <input id="q-images" name="images" type="file" accept="image/*" multiple>
         <div id="img-preview" class="img-preview"></div>
         <p class="fineprint">Uploads are automatically screened — adult, shock, and gore content is rejected.</p>
@@ -164,6 +164,34 @@ input[type=file]{padding:10px}
 <script>
 const imgInput = document.getElementById('q-images');
 const imgPreview = document.getElementById('img-preview');
+
+// Downscale huge uploads (max 1600px) so screening + delivery stay fast.
+// PNG stays PNG (keeps transparency for logos); everything else becomes JPEG.
+function prepImage(file) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX = 1600;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      if (scale === 1 && (file.type === 'image/png' || file.type === 'image/jpeg')) {
+        resolve(file); return;
+      }
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale);
+      c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      const isPng = file.type === 'image/png';
+      c.toBlob((blob) => {
+        resolve(new File([blob], file.name.replace(/\.[a-z]+$/i, '') + (isPng ? '.png' : '.jpg'),
+          { type: isPng ? 'image/png' : 'image/jpeg' }));
+      }, isPng ? 'image/png' : 'image/jpeg', 0.85);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
 imgInput.addEventListener('change', () => {
   imgPreview.innerHTML = '';
   const files = [...imgInput.files].slice(0, 3);
@@ -182,19 +210,27 @@ document.getElementById('quote-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const msg = document.getElementById('form-msg');
   const btn = document.getElementById('q-submit');
-  const files = [...imgInput.files];
-  if (files.length > 3) { msg.className = 'err'; msg.textContent = 'Please upload no more than 3 images.'; return; }
-  for (const f of files) {
+  const rawFiles = [...imgInput.files];
+  if (rawFiles.length > 3) { msg.className = 'err'; msg.textContent = 'Please upload no more than 3 images.'; return; }
+  for (const f of rawFiles) {
     if (!f.type.startsWith('image/')) { msg.className = 'err'; msg.textContent = f.name + ' is not an image file.'; return; }
-    if (f.size > 4 * 1024 * 1024) { msg.className = 'err'; msg.textContent = f.name + ' is over 4 MB — please shrink it and try again.'; return; }
   }
-  btn.disabled = true; btn.textContent = 'Sending…';
+  btn.disabled = true; btn.textContent = 'Preparing…';
   msg.className = ''; msg.textContent = '';
+  let files;
+  try {
+    files = await Promise.all(rawFiles.map(prepImage));
+  } catch {
+    msg.className = 'err'; msg.textContent = 'Could not read one of the images. Please try again.';
+    btn.disabled = false; btn.textContent = 'Submit'; return;
+  }
+  for (const f of files) {
+    if (f.size > 4 * 1024 * 1024) { msg.className = 'err'; msg.textContent = f.name + ' is still over 4 MB after resizing — please use a smaller image.'; btn.disabled = false; btn.textContent = 'Submit'; return; }
+  }
+  btn.textContent = 'Sending…';
   const fd = new FormData(e.target);
-  // enforce max 3 files server-side too
-  const kept = files.slice(0, 3);
   fd.delete('images');
-  kept.forEach((f) => fd.append('images', f, f.name));
+  files.forEach((f) => fd.append('images', f, f.name));
   const ERRORS = {
     invalid: 'Please fill in your name, a valid email, and the project details.',
     too_many_files: 'Please upload no more than 3 images.',
@@ -218,6 +254,6 @@ document.getElementById('quote-form').addEventListener('submit', async (e) => {
   }
   btn.disabled = false; btn.textContent = 'Submit';
 });
-</script>
+</script></script>
 </body>
 </html>
