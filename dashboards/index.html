@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboards — Rival Eclipse</title>
+<meta name="description" content="All your Rival Eclipse dashboards in one place — sign in once, manage every bot and app.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.dash-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.user-chip { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .92rem; }
+.user-chip button { background: none; border: 1px solid var(--line); color: var(--muted);
+  border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: .85rem; }
+.user-chip button:hover { color: var(--text); border-color: var(--accent); }
+.pk-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.pk-row .auth-btn { width: auto; padding: 10px 18px; font-size: .9rem; }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+<div class="wrap">
+  <div class="crumb"><a href="/">← Rival Eclipse</a></div>
+  <div class="dash-head">
+    <div>
+      <h1 class="page-title">Your dashboards</h1>
+      <p class="page-sub">Signed in once — every dashboard below opens without another login.</p>
+    </div>
+    <div class="user-chip"><span id="who"></span><button id="logout">Sign out</button></div>
+  </div>
+
+  <div class="section-label">Bot dashboards</div>
+  <div class="grid" id="dash-grid"></div>
+
+  <div class="block" id="security-block">
+    <h2>🔐 Faster sign-in next time</h2>
+    <p class="sub">Add a passkey to this account and you'll sign in with your fingerprint or face — no email round-trip.</p>
+    <div class="pk-row">
+      <button class="auth-btn" id="add-passkey">Add a passkey on this device</button>
+    </div>
+    <p id="pk-msg" class="sub" style="margin-top:10px;"></p>
+    <div id="pk-list" style="margin-top:10px;"></div>
+  </div>
+</div>
+</main>
+<script src="/sky.js"></script>
+<script type="module">
+import { session, logout, packages, passkeyRegister } from '/auth.js';
+
+const FALLBACK = [
+  { name: 'Bouncer', slug: 'bouncer', dashboard_url: 'https://bouncer.rivaleclipse.dev/dashboard/', description: 'Anti-scam bouncer for your server — quarantine, verification, scam intel.', icon_emoji: '🛡️' },
+  { name: 'Chat-Mate', slug: 'chatmate', dashboard_url: 'https://chatmate.rivaleclipse.dev/dashboard/', description: 'Channel content enforcement and pattern learning.', icon_emoji: '💬' },
+  { name: 'Tim', slug: 'tim', dashboard_url: 'https://tim.rivaleclipse.dev/dashboard/', description: 'AI chatbot for your server — bring your own AI key.', icon_emoji: '🤖' },
+  { name: 'VibeCheck', slug: 'vibecheck', dashboard_url: 'https://vibecheck.rivaleclipse.dev/dashboard/', description: 'Community pulse surveys, rep, and vibe ratings.', icon_emoji: '📊' },
+  { name: 'FreeMium JayRain', slug: 'jayrain', dashboard_url: 'https://freemiumjayrain.rivaleclipse.dev/dashboard/', description: 'Music bot — nodes, sharing, Mobile tier.', icon_emoji: '🎵' },
+];
+
+const s = await session();
+if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent(location.href); throw new Error('redirect'); }
+document.getElementById('who').textContent = (s.discord?.username ? '@' + s.discord.username : s.user.email);
+document.getElementById('logout').onclick = logout;
+
+let pkgs = await packages();
+if (!pkgs.length) pkgs = FALLBACK;
+document.getElementById('dash-grid').innerHTML = pkgs.map((p) => `
+  <a class="card" href="${p.dashboard_url}">
+    <span class="badge dash">${p.icon_emoji || '📦'} dashboard</span>
+    <h2>${p.name}</h2><p>${p.description || ''}</p>
+    <div class="go">Open <span>→</span></div>
+  </a>`).join('');
+
+const list = s.passkeys || [];
+document.getElementById('pk-list').innerHTML = list.length
+  ? '<p class="sub">This account has ' + list.length + ' passkey' + (list.length > 1 ? 's' : '') + ' (' + list.map((k) => k.name).join(', ') + ').</p>'
+  : '<p class="sub">No passkeys yet.</p>';
+document.getElementById('add-passkey').onclick = async () => {
+  const msg = document.getElementById('pk-msg');
+  msg.textContent = 'Waiting for your device…';
+  const r = await passkeyRegister('This device');
+  msg.textContent = r.ok ? 'Passkey added — use it next time you sign in.' : 'Couldn’t add the passkey (' + (r.error || 'error') + ').';
+  if (r.ok) location.reload();
+};
+</script>
+</body>
+</html>
