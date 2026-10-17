@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign up — Rival Eclipse</title>
+<meta name="description" content="Create your Rival Eclipse account — one login for every bot dashboard, web app, and service.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.auth-card { max-width: 520px; margin: 30px auto 0; }
+.auth-card .block { margin-top: 0; }
+.auth-methods { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
+.auth-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
+  padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: #0d0d15;
+  color: var(--text); font-size: 1rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+.auth-btn:hover { border-color: var(--accent); }
+.auth-btn.discord { background: #5865F2; border-color: #5865F2; color: #fff; }
+.auth-btn.discord:hover { background: #4752c4; }
+.how { margin-top: 22px; }
+.how li { color: var(--muted); font-size: .93rem; line-height: 1.7; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+<div class="wrap">
+  <div class="crumb"><a href="/">← Rival Eclipse</a></div>
+  <div class="auth-card">
+    <div class="block">
+      <h2>Create your account</h2>
+      <p class="sub">One login for every Rival Eclipse dashboard, bot, and web app. Pair your Discord once — after that, sign in with a magic link or your fingerprint/face.</p>
+      <div class="auth-methods">
+        <button class="auth-btn discord" id="discord-btn">Sign up with Discord</button>
+      </div>
+      <div class="how">
+        <ol style="padding-left: 20px;">
+          <li><b style="color:var(--text)">Pair Discord once.</b> We link your Discord so dashboards know your servers.</li>
+          <li><b style="color:var(--text)">Add a passkey (optional).</b> Use fingerprint or face unlock for one-tap sign-in later.</li>
+          <li><b style="color:var(--text)">Done.</b> Magic links always work as a fallback — no password to remember.</li>
+        </ol>
+      </div>
+      <p class="sub" style="margin-top:18px; font-size:.85rem;">Already have an account? <a href="/sign-in/">Sign in</a></p>
+    </div>
+  </div>
+</div>
+</main>
+<script src="/sky.js"></script>
+<script type="module">
+import { session, discordLogin, nextUrl } from '/auth.js';
+const next = nextUrl();
+session().then((s) => { if (s) location.href = next || '/dashboards/'; });
+document.getElementById('discord-btn').onclick = () => discordLogin(next);
+</script>
+</body>
+</html>
