@@ -151,7 +151,7 @@ ${row('Services / products', d.services)}
 ${d.extra ? `<h3>Extra information</h3><p>${esc(d.extra).replace(/\n/g, '<br>')}</p>` : ''}
 ${(d.images || []).length ? `<h3>Uploaded images (${d.images.length})</h3><div class="imgs">` +
   d.images.map((f) => `<img src="${esc(f)}" alt="upload">`).join('') + `</div>` : ''}
-<p style="color:#999;font-size:12px;margin-top:32px">Submitted via rivaleclipse.dev/custom-services — unedited applicant data.</p>
+<p style="color:#999;font-size:12px;margin-top:32px">Submitted via rivaleclipse.dev/dev-request — unedited applicant data.</p>
 </body></html>`;
 }
 
@@ -205,6 +205,7 @@ export async function onRequestPost({ request, env }) {
   if (fd.get('company')) return json({ ok: true }, 200, origin); // honeypot
 
   const d = {
+    category: get('category').slice(0, 40) || 'business',
     name: get('name').slice(0, 80),
     email: get('email').slice(0, 120),
     phone: get('phone').slice(0, 40),
@@ -281,7 +282,7 @@ export async function onRequestPost({ request, env }) {
     ? `Brand colors: ${d.colors.join(', ')} (${d.color_mode === 'exclusive' ? 'ONLY these' : 'preference'})` : '';
   const html =
     `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">` +
-    `<h2>New project brief — rivaleclipse.dev/custom-services</h2>` +
+    `<h2>New project brief — rivaleclipse.dev/dev-request</h2>` +
     `<p><b>${esc(d.name)}</b> &lt;${esc(d.email)}&gt;${d.phone ? ' · ' + esc(d.phone) : ''}</p>` +
     `<p>Type: <b>${esc(d.type) || '—'}</b> · Budget: <b>${esc(d.budget) || '—'}</b><br>${esc(colorLine)}</p>` +
     `<p>${esc(d.details).replace(/\n/g, '<br>')}</p>` +
@@ -289,7 +290,7 @@ export async function onRequestPost({ request, env }) {
     (d.extra ? `<p><b>Extra:</b><br>${esc(d.extra).replace(/\n/g, '<br>')}</p>` : '') +
     `<p style="color:#999;font-size:12px">Full brief + ${images.length} image(s) attached as ${esc(zipName)}. Discord delivery pending webhook setup.</p></div>`;
   const sent = await sendViaResend(env, TO, FROM,
-    `Project brief: ${d.type || 'project'} — ${d.name}`,
+    `Project brief [${d.category}]: ${d.type || 'project'} — ${d.name}`,
     html, `New project brief from ${d.name} <${d.email}>\n\n${d.details}`,
     zipName, zipBytes);
   if (sent !== 'sent') {
