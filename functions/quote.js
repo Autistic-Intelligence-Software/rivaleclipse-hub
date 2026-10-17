@@ -181,14 +181,7 @@ async function sendViaResend(env, to, from, subject, html, text, zipName, zipByt
 }
 
 // ---------- main handler ----------
-export async function onRequestPost(ctx) {
-  try {
-    return await __realPost(ctx);
-  } catch (e) {
-    return new Response(JSON.stringify({ debug_crash: String((e && e.message) || e), debug_stack: String((e && e.stack) || '').slice(0, 600) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
-  }
-}
-async function __realPost({ request, env }) {
+export async function onRequestPost({ request, env }) {
   const origin = request.headers.get('origin') || '';
   const TO = env.TO_EMAIL || 'Shane.GopherGo@gmail.com';
   const FROM = env.FROM_EMAIL || 'hire@rivaleclipse.dev';
