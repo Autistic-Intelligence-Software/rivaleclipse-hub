@@ -70,10 +70,11 @@ document.getElementById('methods-sub').textContent = 'Active: ' + methods.join('
 try {
   const r = await fetch(AUTH + '/api/billing/subscriptions', { credentials: 'include' });
   const d = await r.json();
-  const subs = (d.subscriptions || []).concat((d.bundles || []).map((b) => ({ ...b, isBundle: true })));
+  const subs = (d.subscriptions || []).concat((d.bundles || []).map((b) => ({ ...b, isBundle: true })))
+    .concat((d.one_time || []).map((o) => ({ ...o, isOneTime: true })));
   document.getElementById('subs-block').innerHTML = subs.length ? subs.map((x) => `
     <div class="sub-row"><span><b>${x.isBundle ? x.bundle_name + ' (bundle)' : x.package_name}</b></span>
-    <span class="pill ${x.status === 'active' ? 'active' : x.status === 'trialing' ? 'trial' : ''}">${x.status}</span></div>`).join('')
+    <span class="pill ${x.status === 'active' ? 'active' : x.status === 'trialing' ? 'trial' : ''}">${x.isOneTime ? 'paid' : x.status}</span></div>`).join('')
     : '<p class="sub">No subscriptions yet. Each app\'s plan is separate — subscribe, trial, or cancel any one without affecting the others.</p>';
 } catch { document.getElementById('subs-block').innerHTML = '<p class="sub">Couldn’t load subscriptions right now.</p>'; }
 
