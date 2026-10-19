@@ -59,7 +59,7 @@ if (intent === 'client') {
 const s = await session();
 if (s) {
   // Register Client flow: flag the account as wanting client access before continuing.
-  if (intent === 'client' && s.user?.role !== 'client' && !s.user?.is_owner) {
+  if (intent === 'client' && s.user?.role !== 'client' && !(s.is_owner ?? s.user?.is_owner)) {
     try { await registerIntent('client'); } catch { /* non-fatal; continue */ }
   }
   location.href = next || '/dashboards/';
