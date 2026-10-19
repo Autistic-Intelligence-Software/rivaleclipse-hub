@@ -40,7 +40,7 @@
         <button class="btn" type="submit" style="width:100%; margin-top: 14px;">Email me a link</button>
       </form>
       <p id="form-msg"></p>
-      <p class="sub" style="margin-top:18px; font-size:.85rem;">New here? <a href="/sign-up/">Create an account</a> — it takes a minute and pairs your Discord once.</p>
+      <p class="sub" style="margin-top:18px; font-size:.85rem;">New here? <a href="/sign-up/">Create an account</a> — it takes a minute, just your email.</p>
     </div>
   </div>
 </div>
@@ -61,8 +61,8 @@ document.getElementById('passkey-btn').onclick = async () => {
   if (!email) { say('Enter your email first so we can find your passkey.', false); return; }
   say('Waiting for your device…', true);
   const r = await passkeyLogin(email);
+  // Discord pairing is never forced here: bot dashboards prompt for it themselves.
   if (r.ok) {
-    if (r.needsDiscord) { discordLogin(next, 'pair'); return; }
     location.href = next || '/dashboards/';
   } else {
     say({ no_passkey: 'No passkey on this device for that email yet — sign in another way, then add one in your dashboard.', cancelled: 'Cancelled.', unsupported: 'This browser doesn’t support passkeys.' }[r.error] || 'Passkey sign-in failed.', false);
