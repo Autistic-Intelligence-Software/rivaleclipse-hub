@@ -18,6 +18,14 @@
 .pill { font-size: .75rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
 .pill.active { color: #8fe3a8; border-color: #2c4a35; }
 .pill.trial { color: #f3d27a; border-color: #5a4a1c; }
+.thread { display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow-y: auto; margin: 6px 0 4px; }
+.msg { padding: 10px 14px; border-radius: 12px; font-size: .92rem; line-height: 1.55; max-width: 85%; }
+.msg .who { font-size: .75rem; color: var(--muted); margin-bottom: 4px; }
+.msg.team { align-self: flex-start; background: #101019; border: 1px solid var(--line); }
+.msg.me { align-self: flex-end; background: #1d1a10; border: 1px solid #4a3f1c; }
+.composer textarea { width: 100%; background: #0d0d15; border: 1px solid var(--line); border-radius: 10px;
+  color: var(--text); padding: 12px 14px; font-size: .95rem; font-family: inherit; min-height: 80px; resize: vertical; }
+.composer textarea:focus { outline: none; border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -37,6 +45,22 @@
   <div class="section-label">My subscriptions</div>
   <div class="block" id="subs-block"><p class="sub">Loading…</p></div>
 
+  <div class="section-label">Messages with the team</div>
+  <div class="block">
+    <h2>Conversation</h2>
+    <p class="sub">Message the Rival Eclipse team about your requests and projects — the same thread they see.</p>
+    <div class="thread" id="thread"><p class="sub">Loading…</p></div>
+    <form class="composer" id="msg-form">
+      <textarea id="msg-body" maxlength="4000" placeholder="Write a message…" required></textarea>
+      <div style="margin-top:12px"><button class="btn" type="submit" id="msg-send">Send</button></div>
+      <p class="sub" id="msg-note" style="margin-top:8px"></p>
+    </form>
+  </div>
+
+  <div class="block" style="text-align:center">
+    <p class="sub" style="margin:0">New here? <a href="/Client-intake/">Read the client intake walkthrough</a> — the path from request to finished product.</p>
+  </div>
+
   <div class="section-label">Security</div>
   <div class="block">
     <h2>Sign-in methods</h2>
@@ -48,7 +72,7 @@
   </div>
 </div>
 </main>
-<footer><div class="wrap"><span>© 2026 Rival Eclipse</span><nav><a href="/help/">Help</a><a href="/ToS-Privacy-legal/">ToS &amp; Privacy</a></nav></div></footer>
+<footer><div class="wrap"><span>© 2026 Rival Eclipse</span><nav><a href="/help/">Help</a><a href="/ToS-Privacy-legal/">ToS &amp; Privacy</a><a href="/sign-in/">Sign in</a><a href="/client/">Client Portal</a></nav></div></footer>
 <script src="/sky.js"></script>
 <script type="module">
 import { session, logout, passkeyRegister } from '/auth.js';
@@ -85,6 +109,47 @@ document.getElementById('add-passkey').onclick = async () => {
   msg.textContent = r.ok ? 'Passkey added.' : 'Couldn’t add the passkey (' + (r.error || 'error') + ').';
   if (r.ok) location.reload();
 };
+
+// ---- Messages with the team ----
+const threadEl = document.getElementById('thread');
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtWhen = (v) => { try { return v ? new Date(v).toLocaleString() : ''; } catch { return ''; } };
+function renderThread(msgs) {
+  threadEl.innerHTML = msgs.length ? msgs.map((m) => {
+    const team = !!(m.from_admin || m.role === 'admin' || m.author_role === 'admin');
+    const who = team ? 'Rival Eclipse team' : (s.discord?.username ? '@' + s.discord.username : 'You');
+    return `<div class="msg ${team ? 'team' : 'me'}"><div class="who">${esc(who)}${m.created_at ? ' · ' + esc(fmtWhen(m.created_at)) : ''}</div>${esc(m.body || m.text || '')}</div>`;
+  }).join('') : '<p class="sub">No messages yet — say hello and we’ll reply personally.</p>';
+  threadEl.scrollTop = threadEl.scrollHeight;
+}
+async function loadThread() {
+  try {
+    const r = await fetch(AUTH + '/api/messages', { credentials: 'include' });
+    const d = await r.json();
+    renderThread(r.ok ? (d.messages || []) : []);
+  } catch { threadEl.innerHTML = '<p class="sub">Couldn’t load messages right now.</p>'; }
+}
+document.getElementById('msg-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const ta = document.getElementById('msg-body');
+  const note = document.getElementById('msg-note');
+  const body = ta.value.trim();
+  if (!body) return;
+  const btn = document.getElementById('msg-send');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const r = await fetch(AUTH + '/api/messages', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body }),
+    });
+    if (r.ok) { ta.value = ''; note.textContent = ''; loadThread(); }
+    else { note.textContent = 'Couldn’t send that — try again in a moment.'; }
+  } catch { note.textContent = 'Couldn’t send that — try again in a moment.'; }
+  btn.disabled = false; btn.textContent = 'Send';
+};
+loadThread();
 </script>
 </body>
 </html>
