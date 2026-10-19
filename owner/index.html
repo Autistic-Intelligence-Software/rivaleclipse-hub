@@ -42,6 +42,9 @@
 .promo-row { display: flex; gap: 8px; margin-top: 10px; }
 .promo-row input { flex: 1; background: #0d0d15; border: 1px solid var(--line); border-radius: 8px;
   color: var(--text); padding: 9px 12px; font-size: .88rem; font-family: inherit; min-width: 0; }
+.promo-row select { flex: 1; background: #0d0d15; border: 1px solid var(--line); border-radius: 8px;
+  color: var(--text); padding: 9px 12px; font-size: .88rem; font-family: inherit; min-width: 0; cursor: pointer; }
+.promo-row select:focus { outline: none; border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -60,32 +63,23 @@
       <p class="sub">Each code grants exactly its tag, one time. Share a code with the person — they enter it under <a href="/team-code/">Enter Team code</a>.</p>
       <div class="gen-grid">
         <div class="gen-card">
-          <h3>📋 Team code</h3>
-          <p>Grants the <b>team</b> tag — client chats, change requests, feature flags.</p>
-          <button class="gen-btn" data-gen="team">Generate Team code</button>
-          <div class="code-out" id="out-team"></div>
-          <div class="code-row" id="row-team" style="display:none"><button class="copy-btn" data-copy="out-team">Copy</button></div>
-        </div>
-        <div class="gen-card">
-          <h3>🛡️ Admin code</h3>
-          <p>Grants the <b>admin</b> tag — user registry, team management, escalations.</p>
-          <button class="gen-btn" data-gen="admin">Generate Admin code</button>
-          <div class="code-out" id="out-admin"></div>
-          <div class="code-row" id="row-admin" style="display:none"><button class="copy-btn" data-copy="out-admin">Copy</button></div>
-        </div>
-        <div class="gen-card danger">
-          <h3>👑 Owner code</h3>
-          <p>Grants the <b>owner</b> tag — full control of everything.</p>
-          <button class="gen-btn" data-gen="owner">Generate Owner code</button>
-          <div class="code-out" id="out-owner"></div>
-          <div class="code-row" id="row-owner" style="display:none"><button class="copy-btn" data-copy="out-owner">Copy</button></div>
-          <p class="warn">Only share this with someone you trust completely — it grants full control, and it can’t be taken back from here.</p>
+          <h3>🔑 Generate invite code</h3>
+          <p>Each code grants exactly its tag, one time. Share a code with the person — they enter it under <a href="/team-code/">Enter Team code</a>.</p>
+          <div class="promo-row"><select id="gen-type" aria-label="Code type">
+            <option value="team">Team member</option>
+            <option value="admin">Admin</option>
+          </select></div>
+          <p class="dim" id="owner-mint-note" style="margin-top:10px;"></p>
+          <div style="margin-top:10px;"><button class="gen-btn" id="gen-code-btn">Generate code</button></div>
+          <div class="code-out" id="out-code"></div>
+          <div class="code-row" id="row-code" style="display:none"><button class="copy-btn" id="copy-code-btn">Copy</button></div>
+          <p class="warn" id="owner-trust-note" style="display:none">Only share an owner code with someone you trust completely — it grants full control, and it can’t be taken back from here.</p>
         </div>
         <div class="gen-card">
           <h3>🎟️ Promo code</h3>
           <p>A promo perk with your own wording — redeemed under “Enter Promo code”.</p>
           <div class="promo-row"><input id="promo-benefit" placeholder="e.g. 1 month free of the Service package" maxlength="200"></div>
-          <div style="margin-top:10px;"><button class="gen-btn" data-gen="promo">Generate Promo code</button></div>
+          <div style="margin-top:10px;"><button class="gen-btn" id="gen-promo-btn">Generate Promo code</button></div>
           <div class="code-out" id="out-promo"></div>
           <div class="code-row" id="row-promo" style="display:none"><button class="copy-btn" data-copy="out-promo">Copy</button></div>
         </div>
@@ -105,11 +99,35 @@
 </main>
 <script src="/sky.js"></script>
 <script type="module">
-import { session } from '/auth.js';
-import { generateCode, listCodes, revokeCode } from '/auth.js';
-import { hasTag, goBlocked } from '/_lib/gates.js';
+// Hardened gate: dynamic imports + a session timeout, so a stale cache or a
+// hung sign-in service can never leave this page stuck on "Loading…" forever.
+const failGate = (msg, btnLabel, btnHref) => {
+  document.getElementById('gate').innerHTML =
+    '<p class="sub">' + msg + '</p>' +
+    '<p><button class="gen-btn" id="gate-btn">' + btnLabel + '</button></p>';
+  document.getElementById('gate-btn').onclick = () => { location.href = btnHref; };
+  throw new Error('gate-failed');
+};
 
-const s = await session();
+let session, generateCode, listCodes, revokeCode;
+let hasTag, goBlocked;
+try {
+  ({ session, generateCode, listCodes, revokeCode } = await import('/auth.js'));
+  ({ hasTag, goBlocked } = await import('/_lib/gates.js'));
+} catch (e) {
+  failGate('The page didn\u2019t load cleanly \u2014 this is usually a stale cache.',
+    'Reload fresh', '/owner/?fresh=' + Date.now());
+}
+
+let s = null;
+try {
+  s = await Promise.race([
+    session(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('session-timeout')), 15000)),
+  ]);
+} catch (e) {
+  failGate('Couldn\u2019t reach the sign-in service. Check your connection.', 'Retry', '/owner/');
+}
 if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent('/owner/'); throw new Error('redirect'); }
 if (!hasTag(s, 'owner')) goBlocked('admin');
 document.getElementById('gate').style.display = 'none';
@@ -121,27 +139,71 @@ const esc = (x) => String(x ?? '').replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const onlineError = (status, data) => status === 404 && !data.error;
 
-document.querySelectorAll('[data-gen]').forEach((btn) => {
-  btn.onclick = async () => {
-    const type = btn.dataset.gen;
-    const benefit = type === 'promo' ? document.getElementById('promo-benefit').value.trim() : undefined;
-    if (type === 'promo' && !benefit) { say('Describe the promo perk first — it’s what the user will see.', false); return; }
-    btn.disabled = true;
-    const { status, data } = await generateCode(type, benefit);
-    btn.disabled = false;
-    if (onlineError(status, data)) { say('The code system is coming online — try again in a bit.', false); return; }
-    if (status === 200 && data.ok && data.code) {
-      const out = document.getElementById('out-' + type);
-      out.textContent = data.code;
-      out.classList.add('show');
-      document.getElementById('row-' + type).style.display = '';
-      say(`${type.charAt(0).toUpperCase() + type.slice(1)} code ready — copy it and share it directly.`, true);
-      loadCodes();
-    } else {
-      say(data.error || 'Couldn’t generate the code.', false);
-    }
-  };
-});
+// Only the primary owner account may mint owner codes. The auth service will
+// send can_mint_owner_codes (top-level or nested); undefined = not allowed.
+const canMintOwner = !!((s && s.can_mint_owner_codes) ?? (s && s.user && s.user.can_mint_owner_codes));
+const genType = document.getElementById('gen-type');
+const trustNote = document.getElementById('owner-trust-note');
+if (canMintOwner) {
+  const opt = document.createElement('option');
+  opt.value = 'owner';
+  opt.textContent = 'Owner';
+  genType.appendChild(opt);
+} else {
+  document.getElementById('owner-mint-note').textContent =
+    'Owner codes can only be generated by the primary owner account.';
+}
+genType.onchange = () => { trustNote.style.display = genType.value === 'owner' ? '' : 'none'; };
+
+document.getElementById('gen-code-btn').onclick = async (e) => {
+  const btn = e.currentTarget;
+  const type = genType.value;
+  btn.disabled = true;
+  const { status, data } = await generateCode(type);
+  btn.disabled = false;
+  if (onlineError(status, data)) { say('The code system is coming online — try again in a bit.', false); return; }
+  if (status === 200 && data.ok && data.code) {
+    const out = document.getElementById('out-code');
+    out.textContent = data.code;
+    out.classList.add('show');
+    document.getElementById('row-code').style.display = '';
+    say(`${type.charAt(0).toUpperCase() + type.slice(1)} code ready — copy it and share it directly.`, true);
+    loadCodes();
+  } else if (status === 403 && data.error === 'owner_mint_restricted') {
+    say('Only the primary owner account can generate owner codes.', false);
+  } else {
+    say(data.error || 'Couldn’t generate the code.', false);
+  }
+};
+
+document.getElementById('copy-code-btn').onclick = async (e) => {
+  const t = document.getElementById('out-code').textContent;
+  const btn = e.currentTarget;
+  try { await navigator.clipboard.writeText(t); btn.textContent = 'Copied ✓'; }
+  catch { btn.textContent = 'Copy failed — select it manually'; }
+  setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+};
+
+// Promo card (unchanged behavior).
+document.getElementById('gen-promo-btn').onclick = async (e) => {
+  const btn = e.currentTarget;
+  const benefit = document.getElementById('promo-benefit').value.trim();
+  if (!benefit) { say('Describe the promo perk first — it’s what the user will see.', false); return; }
+  btn.disabled = true;
+  const { status, data } = await generateCode('promo', benefit);
+  btn.disabled = false;
+  if (onlineError(status, data)) { say('The code system is coming online — try again in a bit.', false); return; }
+  if (status === 200 && data.ok && data.code) {
+    const out = document.getElementById('out-promo');
+    out.textContent = data.code;
+    out.classList.add('show');
+    document.getElementById('row-promo').style.display = '';
+    say('Promo code ready — copy it and share it directly.', true);
+    loadCodes();
+  } else {
+    say(data.error || 'Couldn’t generate the code.', false);
+  }
+};
 
 document.querySelectorAll('[data-copy]').forEach((btn) => {
   btn.onclick = async () => {
