@@ -160,12 +160,14 @@ ${(d.images || []).length ? `<h3>Uploaded images (${d.images.length})</h3><div c
 // ---------- account gate helpers ----------
 // Forward the browser's cookies to the auth service so it can log the request
 // against the signed-in account (and enforce the one-request-per-week limit).
-async function logRequestWithAuth(cookie, category) {
+async function logRequestWithAuth(cookie, category, features) {
   try {
     const res = await fetch('https://auth.rivaleclipse.dev/api/requests/log', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: cookie },
-      body: JSON.stringify({ category }),
+      // auth tolerates extra keys — features ride along so the auth service can
+      // log the optional-feature selections with the request.
+      body: JSON.stringify({ category, features: features || [] }),
     });
     return res.status;
   } catch (e) {
@@ -262,7 +264,7 @@ export async function onRequestPost({ request, env }) {
   if (!cookie) {
     return json({ ok: false, error: 'not_signed_in', next: nextPath(request) }, 401, origin);
   }
-  const logStatus = await logRequestWithAuth(cookie, d.category);
+  const logStatus = await logRequestWithAuth(cookie, d.category, d.features);
   if (logStatus === 429) {
     return json({ ok: false, error: 'rate_limited' }, 429, origin);
   }
