@@ -47,7 +47,12 @@ if (s) {
   const owner = !!(s.user || {}).is_owner;
   if (role === 'client' || role === 'admin' || owner) {
     // Client, admin, or owner — straight into the portal.
-    location.href = '/client/dashboard/';
+    // Client intake gate (fail-open): clients without intake go to /client/intake/ first.
+    if (role === 'client' && !owner && s.client && s.client.has_intake === false) {
+      location.href = '/client/intake/?next=' + encodeURIComponent('/client/dashboard/');
+    } else {
+      location.href = '/client/dashboard/';
+    }
   } else {
     // Signed in, but not a client account.
     gate.innerHTML = `
