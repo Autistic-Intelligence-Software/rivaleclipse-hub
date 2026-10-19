@@ -18,6 +18,11 @@
 .img-preview{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
 .img-preview img{width:90px;height:90px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
 .fineprint{font-size:.8rem;color:var(--muted);margin-top:8px}
+.feats{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:8px;margin:6px 0 4px}
+.feat{display:flex;align-items:center;gap:10px;background:#0d0d15;border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;font-size:.88rem;color:var(--muted);cursor:pointer;font-weight:normal;margin:0 !important}
+.feat input{accent-color:var(--accent);width:auto !important}
+.feat:has(input:checked){border-color:var(--accent);color:var(--text)}
 input[type=file]{padding:10px}
 </style>
 </head>
@@ -144,6 +149,29 @@ input[type=file]{padding:10px}
         <label for="q-extra">Extra information</label>
         <textarea id="q-extra" name="extra" maxlength="2000" rows="3" placeholder="Anything else we should know"></textarea>
 
+        <label>Optional features — tick anything you'd like included</label>
+        <div class="feats">
+          <label class="feat"><input type="checkbox" name="features" value="Online booking / scheduling">Online booking / scheduling</label>
+          <label class="feat"><input type="checkbox" name="features" value="E-commerce checkout">E-commerce checkout</label>
+          <label class="feat"><input type="checkbox" name="features" value="Photo gallery">Photo gallery</label>
+          <label class="feat"><input type="checkbox" name="features" value="Blog / news">Blog / news</label>
+          <label class="feat"><input type="checkbox" name="features" value="Testimonials">Testimonials</label>
+          <label class="feat"><input type="checkbox" name="features" value="Contact form">Contact form</label>
+          <label class="feat"><input type="checkbox" name="features" value="Live chat">Live chat</label>
+          <label class="feat"><input type="checkbox" name="features" value="Newsletter signup">Newsletter signup</label>
+          <label class="feat"><input type="checkbox" name="features" value="Social feed integration">Social feed integration</label>
+          <label class="feat"><input type="checkbox" name="features" value="Events calendar">Events calendar</label>
+          <label class="feat"><input type="checkbox" name="features" value="Menu / price pages">Menu / price pages</label>
+          <label class="feat"><input type="checkbox" name="features" value="FAQ section">FAQ section</label>
+          <label class="feat"><input type="checkbox" name="features" value="Member login area">Member login area</label>
+          <label class="feat"><input type="checkbox" name="features" value="Multilingual">Multilingual</label>
+          <label class="feat"><input type="checkbox" name="features" value="SEO package">SEO package</label>
+          <label class="feat"><input type="checkbox" name="features" value="Analytics dashboard">Analytics dashboard</label>
+          <label class="feat"><input type="checkbox" name="features" value="Self-edit CMS">Self-edit CMS</label>
+          <label class="feat"><input type="checkbox" name="features" value="Custom animations">Custom animations</label>
+          <label class="feat"><input type="checkbox" name="features" value="Gift cards / coupons">Gift cards / coupons</label>
+        </div>
+
         <input class="hp" type="text" name="company" tabindex="-1" autocomplete="off" aria-hidden="true">
         <div style="margin-top:22px"><button class="btn" type="submit" id="q-submit">Submit</button></div>
         <div id="form-msg"></div>
@@ -156,6 +184,8 @@ input[type=file]{padding:10px}
     <div>© 2026 Rival Eclipse. All things under rivaleclipse.dev.</div>
     <nav>
       <a href="/">Home</a>
+      <a href="/sign-in/">Sign in</a>
+      <a href="/client/">Client Portal</a>
       <a href="https://bouncer.rivaleclipse.dev/terms">Terms of Service</a>
       <a href="https://bouncer.rivaleclipse.dev/privacy">Privacy Policy</a>
     </nav>
@@ -239,6 +269,7 @@ document.getElementById('quote-form').addEventListener('submit', async (e) => {
     file_too_large: 'One of the images is over 4 MB.',
     image_rejected: 'One of your images was rejected by our content check — adult, shock, and gore content is not accepted. Please remove it and try again.',
     uploads_unavailable: 'Image uploads are temporarily unavailable — please submit without images for now, or try again later.',
+    rate_limited: 'You’ve already sent a dev request this week — one request per week per account. We’ll reply to your original request soon.',
     delivery_failed: 'Something went wrong on our end. Please try again in a minute.',
   };
   try {
@@ -248,6 +279,9 @@ document.getElementById('quote-form').addEventListener('submit', async (e) => {
       msg.className = 'ok';
       msg.textContent = 'Brief received — we\'ll reply personally, usually within a day.';
       e.target.reset(); imgPreview.innerHTML = '';
+    } else if (out.error === 'not_signed_in') {
+      location.href = '/sign-in/?next=' + encodeURIComponent(out.next || location.pathname);
+      return;
     } else { throw new Error(out.error || 'delivery_failed'); }
   } catch (err) {
     msg.className = 'err';
