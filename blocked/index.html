@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>One more step — Rival Eclipse</title>
+<meta name="description" content="A quick step before you continue — sign in, link Discord, or get the right account tag.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.hold { max-width: 560px; margin: 60px auto 0; text-align: center; }
+.hold .dic { font-size: 3rem; margin-bottom: 6px; }
+.hold h1 { font-size: 1.6rem; margin-bottom: 10px; }
+.hold p.sub { font-size: 1.02rem; line-height: 1.65; }
+.hold .cta-row { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+.hold .cta-row .btn, .hold .cta-row .btn-ghost { text-align: center; }
+.btn-ghost { display: inline-block; border: 1px solid var(--accent); color: var(--accent); font-weight: 700;
+  padding: 15px 40px; border-radius: 12px; font-size: 1.05rem; text-decoration: none; transition: transform .15s ease; }
+.btn-ghost:hover { transform: translateY(-2px); }
+.tiny { margin-top: 22px; font-size: .85rem; color: var(--muted); }
+.tiny a { color: var(--accent); }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+<div class="wrap">
+  <div class="crumb"><a href="/">← Rival Eclipse</a></div>
+  <div class="hold"><div class="block" id="card">
+    <div class="dic" id="emoji">🔑</div>
+    <h1 id="title">One more step</h1>
+    <p class="sub" id="body">Loading…</p>
+    <div class="cta-row" id="ctas"></div>
+    <p class="tiny" id="foot"></p>
+  </div></div>
+</div>
+</main>
+<script src="/sky.js"></script>
+<script type="module">
+import { safeNext } from '/_lib/gates.js';
+
+const q = new URLSearchParams(location.search);
+const reason = (q.get('reason') || '').toLowerCase();
+const next = safeNext(q.get('next'), '/dashboards/');
+const tag = (q.get('tag') || '').toLowerCase();
+
+const emoji = document.getElementById('emoji');
+const title = document.getElementById('title');
+const body = document.getElementById('body');
+const ctas = document.getElementById('ctas');
+const foot = document.getElementById('foot');
+const AUTH = 'https://auth.rivaleclipse.dev';
+
+const btn = (href, label, ghost) =>
+  `<a class="${ghost ? 'btn-ghost' : 'btn'}" href="${href}">${label}</a>`;
+
+// How each tag is earned — shown when someone lands here without it.
+const TAG_HELP = {
+  client: {
+    emoji: '💼', title: 'This area is for clients.',
+    body: 'The client portal is for accounts tagged as clients. Register as a client — it takes a couple of minutes — and you’ll land right back here.',
+    ctas: `<a class="btn" href="/sign-up/?intent=client&next=${encodeURIComponent(next)}">Register as a client</a>`,
+  },
+  tester: {
+    emoji: '🧪', title: 'This area is for testers.',
+    body: 'Tester access is granted after you apply. Head to your dashboards and hit “Apply to be Tester” — we review every application personally.',
+    ctas: `<a class="btn" href="/dashboards/">Go to my dashboards</a>`,
+  },
+  team: {
+    emoji: '📋', title: 'This area is for the team.',
+    body: 'Team access is granted by an admin — it can’t be claimed from here. If you work with us, ask an admin to add the tag to your account.',
+    ctas: `<a class="btn-ghost" href="/dashboards/">Back to dashboards</a>`,
+  },
+};
+
+if (reason === 'signin') {
+  emoji.textContent = '🔑';
+  title.textContent = 'Sign in to continue.';
+  body.textContent = 'You need a Rival Eclipse account for this part. Sign in (or register — it’s just your email) and you’ll pick up right where you left off.';
+  ctas.innerHTML = btn('/sign-in/?next=' + encodeURIComponent(next), 'Sign in / Register');
+  foot.innerHTML = 'New here? Registration takes about a minute.';
+} else if (reason === 'discord') {
+  emoji.textContent = '🔗';
+  title.textContent = 'Link Discord to continue.';
+  body.textContent = 'Bot dashboards need your Discord account so they know which servers you manage. Link it once — you’ll land right back where you were.';
+  ctas.innerHTML = btn(AUTH + '/auth/discord?action=pair&next=' + encodeURIComponent(next), 'Link Discord');
+  foot.innerHTML = 'Everything else on the site works without Discord.';
+} else if (reason === 'tag' && TAG_HELP[tag]) {
+  const h = TAG_HELP[tag];
+  emoji.textContent = h.emoji;
+  title.textContent = h.title;
+  body.textContent = h.body;
+  ctas.innerHTML = h.ctas;
+  foot.innerHTML = '<a href="/dashboards/">← Back to dashboards</a>';
+} else if (reason === 'admin') {
+  emoji.textContent = '🛡️';
+  title.textContent = 'Admins only.';
+  body.textContent = 'This area is for Rival Eclipse admins. If you need access, contact the team — admin tags are granted by the owner.';
+  ctas.innerHTML = btn('/dashboards/', 'Back to dashboards', true);
+  foot.innerHTML = '';
+} else {
+  // Unknown reason — never a dead end.
+  emoji.textContent = '🧭';
+  title.textContent = 'Let’s get you where you’re going.';
+  body.textContent = 'Something’s missing for that page. Your dashboards are a safe place to regroup.';
+  ctas.innerHTML = btn('/dashboards/', 'Go to my dashboards');
+  foot.innerHTML = '<a href="/">← Home</a>';
+}
+</script>
+<script src="/assistant.js"></script>
+</body>
+</html>
