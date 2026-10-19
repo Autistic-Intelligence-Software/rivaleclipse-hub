@@ -9,13 +9,6 @@
 <style>
 .auth-card { max-width: 520px; margin: 30px auto 0; }
 .auth-card .block { margin-top: 0; }
-.auth-methods { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
-.auth-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
-  padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: #0d0d15;
-  color: var(--text); font-size: 1rem; font-weight: 600; cursor: pointer; font-family: inherit; }
-.auth-btn:hover { border-color: var(--accent); }
-.auth-btn.discord { background: #5865F2; border-color: #5865F2; color: #fff; }
-.auth-btn.discord:hover { background: #4752c4; }
 .how { margin-top: 22px; }
 .how li { color: var(--muted); font-size: .93rem; line-height: 1.7; margin-bottom: 6px; }
 </style>
@@ -28,15 +21,18 @@
   <div class="auth-card">
     <div class="block">
       <h2 id="signup-title">Create your account</h2>
-      <p class="sub" id="signup-sub">One login for every Rival Eclipse dashboard, bot, and web app. Pair your Discord once — after that, sign in with a magic link or your fingerprint/face.</p>
-      <div class="auth-methods">
-        <button class="auth-btn discord" id="discord-btn">Sign up with Discord</button>
-      </div>
+      <p class="sub" id="signup-sub">One login for every Rival Eclipse dashboard, bot, and web app. No password — just your email.</p>
+      <form class="quote" id="magic-form">
+        <label for="email">Email address</label>
+        <input type="email" id="email" required autocomplete="email" placeholder="you@example.com">
+        <button class="btn" type="submit" style="width:100%; margin-top: 14px;" id="go-btn">Email me my sign-up link</button>
+      </form>
+      <p id="form-msg"></p>
       <div class="how">
         <ol style="padding-left: 20px;">
-          <li><b style="color:var(--text)">Pair Discord once.</b> We link your Discord so dashboards know your servers.</li>
-          <li><b style="color:var(--text)">Add a passkey (optional).</b> Use fingerprint or face unlock for one-tap sign-in later.</li>
-          <li><b style="color:var(--text)">Done.</b> Magic links always work as a fallback — no password to remember.</li>
+          <li><b style="color:var(--text)">Enter your email.</b> We send you a sign-in link (expires in 15 minutes).</li>
+          <li><b style="color:var(--text)">Click the link.</b> Your account is created — no password to remember.</li>
+          <li><b style="color:var(--text)">Link Discord (optional).</b> Only needed for bot dashboards — you can do it anytime, or skip it entirely.</li>
         </ol>
       </div>
       <p class="sub" style="margin-top:18px; font-size:.85rem;">Already have an account? <a href="/sign-in/">Sign in</a></p>
@@ -46,9 +42,11 @@
 </main>
 <script src="/sky.js"></script>
 <script type="module">
-import { session, discordLogin, nextUrl, registerIntent } from '/auth.js';
+import { session, requestMagicLink, registerIntent, nextUrl } from '/auth.js';
 const next = nextUrl();
 const intent = new URLSearchParams(location.search).get('intent');
+const msg = document.getElementById('form-msg');
+function say(t, ok) { msg.textContent = t; msg.className = ok ? 'ok' : 'err'; }
 
 if (intent === 'client') {
   document.getElementById('signup-title').textContent = 'Register as a client';
@@ -58,13 +56,30 @@ if (intent === 'client') {
 
 const s = await session();
 if (s) {
-  // Register Client flow: flag the account as wanting client access before continuing.
+  // Already signed in: flag the account as wanting client access before continuing.
   if (intent === 'client' && s.user?.role !== 'client' && !(s.is_owner ?? s.user?.is_owner)) {
     try { await registerIntent('client'); } catch { /* non-fatal; continue */ }
   }
   location.href = next || '/dashboards/';
 }
-document.getElementById('discord-btn').onclick = () => discordLogin(next);
+
+// New registration: email magic link, then land on the welcome interstitial.
+document.getElementById('magic-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('email').value.trim();
+  const btn = document.getElementById('go-btn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  say('Sending…', true);
+  const dest = '/welcome/?to=' + encodeURIComponent(next || '/dashboards/') + (intent === 'client' ? '&intent=client' : '');
+  const { status, data } = await requestMagicLink(email, dest);
+  if (status === 200) {
+    document.getElementById('magic-form').style.display = 'none';
+    say('Check your inbox — your sign-up link expires in 15 minutes.', true);
+  } else {
+    say(data.error === 'rate_limited' ? 'Too many requests — wait a few minutes.' : 'Couldn’t send the email. Try again.', false);
+    btn.disabled = false; btn.textContent = 'Email me my sign-up link';
+  }
+};
 </script>
 </body>
 </html>
