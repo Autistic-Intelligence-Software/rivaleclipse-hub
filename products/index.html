@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Products &amp; Services — Rival Eclipse</title>
+<meta name="description" content="Browse everything Rival Eclipse offers — Discord bots, web apps, and custom development. No account needed to look around.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.beta-pill{display:inline-block;font-size:.68rem;font-weight:800;letter-spacing:.08em;color:#0a0a0f;background:#ffd54a;border-radius:999px;padding:2px 9px;margin-right:8px;vertical-align:2px}
+.mission{border-left:4px solid var(--accent)}
+.mission p{font-size:1.08rem;line-height:1.7;color:var(--text)}
+.prod-card{cursor:pointer;text-align:left;font:inherit;width:100%}
+.prod-card ul{list-style:none;display:flex;flex-direction:column;gap:7px;margin:4px 0 6px}
+.prod-card ul li{color:var(--muted);font-size:.93rem;line-height:1.55;padding-left:20px;position:relative}
+.prod-card ul li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.prod-card .hint{font-size:.82rem;color:var(--muted);letter-spacing:.04em}
+/* Modal */
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(3,3,8,.78);backdrop-filter:blur(3px);
+  display:none;align-items:flex-start;justify-content:center;padding:4vh 16px;overflow-y:auto}
+.overlay.open{display:flex}
+.modal{position:relative;background:linear-gradient(180deg,#16161f,#101018);
+  border:1px solid #3a3a4d;border-radius:20px;max-width:720px;width:100%;
+  padding:40px 36px 36px;box-shadow:0 30px 80px rgba(0,0,0,.6);margin:auto}
+.modal-close{position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;
+  border:1px solid var(--line);background:#0d0d15;color:var(--text);font-size:1.15rem;
+  cursor:pointer;line-height:1}
+.modal-close:hover{border-color:var(--accent);color:var(--accent)}
+.modal h2{font-size:1.7rem;margin-bottom:4px;padding-right:44px}
+.modal .mtag{color:var(--muted);font-size:.92rem;margin-bottom:20px}
+.modal h3{font-size:1.08rem;color:var(--accent);margin:24px 0 8px;letter-spacing:.02em}
+.modal p,.modal li{color:var(--muted);font-size:.95rem;line-height:1.65}
+.modal ul{padding-left:20px;margin:6px 0}
+.modal li{margin-bottom:6px}
+.modal .fineprint{font-size:.85rem;margin-top:6px}
+.modal .fineprint a{color:var(--accent)}
+.modal details{border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:10px;background:rgba(20,20,31,.6)}
+.modal summary{cursor:pointer;font-weight:600;color:var(--text);font-size:.95rem}
+.modal summary::marker{color:var(--accent)}
+.modal details p{margin-top:8px}
+.modal .visit-row{margin-top:26px;display:flex;gap:12px;flex-wrap:wrap}
+@media (max-width:640px){.modal{padding:32px 22px 28px}.modal h2{font-size:1.4rem}}
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+  <div class="wrap">
+    <div class="crumb"><a href="/">← Rival Eclipse</a></div>
+    <h1 class="page-title">Products &amp; Services</h1>
+    <p class="page-sub">Everything we make, in one place. Click any product for the full details — no account needed to look around.</p>
+
+    <div class="block mission">
+      <h2>Our Mission</h2>
+      <p><strong>Rival Eclipse exists to out-do the available options</strong> — better free tiers, cheaper prices, and tools that respect the people who use them. If something costs too much or locks the good stuff behind a paywall, we build the version we'd want to use ourselves.</p>
+    </div>
+
+    <div class="grid" id="product-grid">
+      <button class="card prod-card" data-product="bouncer">
+        <div class="icon"><img src="/bouncer-bot.webp" alt="Bouncer Bot icon"></div>
+        <h2><span class="beta-pill">BETA</span>Bouncer Bot (beta)</h2>
+        <p>Anti-scam bouncer for your Discord server.</p>
+        <ul>
+          <li>Cross-server shared threat intelligence</li>
+          <li>Quarantine-not-ban workflows with appeals</li>
+          <li>Onboarding watchdog: honeypots &amp; role-spam detection</li>
+          <li>Free while in beta</li>
+        </ul>
+        <div class="hint">Click for details, ToS, privacy &amp; FAQ →</div>
+      </button>
+      <button class="card prod-card" data-product="chatmate">
+        <div class="icon"><img src="/chat-mate.webp" alt="Chat-Mate icon"></div>
+        <h2><span class="beta-pill">BETA</span>Chat-Mate (beta)</h2>
+        <p>Server housekeeping that learns your rules.</p>
+        <ul>
+          <li>Keeps channels on-topic, moves stray messages</li>
+          <li>Rule-builder wizard + trainable categories</li>
+          <li>One-time DM passes &amp; Ask-to-DM approvals</li>
+          <li>Free while in beta</li>
+        </ul>
+        <div class="hint">Click for details, ToS, privacy &amp; FAQ →</div>
+      </button>
+      <button class="card prod-card" data-product="tim">
+        <div class="icon"><img src="/tim.webp" alt="Tim icon"></div>
+        <h2><span class="beta-pill">BETA</span>Tim (beta)</h2>
+        <p>An AI chatbot for your server — your key, your rules.</p>
+        <ul>
+          <li>You bring your own AI key (OpenAI, Gemini, Anthropic, local)</li>
+          <li>Per-server learning memory of people &amp; lore</li>
+          <li>Filters (off/light/family/strict) + personalities</li>
+          <li>Free while in beta</li>
+        </ul>
+        <div class="hint">Click for details, ToS, privacy &amp; FAQ →</div>
+      </button>
+      <button class="card prod-card" data-product="vibecheck">
+        <div class="icon"><img src="/vibecheck.webp" alt="VibeCheck icon"></div>
+        <h2><span class="beta-pill">BETA</span>VibeCheck (beta)</h2>
+        <p>Know how your community actually feels.</p>
+        <ul>
+          <li>Anonymous vibe ratings + pulse &amp; exit surveys</li>
+          <li>Rep / trait voting with anti-gaming limits</li>
+          <li>Happiness channel &amp; leaderboards</li>
+          <li>Free while in beta</li>
+        </ul>
+        <div class="hint">Click for details, ToS, privacy &amp; FAQ →</div>
+      </button>
+      <button class="card prod-card" data-product="jayrain">
+        <div class="icon"><img src="/jayrain.webp" alt="FreeMium JayRain icon"></div>
+        <h2><span class="beta-pill">BETA</span>FreeMium JayRain (beta)</h2>
+        <p>Music for your server, powered by the community.</p>
+        <ul>
+          <li>Plays through member-hosted audio nodes</li>
+          <li>Host your own node on a PC — free forever</li>
+          <li>In-chat console in voice-channel text chats</li>
+          <li>Free while in beta</li>
+        </ul>
+        <div class="hint">Click for details, ToS, privacy &amp; FAQ →</div>
+      </button>
+      <button class="card prod-card" data-product="forge">
+        <div class="icon"><img src="/forge.webp" alt="Bot Forge icon"></div>
+        <h2>Bot Forge</h2>
+        <p>Describe a bot in plain words — get working code.</p>
+        <ul>
+          <li>Freeform AI code generation, no coding needed</li>
+          <li>Step-by-step self-hosting guide included</li>
+          <li>You bring your own AI keys</li>
+          <li>Honest limits stated up front</li>
+        </ul>
+        <div class="hint">Click for details, ToS, privacy &amp; FAQ →</div>
+      </button>
+      <button class="card prod-card" data-product="qr">
+        <div class="icon"><img src="/qr-converter.webp" alt="QR Converter icon"></div>
+        <h2>GIF to QR Converter</h2>
+        <p>Artistic QR codes with your artwork fused in.</p>
+        <ul>
+          <li>Artwork becomes the QR's data modules — fully scannable</li>
+          <li>5 free generations, then $0.99 for unlimited</li>
+          <li>Your images are processed in-page, never uploaded</li>
+          <li>QRs never expire — yours to keep</li>
+        </ul>
+        <div class="hint">Click for details, ToS, privacy &amp; FAQ →</div>
+      </button>
+      <button class="card prod-card" data-product="customdev">
+        <div class="dic" style="font-size:52px">🛠️</div>
+        <h2>Custom Dev Services</h2>
+        <p>Need something built? We build it, you own it.</p>
+        <ul>
+          <li>Websites, web apps, Discord bots, AI chatbots</li>
+          <li>Fixed-price quotes — tick-box feature selection</li>
+          <li>You own the code, plain and simple</li>
+          <li>Free quote via the request forms</li>
+        </ul>
+        <div class="hint">Click for details &amp; FAQ →</div>
+      </button>
+    </div>
+  </div>
+</main>
+
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <button class="modal-close" id="modal-close" aria-label="Close">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div>© 2026 Rival Eclipse. All things under rivaleclipse.dev.</div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/sign-in/">Sign in</a>
+      <a href="/client/">Client Portal</a>
+      <a href="/ToS-Privacy-legal/">ToS &amp; Privacy</a>
+    </nav>
+  </div>
+</footer>
+<script src="/sky.js"></script>
+<script>
+var PRODUCTS = {
+bouncer: {
+  name: "Bouncer Bot (beta)",
+  tag: "Anti-scam bouncer for your Discord server. Free while in beta.",
+  visit: "https://bouncer.rivaleclipse.dev",
+  visitLabel: "Open Bouncer portal",
+  overview: "<p>Bouncer Bot is a cross-server anti-scam network for Discord. Servers opt in to share anonymized threat intelligence, so scammers can't burn through one server and move on to the next untouched.</p><p>It works quarantine-not-ban: suspicious newcomers are held for verification instead of being kicked, with an appeals queue moderators review. Its tools include <strong>/report</strong> (file a scam report — adjudicated by two reputations, so false reporters lose weight over time), <strong>/vouch</strong> (vouch for trusted users, with slashing if you vouch a confirmed scammer), <strong>/trust</strong> (look up what the network knows), an onboarding watchdog (honeypot roles, role-spam detection, contradictory pairs), and gate modes including Follow Another Bot.</p>",
+  tos: "<p>In short: Bouncer Bot is in beta and <strong>free while in beta</strong>. Features may change at any time. Don't use it to harass, dox, file false reports, or break Discord's rules. Threat tallies and scores are informational signals, not guarantees — moderation decisions stay with your server's team. The bot is provided as-is, no warranty.</p><p class=\"fineprint\">Full text: <a href=\"https://bouncer.rivaleclipse.dev/terms\" target=\"_blank\" rel=\"noopener\">bouncer.rivaleclipse.dev/terms</a></p>",
+  privacy: "<p>In short: we minimize what we keep and <strong>never sell data</strong>. Device signals collected at verification are hashed with a secret salt and the raw values discarded — only the opaque hash and Discord user ID are stored. Reports, vouches, and appeals are kept so moderators can adjudicate; denied verifications tally toward a shared suspicious-users list (10 denials across servers triggers it, disputable). Per-user records are deleted on request.</p><p class=\"fineprint\">Full text: <a href=\"https://bouncer.rivaleclipse.dev/privacy\" target=\"_blank\" rel=\"noopener\">bouncer.rivaleclipse.dev/privacy</a></p>",
+  faqs: [
+    ["Does Bouncer ban people automatically?", "No. It quarantines instead of banning — suspicious users are held for verification and every enforcement decision stays with your server's moderators. Even its scam filter only acts at high confidence with corroboration."],
+    ["What is the global suspicious-users list?", "When a user's verification is denied in 10 different servers, their ID joins a shared list and any server running Bouncer holds them for manual verification on join. Users can dispute their listing."],
+    ["What happens if I vouch for a scammer?", "Vouching carries risk: if someone you vouched for is later confirmed as a scammer, your own reputation takes a hit (slashing)."],
+    ["Is it really free?", "Yes — Bouncer Bot is in beta and free while in beta. There is no paid tier."],
+    ["What data does it keep about me?", "Hashed device fingerprints (raw signals discarded), report/vouch/appeal records tied to Discord IDs, and quarantine tallies. Nothing is sold; per-user records are deleted on request."]
+  ]
+},
+chatmate: {
+  name: "Chat-Mate (beta)",
+  tag: "Server housekeeping that learns your rules. Free while in beta.",
+  visit: "https://chatmate.rivaleclipse.dev",
+  visitLabel: "Open Chat-Mate dashboard",
+  overview: "<p>Chat-Mate keeps your Discord channels on-topic. It reads server messages to learn what belongs in each channel — keywords, vibes, links, images — and moves stray messages once a pattern is mature and confident. Every move is visible and reversible.</p><p>It also offers a <strong>/rulebuilder</strong> 6-step wizard, a <strong>/train</strong> flow with 21 content categories, one-time DM passes (a single bot-relayed DM without opening inboxes), Ask-to-DM role approvals, join-message cleanup scheduling, and moderator-only cleanup tools like /clearbots and /clearsystem.</p>",
+  tos: "<p>In short: Chat-Mate is in beta and <strong>free while in beta</strong>, provided as-is for testing and feedback. Use it to manage servers you administer; don't harass, spam, or break Discord's rules. Admins are responsible for the patterns they train and the cleanup schedules they set. No guarantee of uptime and no liability for lost messages or missed actions.</p><p class=\"fineprint\">Full text: <a href=\"https://chatmate.rivaleclipse.dev/terms\" target=\"_blank\" rel=\"noopener\">chatmate.rivaleclipse.dev/terms</a></p>",
+  privacy: "<p>In short: Chat-Mate reads server messages to learn placement patterns, but stores them as <strong>aggregate statistics</strong> (counts, keywords, confidence scores) — never as message logs. Raw message text is never stored. Per-server configuration, DM-pass records, and Ask-to-DM requests are kept only to run the features you asked for. Nothing is ever sold or shared with third parties. Data is deleted on request.</p><p class=\"fineprint\">Full text: <a href=\"https://chatmate.rivaleclipse.dev/privacy\" target=\"_blank\" rel=\"noopener\">chatmate.rivaleclipse.dev/privacy</a></p>",
+  faqs: [
+    ["Will it delete or move messages on its own?", "It only moves messages automatically once a learned pattern is mature and confident — before that, moves happen only when a trainer tells it to. Every move is visible and reversible. Cleanup commands always show a confirmation first."],
+    ["What is the rule builder?", "A 6-step wizard: pick a channel to watch, the content type, up to 10 examples, and a destination — then preview what would move before activating anything."],
+    ["What are DM passes?", "Admins can grant someone a single bot-relayed direct message to another member — no friend requests, no open inboxes. Ask-to-DM lets role members approve or deny incoming requests."],
+    ["Is it free?", "Yes — Chat-Mate is in beta and free while in beta."],
+    ["Does it keep copies of our messages?", "No. Pattern learning happens in memory; what persists are aggregate statistics, not message text."]
+  ]
+},
+tim: {
+  name: "Tim (beta)",
+  tag: "An AI chatbot for your server — your key, your rules. Free while in beta.",
+  visit: "https://tim.rivaleclipse.dev",
+  visitLabel: "Open Tim dashboard",
+  overview: "<p>Tim is an AI chatbot for Discord servers. Server admins connect their own AI provider account — OpenAI, Google Gemini, Anthropic, or a custom OpenAI-compatible endpoint like a local model — and Tim chats with members using that account. Tim itself does not provide the AI model.</p><p>Tim replies when mentioned or replied to (and optionally in admin-chosen channels), remembers durable facts about chatters and server lore per server, and offers adjustable filters (off, light, family, strict), custom banned words, per-channel toggles, and personality presets. Memories can be viewed and deleted anytime.</p>",
+  tos: "<p>In short: Tim is in beta and <strong>free during beta</strong>, provided as-is. The AI provider account is yours — you're responsible for its costs, its API terms, and keeping the key safe (Tim stores it encrypted and never shows it again). Don't use Tim to harass, spam, or break Discord's or your provider's terms. AI replies can be wrong — don't treat them as professional advice.</p><p class=\"fineprint\">Full text: <a href=\"https://tim.rivaleclipse.dev/terms\" target=\"_blank\" rel=\"noopener\">tim.rivaleclipse.dev/terms</a></p>",
+  privacy: "<p>In short: when Tim replies, recent channel messages are sent to the AI provider <strong>you</strong> connected — we don't choose or control it. Learning memories are stored per server and deletable anytime with /tim forget or the dashboard. Your API key is stored encrypted (AES-256-GCM) and never displayed again. We never sell data and never use your messages or key for anything except running Tim in your server.</p><p class=\"fineprint\">Full text: <a href=\"https://tim.rivaleclipse.dev/privacy\" target=\"_blank\" rel=\"noopener\">tim.rivaleclipse.dev/privacy</a></p>",
+  faqs: [
+    ["Do I have to pay for the AI?", "Tim itself is free in beta, but the AI replies run on an API key you provide — you pay your AI provider's usage rates (or run a free local model). Usage counters in the dashboard show what your key is spending."],
+    ["What does Tim remember?", "Durable facts about chatters, server lore, and running jokes — per server. Anyone in the server can ask what it remembers, and memories can be deleted anytime."],
+    ["Can I control what Tim says?", "Yes: filter levels (off, light, family, strict), custom banned words, per-channel toggles, and 5 personality presets."],
+    ["Is Tim always right?", "No — replies are AI-generated and can be wrong. Don't treat them as professional advice."],
+    ["Is it free?", "Yes — Tim is in beta and free while in beta."]
+  ]
+},
+vibecheck: {
+  name: "VibeCheck (beta)",
+  tag: "Know how your community actually feels. Free while in beta.",
+  visit: "https://vibecheck.rivaleclipse.dev",
+  visitLabel: "Open VibeCheck dashboard",
+  overview: "<p>VibeCheck is a community-feedback Discord bot. Members award rep and trait votes (/rep, /unrep), leave anonymous vibe ratings, answer short pulse surveys by DM, and fill in exit surveys when they leave. A happiness channel reflects recent survey averages, and leaderboards show server (and moderator-only global) standings.</p><p>Every feature is <strong>off by default</strong> in each server — admins turn features on in the web dashboard or the in-chat console, and can turn them off again anytime.</p>",
+  tos: "<p>In short: VibeCheck is in beta and <strong>free during beta</strong>, provided as-is for testing and feedback. Don't game ratings (no vote-stuffing, alt accounts, or harassment-by-vote). Ratings are community signals, not guarantees of anyone's character. Admins are responsible for how the bot is configured; any feature can be disabled.</p><p class=\"fineprint\">Full text: <a href=\"https://vibecheck.rivaleclipse.dev/terms\" target=\"_blank\" rel=\"noopener\">vibecheck.rivaleclipse.dev/terms</a></p>",
+  privacy: "<p>In short: vibe ratings are <strong>anonymous</strong> — aggregates power the summaries, not individual callouts. Pulse surveys arrive by DM but you can opt out anytime (opting out stops all pulse DMs). Global leaderboard stats are visible to moderators only and use cross-server voter deduplication. Everything is off by default until an admin enables it.</p><p class=\"fineprint\">Full text: <a href=\"https://vibecheck.rivaleclipse.dev/privacy\" target=\"_blank\" rel=\"noopener\">vibecheck.rivaleclipse.dev/privacy</a></p>",
+  faqs: [
+    ["Is it really anonymous?", "Vibe ratings are anonymous — what members see are aggregates and summaries, not who rated whom."],
+    ["How do I stop the survey DMs?", "Opt out anytime; opting out stops all pulse survey DMs."],
+    ["Is it on by default?", "No — every feature is off by default per server. Admins enable what they want in the dashboard or in-chat console."],
+    ["What is rep voting?", "Members award or remove trait votes like 'helpful' or 'funny' on each other, with anti-gaming limits such as cooldowns and per-server trait lists."],
+    ["Is it free?", "Yes — VibeCheck is in beta and free while in beta."]
+  ]
+},
+jayrain: {
+  name: "FreeMium JayRain (beta)",
+  tag: "Music for your server, powered by the community. Free while in beta.",
+  visit: "https://freemiumjayrain.rivaleclipse.dev",
+  visitLabel: "Open JayRain dashboard",
+  overview: "<p>FreeMium JayRain is a Discord music bot with a twist: instead of hosting audio itself, it plays music through Lavalink nodes that users run on their own machines. Run a node on your PC and music is <strong>free forever</strong> — nodes can be shared publicly, per-server, or kept private.</p><p>It offers /play, /setup, /setupwizard, /mynode, and /console commands, an in-chat console posted to the voice channel's text chat (type a song to queue it), and a 7-step setup wizard plus a one-click node bundle. An optional $1.49/mo Mobile tier (7-day trial) provides a hosted node as an absolute last resort — currently dormant while in beta.</p>",
+  tos: "<p>In short: FreeMium JayRain is in beta and <strong>free during beta</strong> — nothing is charged while the beta label applies. The Mobile tier ($1.49/mo after a 7-day trial, cancel anytime) exists for members who can't run a node; its hosted node only plays when no community node is healthy. Your node runs on your machine under your control (PC required — phones can't host nodes), and you're responsible for complying with your audio sources' terms. Provided as-is, best effort.</p><p class=\"fineprint\">Full text: <a href=\"https://freemiumjayrain.rivaleclipse.dev/terms\" target=\"_blank\" rel=\"noopener\">freemiumjayrain.rivaleclipse.dev/terms</a></p>",
+  privacy: "<p>In short: the bot connects to voice channels to play audio and reads plain messages in voice-channel text chats as song requests. Node passwords you link are kept server-side — the bot is the sole gatekeeper and never exposes them. Sign-in is via Discord; dashboard access is per-server. We never see or store payment card details (Stripe handles billing).</p><p class=\"fineprint\">Full text: <a href=\"https://freemiumjayrain.rivaleclipse.dev/privacy\" target=\"_blank\" rel=\"noopener\">freemiumjayrain.rivaleclipse.dev/privacy</a></p>",
+  faqs: [
+    ["How can music be free?", "The bot doesn't host audio — it plays through Lavalink nodes run by the community. Host your own node on a PC and it's free forever; while any node is online, mobile listeners are free too."],
+    ["What is the Mobile tier?", "$1.49/month (7-day free trial, cancel anytime) for members who can't run a node. It unlocks a hosted node that only ever plays as an absolute last resort. It's dormant during beta — free while in beta."],
+    ["Can I host a node from my phone?", "No — node hosting requires a PC (Windows, Mac, or Linux). Phones can listen, just not host."],
+    ["What if no node is online?", "The bot says so plainly and points you at the setup guide instead of playing anything."],
+    ["Is it free?", "Yes — FreeMium JayRain is in beta and free while in beta."]
+  ]
+},
+forge: {
+  name: "Bot Forge",
+  tag: "Describe a bot in plain words — get working code. Web-only.",
+  visit: "https://botforge.rivaleclipse.dev",
+  visitLabel: "Open Bot Forge",
+  overview: "<p>Bot Forge is a web-only bot builder: describe the Discord bot you want in plain words, confirm the details, and get ready-to-run code with a step-by-step hosting guide. There's no invitable bot instance — the bots you make are yours to host.</p><p>You bring your own AI keys (the builder runs on your provider account), your projects are saved to your signed-in account, and every generation carries an honest note about what AI codegen can get wrong, so you know the limits up front.</p>",
+  tos: "<p>In short: Bot Forge is a web tool, not a hosted bot — generated bots are self-hosted by you under your own responsibility. You supply the AI provider keys it runs on. Generated code is provided as-is; review it before running, especially anything handling tokens or user data. Sign-in is required so your projects are saved to your account.</p><p class=\"fineprint\">Full terms live on the Bot Forge site: <a href=\"https://botforge.rivaleclipse.dev\" target=\"_blank\" rel=\"noopener\">botforge.rivaleclipse.dev</a></p>",
+  privacy: "<p>In short: your Bot Forge projects are tied to your signed-in account so you can revisit them. Your AI provider keys stay yours and are used only to generate your bots. We don't sell data or use your projects for anything besides operating the builder for you.</p><p class=\"fineprint\">Full policy lives on the Bot Forge site: <a href=\"https://botforge.rivaleclipse.dev\" target=\"_blank\" rel=\"noopener\">botforge.rivaleclipse.dev</a></p>",
+  faqs: [
+    ["Do I need to know how to code?", "No — describe what you want in plain words. You get working code plus a hosting guide that walks through setup step by step."],
+    ["Where does my bot run?", "Anywhere you host it — the guide covers options. Bot Forge itself doesn't host your bot."],
+    ["Do I need AI keys?", "Yes — you bring your own AI provider keys, and usage bills to your provider account."],
+    ["Can the AI make mistakes?", "Yes. Every generation includes an honest note about AI codegen limits — always review generated code before running it, especially around tokens and user data."],
+    ["Is it free to use?", "Yes — Bot Forge is a free web tool; you only ever pay your own AI provider for generation usage."]
+  ]
+},
+qr: {
+  name: "GIF to QR Converter",
+  tag: "Artistic QR codes with your artwork fused in. 5 free, then $0.99 unlimited.",
+  visit: "https://customqr.rivaleclipse.dev",
+  visitLabel: "Open QR Converter",
+  overview: "<p>The GIF to QR Converter turns your images and GIFs into artistic, fully-scannable QR codes — your artwork is fused into the QR's data modules themselves, not pasted on as a badge. Seven steps: upload an image, paste a destination link, pick dot and eye styles, check brightness and contrast, test-scan, generate, download.</p><p>You get <strong>5 free generations</strong> per account; <strong>$0.99 unlocks unlimited</strong> conversions. Your QRs never expire — the link is embedded in the code itself, so anything you make is yours to keep. Never auto-adjusts your images: if settings are off, it shows a red-text warning instead.</p>",
+  tos: "<p>In short: 5 free generations per account; the $0.99 one-time payment unlocks unlimited conversions (processed by Stripe). Your creations are yours to keep and never expire. You're responsible for having the rights to images you upload and links you encode. Provided as-is, best effort.</p><p class=\"fineprint\">Full terms live on the converter site: <a href=\"https://customqr.rivaleclipse.dev\" target=\"_blank\" rel=\"noopener\">customqr.rivaleclipse.dev</a></p>",
+  privacy: "<p>In short: <strong>your images and links are processed in this page and aren't uploaded</strong> — QR codes, images, and design settings are not saved in the app or on a server. Sign-in is via magic link (email); your 5 free generations and purchases are tied to your email address. Nothing to sell, because nothing is kept.</p><p class=\"fineprint\">Full policy lives on the converter site: <a href=\"https://customqr.rivaleclipse.dev\" target=\"_blank\" rel=\"noopener\">customqr.rivaleclipse.dev</a></p>",
+  faqs: [
+    ["How many QRs can I make for free?", "5 free generations per account. $0.99 unlocks unlimited conversions."],
+    ["Are my uploaded images sent to a server?", "No — your image and link are processed in the page and aren't uploaded. Your creations aren't saved anywhere."],
+    ["Do my QR codes expire?", "Never. The destination is embedded in the QR itself, so anything you make — even on the free trial — is yours to keep."],
+    ["Will it fix my image's brightness automatically?", "Never. It shows a red-text warning naming the image and the issue instead, and you adjust it yourself."],
+    ["Do I need an account?", "A magic-link email login tracks your free generations and unlocks — no password needed."]
+  ]
+},
+customdev: {
+  name: "Custom Dev Services",
+  tag: "Need something built? We build it, you own it.",
+  visit: "/dev-request/",
+  visitLabel: "Request a quote",
+  overview: "<p>Need something built? Rival Eclipse takes on custom work: websites, web apps, Discord bots, AI chatbots, and one-off builds. Request a quote through the category forms — the business form includes tick-boxes for every optional feature we offer, so you pick exactly what you want.</p><p>Quotes are fixed-price, you own the code outright, and signing in is free — basic accounts can file one request per week.</p>",
+  tos: "<p>In short: quote requests are free and carry no obligation. Project terms (scope, price, timeline) are agreed per project before work starts. You own the delivered code. Be honest in your brief — accurate details get accurate quotes.</p><p class=\"fineprint\">Site-wide fine print: <a href=\"/ToS-Privacy-legal/\">ToS &amp; Privacy</a></p>",
+  privacy: "<p>In short: your brief (project details, contact info, any uploaded images) is used only to prepare your quote and communicate about the project. Briefs are stored securely and never sold or shared. Deletion on request.</p><p class=\"fineprint\">Site-wide fine print: <a href=\"/ToS-Privacy-legal/\">ToS &amp; Privacy</a></p>",
+  faqs: [
+    ["How do I get a quote?", "Pick a category at /dev-request/ (bots/apps, web apps, business, content creator, or other) and fill out the form. Sign-in is required and free."],
+    ["Do I own the code?", "Yes — fixed-price quotes, and you own the delivered code outright."],
+    ["What can I ask for on a website?", "The business form lists every optional feature as tick-boxes — booking, e-commerce, galleries, blogs, and more. Tick what you want."],
+    ["How often can I file a request?", "Basic accounts can file one request per week. Clients with active projects aren't limited."],
+    ["What does it cost?", "Every project is quoted fixed-price based on your brief — the quote itself is free."]
+  ]
+}
+};
+
+var overlay = document.getElementById('overlay');
+var modal = document.getElementById('modal');
+var modalBody = document.getElementById('modal-body');
+var lastFocus = null;
+
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+
+function openProduct(key){
+  var p = PRODUCTS[key];
+  if(!p) return;
+  var faqHtml = p.faqs.map(function(f){
+    return '<details><summary>'+escHtml(f[0])+'</summary><p>'+f[1]+'</p></details>';
+  }).join('');
+  modalBody.innerHTML =
+    '<h2 id="modal-title">'+escHtml(p.name)+'</h2>' +
+    '<p class="mtag">'+escHtml(p.tag)+'</p>' +
+    '<h3>What it is</h3>' + p.overview +
+    '<h3>Terms of Service</h3>' + p.tos +
+    '<h3>Privacy Policy</h3>' + p.privacy +
+    '<h3>Frequently asked questions</h3><div class="faq">'+faqHtml+'</div>' +
+    '<div class="visit-row"><a class="btn" href="'+p.visit+'">Visit →</a></div>';
+  lastFocus = document.activeElement;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('modal-close').focus();
+}
+
+function closeProduct(){
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+  if(lastFocus && lastFocus.focus) lastFocus.focus();
+}
+
+document.getElementById('product-grid').addEventListener('click', function(e){
+  var card = e.target.closest('[data-product]');
+  if(card) openProduct(card.getAttribute('data-product'));
+});
+document.getElementById('modal-close').addEventListener('click', closeProduct);
+overlay.addEventListener('click', function(e){
+  if(e.target === overlay) closeProduct();
+});
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape' && overlay.classList.contains('open')) closeProduct();
+});
+</script>
+</body>
+</html>
