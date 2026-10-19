@@ -85,6 +85,9 @@
       <p class="sub" id="role-note-body">The client intake is only for client accounts.</p>
       <div class="choice-row"><a class="btn" id="role-note-link" href="/team/">Continue to your dashboard →</a></div>
     </div>
+    <div class="block" id="preview-banner" hidden>
+      <p class="sub" style="margin:0">👁️ <b>Preview mode</b> — you're seeing exactly what a client sees. Nothing you submit here is saved.</p>
+    </div>
 
     <!-- Already completed -->
     <div class="block" id="already" hidden>
@@ -339,12 +342,24 @@ const elevated = role === 'team' || role === 'admin' || owner;
 const isClient = role === 'client';
 
 document.getElementById('gate-msg').hidden = true;
-if (elevated) {
+// Super-user preview: elevated roles can walk the whole intake flow (?preview=1) without saving anything.
+const previewMode = new URLSearchParams(location.search).get('preview') === '1' && elevated;
+const PREVIEW = previewMode;
+if (elevated && !previewMode) {
   const note = document.getElementById('role-note');
   const link = document.getElementById('role-note-link');
   link.href = role === 'team' ? '/team/' : '/admin/';
   link.textContent = (role === 'team' ? 'Continue to the Team dashboard' : 'Continue to the Admin dashboard') + ' →';
+  const pv = document.createElement('a');
+  pv.className = 'btn-ghost';
+  pv.href = '/client/intake/?preview=1';
+  pv.textContent = 'Preview the intake anyway →';
+  note.querySelector('.choice-row').appendChild(pv);
   note.hidden = false;
+} else if (previewMode) {
+  document.getElementById('preview-banner').hidden = false;
+  document.getElementById('intake-wrap').hidden = false;
+  showStep('step1');
 } else if (!isClient) {
   const note = document.getElementById('role-note');
   document.getElementById('role-note-body').innerHTML =
@@ -425,6 +440,7 @@ intakeForm.addEventListener('submit', async (e) => {
     extra: val('extra'),
   };
   btn.disabled = true; btn.textContent = 'Saving…'; msg.className = ''; msg.textContent = '';
+  if (PREVIEW) { msg.textContent = 'Preview only — nothing was saved.'; showStep('step2'); btn.disabled = false; btn.textContent = 'Continue →'; return; }
   try {
     const { status, data: out } = await api('/api/client/intake', {
       method: 'POST', body: JSON.stringify({ data }),
@@ -456,6 +472,7 @@ document.getElementById('service-form').addEventListener('submit', async (e) => 
   btn.disabled = true; btn.textContent = 'Confirming…'; msg.className = ''; msg.textContent = '';
   const body = { hosting_choice: 'full_service', max_build_cost: mb, max_monthly_sub: ms, trial: true };
   if (promo) body.promo_code = promo; // server upgrades trial to 1 month when a promo code is present
+  if (PREVIEW) { msg.textContent = 'Preview only — nothing was saved.'; showStep('step-done'); btn.disabled = false; btn.textContent = 'Confirm full service →'; return; }
   try {
     const { status, data: out } = await api('/api/client/intake/choice', { method: 'POST', body: JSON.stringify(body) });
     if (status === 200 || status === 201) { showStep('step-done'); }
@@ -487,6 +504,7 @@ buildForm.addEventListener('submit', async (e) => {
     const gh = document.getElementById('f-gh-user').value.trim().slice(0, 60);
     if (gh) body.github_username = gh;
   }
+  if (PREVIEW) { msg.textContent = 'Preview only — nothing was saved.'; showStep('step-done'); btn.disabled = false; btn.textContent = 'Confirm build only →'; return; }
   try {
     const { status, data: out } = await api('/api/client/intake/choice', { method: 'POST', body: JSON.stringify(body) });
     if (status === 200 || status === 201) { showStep('step-done'); }
