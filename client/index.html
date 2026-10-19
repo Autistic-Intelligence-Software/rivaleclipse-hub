@@ -38,55 +38,28 @@
 <footer><div class="wrap"><span>© 2026 Rival Eclipse</span><nav><a href="/help/">Help</a><a href="/ToS-Privacy-legal/">ToS &amp; Privacy</a><a href="/sign-in/">Sign in</a><a href="/client/">Client Portal</a></nav></div></footer>
 <script src="/sky.js"></script>
 <script type="module">
-import { session, requestMagicLink } from '/auth.js';
-const gate = document.getElementById('gate');
+import { session } from '/auth.js';
+import { tagsOf, hasTag, isOwnerOf, goBlocked } from '/_lib/gates.js';
 
 const s = await session();
 if (s) {
-  const role = ((s.user || {}).role || 'user').toLowerCase();
-  const owner = !!(s.is_owner ?? (s.user || {}).is_owner);
-  if (role === 'client' || role === 'admin' || owner) {
-    // Client, admin, or owner — straight into the portal.
-    // Client intake gate (fail-open): clients without intake go to /client/intake/ first.
-    if (role === 'client' && !owner && s.client && s.client.has_intake === false) {
+  const tags = tagsOf(s);
+  const owner = isOwnerOf(s);
+  if (hasTag(s, 'client') || hasTag(s, 'team') || hasTag(s, 'admin')) {
+    // Client, team, admin, or owner — straight into the portal.
+    // Client intake gate (fail-open): client-tagged accounts without intake go to /client/intake/ first.
+    if (tags.includes('client') && !owner && s.client && s.client.has_intake === false) {
       location.href = '/client/intake/?next=' + encodeURIComponent('/client/dashboard/');
     } else {
       location.href = '/client/dashboard/';
     }
   } else {
-    // Signed in, but not a client account.
-    gate.innerHTML = `
-      <h2>Not a client account yet</h2>
-      <p class="sub">This account is registered as a <b style="color:var(--text)">${role}</b>, so the client portal isn't available on it yet. Register as a client to unlock project tracking, billing per app, and direct messaging with the team.</p>
-      <div class="cta-list">
-        <a class="btn" href="/sign-up/?intent=client">Register as Client</a>
-        <a class="btn-ghost" href="/dev-request/">Request Services</a>
-      </div>
-      <p class="sub" style="margin-top:18px; font-size:.85rem;">New to working with us? <a href="/Client-intake/">Read the client intake walkthrough</a>.</p>`;
+    // Signed in, but no client tag — the friendly interstitial explains how to get it.
+    goBlocked('tag', '/client/', { tag: 'client' });
   }
 } else {
-  // No session — magic-link sign-in scoped back to the portal.
-  gate.innerHTML = `
-    <h2>Client Sign In</h2>
-    <p class="sub">Sign in to enter the client portal — your requests, projects, billing, and a direct line to the team.</p>
-    <form class="quote" id="magic-form">
-      <label for="email">Email address</label>
-      <input type="email" id="email" required autocomplete="email" placeholder="you@example.com">
-      <button class="btn" type="submit" style="width:100%; margin-top: 14px;">Email me a sign-in link</button>
-    </form>
-    <p id="form-msg"></p>
-    <p class="sub" style="margin-top:18px; font-size:.85rem;">Prefer another way in? <a href="/sign-in/?next=${encodeURIComponent('/client/')}">Sign in with Discord or a passkey</a>.<br>
-    Not a client yet? <a href="/sign-up/?intent=client">Register as a client</a> or <a href="/Client-intake/">read the client intake walkthrough</a>.</p>`;
-  const msg = document.getElementById('form-msg');
-  document.getElementById('magic-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('email').value.trim();
-    msg.className = 'ok'; msg.textContent = 'Sending…';
-    const { status, data } = await requestMagicLink(email, '/client/');
-    msg.className = status === 200 ? 'ok' : 'err';
-    msg.textContent = status === 200 ? 'Check your inbox — the link expires in 15 minutes.'
-      : (data.error === 'rate_limited' ? 'Too many requests — wait a few minutes.' : 'Couldn’t send the email. Try again.');
-  };
+  // No session — the friendly interstitial explains and returns here after sign-in.
+  goBlocked('signin', '/client/');
 }
 </script>
 <script src="/assistant.js"></script>
