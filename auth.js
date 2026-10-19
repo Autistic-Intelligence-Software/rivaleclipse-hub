@@ -97,6 +97,10 @@ export async function packages() {
   return status === 200 ? data.packages : [];
 }
 
+export async function registerIntent(kind) {
+  return api('/api/account/intent', { method: 'POST', body: JSON.stringify({ intent: kind }) });
+}
+
 export function nextUrl() {
   return new URLSearchParams(location.search).get('next') || '';
 }
