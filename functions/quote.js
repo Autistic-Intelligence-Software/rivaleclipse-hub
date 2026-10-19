@@ -131,6 +131,7 @@ function briefHtml(d) {
   const row = (k, v) => v
     ? `<tr><td>${esc(k)}</td><td><b>${esc(v).replace(/\n/g, '<br>')}</b></td></tr>` : '';
   const colors = (d.colors || []).join(', ');
+  const features = (d.features || []).join(', ');
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Project brief — ${esc(d.name)}</title>
 <style>body{font-family:sans-serif;max-width:640px;margin:0 auto;padding:32px;color:#222}
 h1{font-size:24px}table{border-collapse:collapse;width:100%;font-size:14px}
@@ -146,6 +147,7 @@ ${row('Project type', d.type)}${row('Budget', d.budget)}${row('Brand colors', co
 ${row('Color rule', d.color_mode === 'exclusive' ? 'ONLY the selected colors' : 'Selected colors are a preference')}
 ${row('Business address', d.address)}${row('Business hours', d.hours)}${row('Slogan', d.slogan)}
 ${row('Services / products', d.services)}
+${row('Optional features', features)}
 </table>
 <h3>Project details</h3><p>${esc(d.details).replace(/\n/g, '<br>')}</p>
 ${d.extra ? `<h3>Extra information</h3><p>${esc(d.extra).replace(/\n/g, '<br>')}</p>` : ''}
@@ -153,6 +155,33 @@ ${(d.images || []).length ? `<h3>Uploaded images (${d.images.length})</h3><div c
   d.images.map((f) => `<img src="${esc(f)}" alt="upload">`).join('') + `</div>` : ''}
 <p style="color:#999;font-size:12px;margin-top:32px">Submitted via rivaleclipse.dev/dev-request — unedited applicant data.</p>
 </body></html>`;
+}
+
+// ---------- account gate helpers ----------
+// Forward the browser's cookies to the auth service so it can log the request
+// against the signed-in account (and enforce the one-request-per-week limit).
+async function logRequestWithAuth(cookie, category) {
+  try {
+    const res = await fetch('https://auth.rivaleclipse.dev/api/requests/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({ category }),
+    });
+    return res.status;
+  } catch (e) {
+    console.log('requests/log fetch failed', String(e));
+    return 'network_error';
+  }
+}
+// Where the client should return after signing in (taken from the Referer).
+function nextPath(request) {
+  try {
+    const ref = new URL(request.headers.get('referer') || '');
+    if (['www.rivaleclipse.dev', 'rivaleclipse.dev'].includes(ref.hostname)) {
+      return ref.pathname + ref.search;
+    }
+  } catch { /* fall through */ }
+  return '/dev-request/';
 }
 
 // ---------- email fallback (Resend) ----------
@@ -219,10 +248,28 @@ export async function onRequestPost({ request, env }) {
     slogan: get('slogan').slice(0, 200),
     services: get('services'),
     extra: get('extra'),
+    features: fd.getAll('features').map((f) => clean(f, 60)).filter(Boolean).slice(0, 24),
     submitted: new Date().toISOString(),
   };
   if (!d.name || !d.details || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) {
     return json({ ok: false, error: 'invalid' }, 400, origin);
+  }
+
+  // ---- account gate: sign-in required; one dev request per week per account ----
+  // The session cookie (set by auth.rivaleclipse.dev on .rivaleclipse.dev) is
+  // forwarded to the auth service's rate-limit endpoint before anything delivers.
+  const cookie = request.headers.get('cookie') || '';
+  if (!cookie) {
+    return json({ ok: false, error: 'not_signed_in', next: nextPath(request) }, 401, origin);
+  }
+  const logStatus = await logRequestWithAuth(cookie, d.category);
+  if (logStatus === 429) {
+    return json({ ok: false, error: 'rate_limited' }, 429, origin);
+  }
+  if (logStatus !== 200) {
+    // Graceful degradation: 401/404/500/network failures from the auth service
+    // must never kill the form — log it and continue with delivery.
+    console.log('requests/log returned', logStatus, '— continuing with delivery');
   }
 
   // ---- images: up to 3, image/*, <= 4MB each, moderated ----
@@ -285,13 +332,17 @@ export async function onRequestPost({ request, env }) {
     `<h2>New project brief — rivaleclipse.dev/dev-request</h2>` +
     `<p><b>${esc(d.name)}</b> &lt;${esc(d.email)}&gt;${d.phone ? ' · ' + esc(d.phone) : ''}</p>` +
     `<p>Type: <b>${esc(d.type) || '—'}</b> · Budget: <b>${esc(d.budget) || '—'}</b><br>${esc(colorLine)}</p>` +
+    (d.features && d.features.length ? `<p><b>Optional features:</b> ${esc(d.features.join(', '))}</p>` : '') +
     `<p>${esc(d.details).replace(/\n/g, '<br>')}</p>` +
     (d.services ? `<p><b>Services/products:</b><br>${esc(d.services).replace(/\n/g, '<br>')}</p>` : '') +
     (d.extra ? `<p><b>Extra:</b><br>${esc(d.extra).replace(/\n/g, '<br>')}</p>` : '') +
     `<p style="color:#999;font-size:12px">Full brief + ${images.length} image(s) attached as ${esc(zipName)}. Discord delivery pending webhook setup.</p></div>`;
   const sent = await sendViaResend(env, TO, FROM,
     `Project brief [${d.category}]: ${d.type || 'project'} — ${d.name}`,
-    html, `New project brief from ${d.name} <${d.email}>\n\n${d.details}`,
+    html,
+    `New project brief from ${d.name} <${d.email}>\n` +
+    (d.features && d.features.length ? `Optional features: ${d.features.join(', ')}\n\n` : '') +
+    `${d.details}`,
     zipName, zipBytes);
   if (sent !== 'sent') {
     console.log('brief email failed:', sent);
