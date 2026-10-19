@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My profile — Rival Eclipse</title>
+<meta name="description" content="Your Rival Eclipse account — email, Discord link, and access tags.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.prof-card { max-width: 560px; margin: 30px auto 0; }
+.prof-head { display: flex; align-items: center; gap: 18px; margin-bottom: 8px; }
+.prof-ava { width: 72px; height: 72px; border-radius: 50%; border: 2px solid var(--accent);
+  background: #14141c; display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; font-weight: 800; overflow: hidden; flex: none; }
+.prof-ava img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.kv { display: flex; justify-content: space-between; gap: 14px; padding: 12px 0;
+  border-bottom: 1px solid var(--line); font-size: .95rem; }
+.kv:last-child { border-bottom: none; }
+.kv .k { color: var(--muted); }
+.kv .v { text-align: right; word-break: break-all; }
+.tag-badge { display: inline-block; font-size: .78rem; font-weight: 700; padding: 4px 12px;
+  border-radius: 999px; border: 1px solid var(--accent); color: var(--accent); margin: 2px 4px 2px 0; }
+.tag-badge.owner { background: linear-gradient(135deg, #d4af37, #8a6d1c); color: #0a0a12; border: none; }
+.uid { font-size: .8rem; color: var(--muted); }
+.row-btns { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+.btn-ghost { display: inline-block; border: 1px solid var(--accent); color: var(--accent); font-weight: 700;
+  padding: 12px 26px; border-radius: 12px; font-size: .95rem; text-decoration: none; font-family: inherit;
+  background: none; cursor: pointer; }
+.btn-ghost:hover { transform: translateY(-2px); }
+.discord-btn { display: inline-block; background: #5865F2; color: #fff; font-weight: 800;
+  padding: 12px 26px; border-radius: 12px; text-decoration: none; font-size: .95rem; }
+.discord-btn:hover { background: #4752c4; }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+<div class="wrap">
+  <div class="crumb"><a href="/dashboards/">← Dashboards</a></div>
+  <div class="prof-card"><div class="block" id="card"><p class="sub">Loading…</p></div></div>
+</div>
+</main>
+<script src="/sky.js"></script>
+<script type="module">
+import { session, logout } from '/auth.js';
+import { tagsOf, isOwnerOf } from '/_lib/gates.js';
+
+const s = await session();
+if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent('/profile/'); throw new Error('redirect'); }
+const user = s.user || {};
+const d = s.discord || {};
+const tags = tagsOf(s);
+const owner = isOwnerOf(s);
+
+const esc = (x) => String(x ?? '').replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const ava = (d.id && d.avatar)
+  ? `<img src="https://cdn.discordapp.com/avatars/${esc(d.id)}/${esc(d.avatar)}.png?size=128" alt="">`
+  : esc(((d.username || user.email || '?') + '?').trim().charAt(0).toUpperCase());
+
+const discordRow = (d.id)
+  ? `<div class="kv"><span class="k">Discord</span><span class="v">Linked — @${esc(d.username || d.id)}</span></div>`
+  : `<div class="kv"><span class="k">Discord</span><span class="v"><a class="discord-btn" href="https://auth.rivaleclipse.dev/auth/discord?action=pair&next=${encodeURIComponent('/profile/')}">Link Discord</a></span></div>
+     <p class="sub" style="font-size:.85rem;margin-top:8px;">Only needed for bot dashboards — everything else works without it.</p>`;
+
+const tagBadges = tags.length
+  ? tags.map((t) => `<span class="tag-badge${t === 'owner' ? ' owner' : ''}">${esc(t)}</span>`).join('')
+  : '<span class="sub">Base account — no extra tags yet.</span>';
+
+document.getElementById('card').innerHTML = `
+  <div class="prof-head">
+    <div class="prof-ava">${ava}</div>
+    <div><h2 style="margin:0;">My profile</h2><p class="uid">ID: ${esc(user.id || '—')}</p></div>
+  </div>
+  <div class="kv"><span class="k">Email</span><span class="v">${esc(user.email || '—')}</span></div>
+  ${discordRow}
+  <div class="kv"><span class="k">Access tags</span><span class="v">${tagBadges}</span></div>
+  ${owner ? '<p class="sub" style="font-size:.85rem;margin-top:10px;">👑 Owner — full access to everything.</p>' : ''}
+  <div class="row-btns">
+    <a class="btn-ghost" href="/dashboards/">Dashboards</a>
+    <button class="btn-ghost" id="signout">Sign out</button>
+  </div>`;
+document.getElementById('signout').onclick = logout;
+</script>
+<script src="/_lib/menu.js"></script>
+<script src="/assistant.js"></script>
+</body>
+</html>
