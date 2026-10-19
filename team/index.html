@@ -157,6 +157,7 @@
 <script src="/sky.js"></script>
 <script type="module">
 import { session, logout } from '/auth.js';
+import { tagsOf, hasTag, goBlocked } from '/_lib/gates.js';
 const AUTH = 'https://auth.rivaleclipse.dev';
 
 async function api(path, opts = {}) {
@@ -173,22 +174,13 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
 const fmtDate = (v) => { try { return v ? new Date(v).toLocaleString() : '—'; } catch { return '—'; } };
 const fmtFeatures = (f) => Array.isArray(f) ? f.join(', ') : (f || '');
 
-// ---------- gate (team, admins, and the owner) ----------
+// ---------- gate (team tag, admin tag, or owner) ----------
+// Anything else gets the friendly interstitial — team tags are granted by
+// an admin, so there's no dead-end 403 here.
 const s = await session();
+if (!s) goBlocked('signin', '/team/');
+if (!(hasTag(s, 'team') || hasTag(s, 'admin'))) goBlocked('tag', '/team/', { tag: 'team' });
 const user = (s && s.user) || {};
-const isOwner = !!((s && s.is_owner) ?? user.is_owner);
-const role = (user.role || '').toLowerCase();
-const elevated = role === 'team' || role === 'admin' || isOwner;
-if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent('/team/'); throw new Error('redirect'); }
-if (!elevated) {
-  document.getElementById('gate').innerHTML = `
-    <div class="denied"><div class="block">
-      <h2>403 — Not authorized</h2>
-      <p class="sub">This area is for the Rival Eclipse team only. Your account is registered as <b style="color:var(--text)">${esc(role || 'user')}</b>.</p>
-      <p><a href="/dashboards/">← Back to dashboards</a></p>
-    </div></div>`;
-  throw new Error('denied');
-}
 document.getElementById('gate').style.display = 'none';
 document.getElementById('team-ui').style.display = '';
 document.getElementById('who').textContent = s.discord?.username ? '@' + s.discord.username : user.email;
@@ -202,11 +194,13 @@ async function loadTeam() {
     if (status !== 200) throw new Error(data.error || 'load_failed');
     const members = data.team || data.members || [];
     list.innerHTML = members.length ? members.map((m) => {
-      const mRole = (m.role || '').toLowerCase();
+      const mTags = tagsOf({ user: m });
+      const pills = (m.is_owner ? ['owner'] : mTags.length ? mTags : ['member'])
+        .map((t) => `<span class="role-tag">${esc(t)}</span>`).join(' ');
       return `<div class="team-row">
         <div><div class="nm">${esc(m.name || m.email || m.discord_username || '—')}</div>
         <div class="dim">${esc(m.email || '')}${m.discord_username ? ' · @' + esc(m.discord_username) : ''}</div></div>
-        <span class="role-tag">${esc(m.is_owner ? 'owner' : mRole || 'member')}</span>
+        ${pills}
       </div>`;
     }).join('') : '<p class="dim">No team members yet.</p>';
   } catch (e) {
@@ -348,7 +342,8 @@ document.getElementById('client-list').addEventListener('click', async (e) => {
 function renderChat(msgs) {
   const t = document.getElementById('chat-thread');
   t.innerHTML = msgs.length ? msgs.map((m) => {
-    const mine = !!(m.from_admin || m.from_team || m.role === 'admin' || m.author_role === 'admin' || m.team);
+    const _mTags = Array.isArray(m.author_tags) ? m.author_tags.map((t) => String(t).toLowerCase()) : [];
+    const mine = !!(m.from_admin || m.from_team || m.team || _mTags.includes('admin') || _mTags.includes('team') || m.role === 'admin' || m.author_role === 'admin');
     const who = mine ? 'You (team)' : (m.author_name || m.from || 'Client');
     return `<div class="msg ${mine ? 'mine' : 'theirs'}"><div class="who">${esc(who)}${m.created_at ? ' · ' + esc(fmtDate(m.created_at)) : ''}</div>${esc(m.body || m.text || '')}</div>`;
   }).join('') : '<p class="dim">No messages yet.</p>';
