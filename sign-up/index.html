@@ -27,8 +27,8 @@
   <div class="crumb"><a href="/">← Rival Eclipse</a></div>
   <div class="auth-card">
     <div class="block">
-      <h2>Create your account</h2>
-      <p class="sub">One login for every Rival Eclipse dashboard, bot, and web app. Pair your Discord once — after that, sign in with a magic link or your fingerprint/face.</p>
+      <h2 id="signup-title">Create your account</h2>
+      <p class="sub" id="signup-sub">One login for every Rival Eclipse dashboard, bot, and web app. Pair your Discord once — after that, sign in with a magic link or your fingerprint/face.</p>
       <div class="auth-methods">
         <button class="auth-btn discord" id="discord-btn">Sign up with Discord</button>
       </div>
@@ -46,9 +46,24 @@
 </main>
 <script src="/sky.js"></script>
 <script type="module">
-import { session, discordLogin, nextUrl } from '/auth.js';
+import { session, discordLogin, nextUrl, registerIntent } from '/auth.js';
 const next = nextUrl();
-session().then((s) => { if (s) location.href = next || '/dashboards/'; });
+const intent = new URLSearchParams(location.search).get('intent');
+
+if (intent === 'client') {
+  document.getElementById('signup-title').textContent = 'Register as a client';
+  document.getElementById('signup-sub').textContent =
+    'Create your Rival Eclipse account — as a client you can file dev requests (limit 1 per week), use the client portal, and message the team directly.';
+}
+
+const s = await session();
+if (s) {
+  // Register Client flow: flag the account as wanting client access before continuing.
+  if (intent === 'client' && s.user?.role !== 'client' && !s.user?.is_owner) {
+    try { await registerIntent('client'); } catch { /* non-fatal; continue */ }
+  }
+  location.href = next || '/dashboards/';
+}
 document.getElementById('discord-btn').onclick = () => discordLogin(next);
 </script>
 </body>
