@@ -51,6 +51,15 @@
   padding: 8px 16px; cursor: pointer; font-size: .88rem; font-weight: 600; font-family: inherit; }
 .promote-btn:hover { background: rgba(201,162,39,.12); }
 .promote-btn:disabled { opacity: .5; cursor: default; }
+.cr-card { border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 12px;
+  background: rgba(13,13,21,.6); }
+.cr-card .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.cr-card input.note { flex: 1; min-width: 180px; background: #0d0d15; border: 1px solid var(--line);
+  border-radius: 8px; color: var(--text); padding: 8px 12px; font-size: .88rem; font-family: inherit; }
+.act-btn { border: 1px solid var(--line); background: none; color: var(--text); border-radius: 8px;
+  padding: 8px 14px; cursor: pointer; font-size: .85rem; font-weight: 600; font-family: inherit; }
+.act-btn:hover { border-color: var(--accent); }
+.act-btn:disabled { opacity: .5; cursor: default; }
 .role-tag { font-size: .78rem; font-weight: 700; padding: 4px 12px; border-radius: 999px;
   border: 1px solid var(--line); color: var(--muted); }
 #admin-msg { margin-top: 14px; font-size: .95rem; }
@@ -68,16 +77,17 @@
   <div id="admin-ui" style="display:none">
     <div class="dash-head">
       <div><h1 class="page-title">Admin</h1>
-      <p class="page-sub">User registry, roles, the team, and per-user messages.</p></div>
+      <p class="page-sub">User registry, roles, the team, per-user messages, and escalated change requests.</p></div>
       <div class="user-chip"><span id="who"></span><button id="logout">Sign out</button></div>
     </div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="users">User Registry</button>
       <button class="tab-btn" data-tab="team">Team</button>
+      <button class="tab-btn" data-tab="crq">Change Requests</button>
     </div>
     <div class="block" id="tab-users">
       <h2>User Registry</h2>
-      <p class="sub">Search accounts and change roles. Client/tester promotions apply immediately; admin promotions are owner-only.</p>
+      <p class="sub">Search accounts and change roles. Client/tester/team promotions apply immediately; admin promotions are owner-only.</p>
       <div class="search-row">
         <input id="user-search" type="search" placeholder="Search by email or Discord…" autocomplete="off">
       </div>
@@ -93,6 +103,11 @@
       <h2>Team</h2>
       <p class="sub">Team members and their access. Admin promotions are restricted to the owner.</p>
       <div id="team-list"><p class="dim">Loading…</p></div>
+    </div>
+    <div class="block" id="tab-crq" style="display:none">
+      <h2>Change Requests — escalated</h2>
+      <p class="sub">Requests the team sent up for admin review. Accept or decline with an optional note.</p>
+      <div id="crq-list"><p class="dim">Loading…</p></div>
     </div>
   </div>
 </div>
@@ -140,8 +155,11 @@ document.querySelectorAll('.tab-btn').forEach((b) => {
   b.onclick = () => {
     document.querySelectorAll('.tab-btn').forEach((x) => x.classList.remove('active'));
     b.classList.add('active');
-    document.getElementById('tab-users').style.display = b.dataset.tab === 'users' ? '' : 'none';
-    document.getElementById('tab-team').style.display = b.dataset.tab === 'team' ? '' : 'none';
+    const t = b.dataset.tab;
+    document.getElementById('tab-users').style.display = t === 'users' ? '' : 'none';
+    document.getElementById('tab-team').style.display = t === 'team' ? '' : 'none';
+    document.getElementById('tab-crq').style.display = t === 'crq' ? '' : 'none';
+    if (t === 'crq') loadCRQ();
   };
 });
 
@@ -161,7 +179,7 @@ const flagsOf = (u) => {
 };
 const discordOf = (u) => u.discord_username || (u.discord && u.discord.username ? '@' + u.discord.username : '') || '—';
 const roleOptions = (current) => {
-  const base = ['user', 'client', 'tester'];
+  const base = ['user', 'client', 'tester', 'team'];
   if (isOwner) base.push('admin');
   return base.map((r) => `<option value="${r}"${r === current ? ' selected' : ''}>${r}</option>`).join('');
 };
@@ -291,8 +309,53 @@ document.getElementById('team-list').addEventListener('click', async (e) => {
   else { btn.disabled = false; btn.textContent = 'Promote to admin'; say(data.error || 'Promotion failed.', false); }
 });
 
+// ---------- escalated change requests ----------
+const CR_LABELS = { hours_update: 'Hours update', promo_update: 'Promo update', content_update: 'Content update', other: 'Other' };
+async function loadCRQ() {
+  const el = document.getElementById('crq-list');
+  try {
+    const { status, data } = await api('/api/admin/change-requests?status=escalated');
+    if (status !== 200) throw new Error(data.error || 'load_failed');
+    const items = Array.isArray(data) ? data : (data.change_requests || data.requests || []);
+    el.innerHTML = items.length ? items.map((c) => {
+      const id = c.id ?? c.request_id ?? '';
+      return `<div class="cr-card" data-crid="${esc(id)}">
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px">
+          <span style="font-weight:700">${esc(c.title || '—')}</span>
+          <span class="pill">${esc(CR_LABELS[c.type] || c.type || '—')}</span>
+          <span class="dim">${esc(c.client_email || c.user_email || c.email || '')}${c.created_at ? ' · ' + esc(fmtDate(c.created_at)) : ''}</span>
+        </div>
+        <p style="margin:6px 0 0;font-size:.93rem">${esc(c.details || '')}</p>
+        <div class="row">
+          <input class="note" placeholder="Optional note for the client…" data-note maxlength="500">
+          <button class="act-btn" data-cract="accept">Accept</button>
+          <button class="act-btn" data-cract="decline">Decline</button>
+        </div>
+        <p class="dim" data-crm style="margin-top:8px"></p>
+      </div>`;
+    }).join('') : '<p class="dim">No escalated change requests.</p>';
+  } catch {
+    el.innerHTML = '<p class="dim">Couldn’t load change requests — try refreshing in a moment.</p>';
+  }
+}
+document.getElementById('crq-list').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-cract]');
+  if (!b) return;
+  const card = b.closest('[data-crid]');
+  const id = card.dataset.crid;
+  const note = card.querySelector('[data-note]').value.trim();
+  const msg = card.querySelector('[data-crm]');
+  b.disabled = true; msg.textContent = 'Working…';
+  const { status, data } = await api('/api/admin/change-requests/' + encodeURIComponent(id), {
+    method: 'POST', body: JSON.stringify({ action: b.dataset.cract, note: note || undefined }),
+  });
+  if (status === 200) { loadCRQ(); }
+  else { msg.textContent = data.error || 'Couldn’t update the request.'; b.disabled = false; }
+});
+
 loadUsers();
 loadTeam();
 </script>
+<script src="/assistant.js"></script>
 </body>
 </html>
