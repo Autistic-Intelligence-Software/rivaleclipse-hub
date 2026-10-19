@@ -44,6 +44,46 @@
 .board-err { color: #ff7070; }
 .denied { max-width: 520px; margin: 60px auto; text-align: center; }
 @media (max-width: 640px) { .proj-grid { grid-template-columns: 1fr; } }
+/* client/team-work additions */
+.feat-row { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--line); font-size: .92rem; }
+.feat-row:last-child { border-bottom: none; }
+.switch { position: relative; width: 46px; height: 26px; flex: 0 0 auto; cursor: pointer; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch .tk { position: absolute; inset: 0; background: #2a2a35; border-radius: 999px; transition: .2s; }
+.switch .tk::before { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px;
+  background: #9a9ab0; border-radius: 50%; transition: .2s; }
+.switch input:checked + .tk { background: #4a3f1c; }
+.switch input:checked + .tk::before { transform: translateX(20px); background: #d4af37; }
+.client-item { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px;
+  background: rgba(13,13,21,.6); }
+.client-item .hd { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cr-card { border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 12px;
+  background: rgba(13,13,21,.6); }
+.cr-card .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.cr-card input.note { flex: 1; min-width: 180px; background: #0d0d15; border: 1px solid var(--line);
+  border-radius: 8px; color: var(--text); padding: 8px 12px; font-size: .88rem; font-family: inherit; }
+.act-btn { border: 1px solid var(--line); background: none; color: var(--text); border-radius: 8px;
+  padding: 8px 14px; cursor: pointer; font-size: .85rem; font-weight: 600; font-family: inherit; }
+.act-btn:hover { border-color: var(--accent); }
+.act-btn:disabled { opacity: .5; cursor: default; }
+.chat-wrap { border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-top: 12px;
+  background: rgba(13,13,21,.6); }
+.thread { display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; margin: 6px 0 12px; }
+.msg { padding: 10px 14px; border-radius: 12px; font-size: .9rem; line-height: 1.55; max-width: 85%; }
+.msg .who { font-size: .75rem; color: var(--muted); margin-bottom: 4px; }
+.msg.mine { align-self: flex-end; background: #1d1a10; border: 1px solid #4a3f1c; }
+.msg.theirs { align-self: flex-start; background: #101019; border: 1px solid var(--line); }
+.composer { display: flex; gap: 8px; }
+.composer textarea { flex: 1; background: #0d0d15; border: 1px solid var(--line); border-radius: 10px;
+  color: var(--text); padding: 10px 12px; font-size: .9rem; font-family: inherit; min-height: 44px; resize: vertical; }
+.composer textarea:focus { outline: none; border-color: var(--accent); }
+.composer button { background: linear-gradient(135deg, #d4af37, #8a6d1c); color: #0a0a12; font-weight: 800;
+  border: none; border-radius: 10px; padding: 0 20px; cursor: pointer; font-size: .9rem; }
+.notif-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0;
+  border-bottom: 1px solid var(--line); font-size: .92rem; }
+.coming-soon { background: #0d0d15; border: 1px dashed var(--line); border-radius: 8px; color: var(--muted);
+  padding: 10px 12px; font-size: .88rem; width: 100%; box-sizing: border-box; margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -57,6 +97,46 @@
       <div><h1 class="page-title">Team</h1>
       <p class="page-sub">Team members and the project workflow board — every dev request from new to delivered.</p></div>
       <div class="user-chip"><span id="who"></span><button id="logout">Sign out</button></div>
+    </div>
+
+    <div class="block" id="chats-block">
+      <h2>Client chats</h2>
+      <p class="sub">Every client, with the same thread they see. Pick one to read and reply.</p>
+      <div id="client-list"><p class="dim">Loading…</p></div>
+      <div id="chat-wrap" class="chat-wrap" style="display:none">
+        <h3 id="chat-title" style="margin:0 0 4px;font-size:1rem"></h3>
+        <div class="thread" id="chat-thread"><p class="dim">Loading…</p></div>
+        <div class="composer">
+          <textarea id="chat-compose" rows="2" maxlength="4000" placeholder="Reply…"></textarea>
+          <button id="chat-send">Send</button>
+        </div>
+        <p class="dim" id="chat-note" style="margin-top:8px"></p>
+      </div>
+    </div>
+
+    <div class="block" id="crq-block">
+      <h2>Change request queue</h2>
+      <p class="sub">Pending client change requests — accept, decline, or send one to an admin for review.</p>
+      <div id="crq-list"><p class="dim">Loading…</p></div>
+    </div>
+
+    <div class="block" id="clients-block">
+      <h2>Clients &amp; features</h2>
+      <p class="sub">Per-client modules — toggling a module greys that section out on the client’s dashboard with a “disabled by the team” note. The server still enforces everything.</p>
+      <div id="clients-feats"><p class="dim">Loading…</p></div>
+    </div>
+
+    <div class="block" id="notif-block">
+      <h2>My notifications</h2>
+      <p class="sub">Email alerts for your own account. Phone / WhatsApp notifications are coming soon.</p>
+      <div class="notif-row"><span>Email me when I get a message</span>
+        <label class="switch"><input type="checkbox" id="nt-msg"><span class="tk"></span></label></div>
+      <div class="notif-row"><span>Email me on change-request updates</span>
+        <label class="switch"><input type="checkbox" id="nt-cr"><span class="tk"></span></label></div>
+      <input class="coming-soon" id="nt-phone" placeholder="Phone number — coming soon" disabled>
+      <input class="coming-soon" id="nt-wa" placeholder="WhatsApp number — coming soon" disabled>
+      <div style="margin-top:12px"><button class="save-btn" id="nt-save" type="button" style="margin-top:0">Save</button>
+      <span class="save-msg" id="nt-status"></span></div>
     </div>
 
     <div class="block" id="members-block">
@@ -93,17 +173,18 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
 const fmtDate = (v) => { try { return v ? new Date(v).toLocaleString() : '—'; } catch { return '—'; } };
 const fmtFeatures = (f) => Array.isArray(f) ? f.join(', ') : (f || '');
 
-// ---------- gate (same as /admin/: admins and the owner only) ----------
+// ---------- gate (team, admins, and the owner) ----------
 const s = await session();
 const user = (s && s.user) || {};
 const isOwner = !!user.is_owner;
 const role = (user.role || '').toLowerCase();
+const elevated = role === 'team' || role === 'admin' || isOwner;
 if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent('/team/'); throw new Error('redirect'); }
-if (!(role === 'admin' || isOwner)) {
+if (!elevated) {
   document.getElementById('gate').innerHTML = `
     <div class="denied"><div class="block">
       <h2>403 — Not authorized</h2>
-      <p class="sub">This area is for Rival Eclipse admins only. Your account is registered as <b style="color:var(--text)">${esc(role || 'user')}</b>.</p>
+      <p class="sub">This area is for the Rival Eclipse team only. Your account is registered as <b style="color:var(--text)">${esc(role || 'user')}</b>.</p>
       <p><a href="/dashboards/">← Back to dashboards</a></p>
     </div></div>`;
   throw new Error('denied');
@@ -210,8 +291,173 @@ document.getElementById('board-list').addEventListener('click', async (e) => {
   }
 });
 
+// ---------- client chats + features ----------
+const FEATURE_KEYS = [
+  ['message_board', 'Message board'],
+  ['hours_editor', 'Hours editor'],
+  ['promos_editor', 'Promos editor'],
+  ['holidays_editor', 'Holidays editor'],
+  ['change_requests', 'Change requests'],
+];
+const clientIdOf = (c) => String(c.id ?? c.user_id ?? c.client_id ?? '');
+const clientNameOf = (c) => c.name || c.email || c.discord_username || '—';
+const featsOf = (c) => c.features ?? c.flags ?? {};
+let activeChatId = null;
+let clientsCache = [];
+
+async function loadClients() {
+  const list = document.getElementById('client-list');
+  const feats = document.getElementById('clients-feats');
+  try {
+    const { status, data } = await api('/api/team/clients');
+    if (status !== 200) throw new Error(data.error || 'load_failed');
+    const clients = Array.isArray(data) ? data : (data.clients || []);
+    clientsCache = clients;
+    list.innerHTML = clients.length ? clients.map((c) => `
+      <div class="team-row">
+        <div><div class="nm">${esc(clientNameOf(c))}</div>
+        <div class="dim">${esc(c.email || '')}${c.discord_username ? ' · @' + esc(c.discord_username) : ''}</div></div>
+        <button class="act-btn" data-chat="${esc(clientIdOf(c))}">Open chat</button>
+      </div>`).join('') : '<p class="dim">No clients yet.</p>';
+    feats.innerHTML = clients.length ? clients.map((c) => `
+      <div class="client-item" data-cid="${esc(clientIdOf(c))}">
+        <div class="hd"><div class="nm">${esc(clientNameOf(c))}</div>
+        <div class="dim">${esc(c.email || '')}</div></div>
+        ${FEATURE_KEYS.map(([k, label]) => `
+          <div class="feat-row"><span>${label}</span>
+            <label class="switch"><input type="checkbox" data-feat="${k}" ${featsOf(c)[k] ? 'checked' : ''}><span class="tk"></span></label>
+          </div>`).join('')}
+        <p class="dim" data-feat-msg style="margin:6px 0 0"></p>
+      </div>`).join('') : '<p class="dim">No clients yet.</p>';
+  } catch {
+    list.innerHTML = '<p class="dim">Couldn’t load clients — try refreshing in a moment.</p>';
+    feats.innerHTML = '';
+  }
+}
+
+document.getElementById('client-list').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-chat]');
+  if (!b) return;
+  activeChatId = b.dataset.chat;
+  const c = clientsCache.find((x) => clientIdOf(x) === activeChatId);
+  document.getElementById('chat-wrap').style.display = '';
+  document.getElementById('chat-title').textContent = 'Chat with ' + clientNameOf(c || {});
+  document.getElementById('chat-note').textContent = '';
+  loadChatThread();
+});
+function renderChat(msgs) {
+  const t = document.getElementById('chat-thread');
+  t.innerHTML = msgs.length ? msgs.map((m) => {
+    const mine = !!(m.from_admin || m.from_team || m.role === 'admin' || m.author_role === 'admin' || m.team);
+    const who = mine ? 'You (team)' : (m.author_name || m.from || 'Client');
+    return `<div class="msg ${mine ? 'mine' : 'theirs'}"><div class="who">${esc(who)}${m.created_at ? ' · ' + esc(fmtDate(m.created_at)) : ''}</div>${esc(m.body || m.text || '')}</div>`;
+  }).join('') : '<p class="dim">No messages yet.</p>';
+  t.scrollTop = t.scrollHeight;
+}
+async function loadChatThread() {
+  const t = document.getElementById('chat-thread');
+  const { status, data } = await api('/api/admin/messages/' + encodeURIComponent(activeChatId));
+  renderChat(status === 200 ? (data.messages || []) : []);
+}
+document.getElementById('chat-send').onclick = async () => {
+  if (!activeChatId) return;
+  const ta = document.getElementById('chat-compose');
+  const note = document.getElementById('chat-note');
+  const body = ta.value.trim();
+  if (!body) return;
+  const btn = document.getElementById('chat-send');
+  btn.disabled = true;
+  const { status, data } = await api('/api/admin/messages/' + encodeURIComponent(activeChatId), {
+    method: 'POST', body: JSON.stringify({ body }),
+  });
+  if (status === 200) { ta.value = ''; note.textContent = ''; loadChatThread(); }
+  else { note.textContent = data.error || 'Couldn’t send the message.'; }
+  btn.disabled = false;
+};
+
+// feature toggles
+document.getElementById('clients-feats').addEventListener('change', async (e) => {
+  const tgl = e.target.closest('[data-feat]');
+  if (!tgl) return;
+  const card = e.target.closest('[data-cid]');
+  const msg = card.querySelector('[data-feat-msg]');
+  const feature_key = tgl.dataset.feat;
+  tgl.disabled = true; msg.textContent = 'Saving…';
+  const { status, data } = await api('/api/team/clients/' + encodeURIComponent(card.dataset.cid) + '/features', {
+    method: 'PATCH', body: JSON.stringify({ feature_key, enabled: tgl.checked }),
+  });
+  msg.textContent = status === 200 ? 'Saved.' : (data.error || 'Couldn’t save.');
+  tgl.disabled = false;
+});
+
+// ---------- change request queue ----------
+const CR_LABELS = { hours_update: 'Hours update', promo_update: 'Promo update', content_update: 'Content update', other: 'Other' };
+async function loadCRQ() {
+  const el = document.getElementById('crq-list');
+  try {
+    const { status, data } = await api('/api/team/change-requests?status=pending');
+    if (status !== 200) throw new Error(data.error || 'load_failed');
+    const items = Array.isArray(data) ? data : (data.change_requests || data.requests || []);
+    el.innerHTML = items.length ? items.map((c) => {
+      const id = c.id ?? c.request_id ?? '';
+      return `<div class="cr-card" data-crid="${esc(id)}">
+        <div class="proj-head"><span class="nm">${esc(c.title || '—')}</span>
+          <span class="badge cat">${esc(CR_LABELS[c.type] || c.type || '—')}</span>
+          <span class="dim">${esc(c.client_email || c.user_email || c.email || '')}${c.created_at ? ' · ' + esc(fmtDate(c.created_at)) : ''}</span></div>
+        <p style="margin:6px 0 0;font-size:.93rem">${esc(c.details || '')}</p>
+        <div class="row">
+          <input class="note" placeholder="Optional note for the client…" data-note maxlength="500">
+          <button class="act-btn" data-cract="accept">Accept</button>
+          <button class="act-btn" data-cract="decline">Decline</button>
+          <button class="act-btn" data-cract="send_to_admin">Send to admin</button>
+        </div>
+        <p class="dim" data-crm></p>
+      </div>`;
+    }).join('') : '<p class="dim">No pending change requests.</p>';
+  } catch {
+    el.innerHTML = '<p class="dim">Couldn’t load the queue — try refreshing in a moment.</p>';
+  }
+}
+document.getElementById('crq-list').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-cract]');
+  if (!b) return;
+  const card = b.closest('[data-crid]');
+  const id = card.dataset.crid;
+  const note = card.querySelector('[data-note]').value.trim();
+  const msg = card.querySelector('[data-crm]');
+  b.disabled = true; msg.textContent = 'Working…';
+  const { status, data } = await api('/api/team/change-requests/' + encodeURIComponent(id), {
+    method: 'POST', body: JSON.stringify({ action: b.dataset.cract, note: note || undefined }),
+  });
+  if (status === 200) { loadCRQ(); }
+  else { msg.textContent = data.error || 'Couldn’t update the request.'; b.disabled = false; }
+});
+
+// ---------- my notifications ----------
+document.getElementById('nt-save').onclick = async () => {
+  const status = document.getElementById('nt-status');
+  const payload = {
+    email_on_message: document.getElementById('nt-msg').checked,
+    email_on_change_request: document.getElementById('nt-cr').checked,
+    // phone/WhatsApp are "coming soon" — sent if the endpoint ever accepts them; errors ignored.
+    phone: document.getElementById('nt-phone').value || undefined,
+    whatsapp: document.getElementById('nt-wa').value || undefined,
+  };
+  status.className = 'save-msg'; status.textContent = 'Saving…';
+  try {
+    const { status: sc, data } = await api('/api/account/notifications', { method: 'POST', body: JSON.stringify(payload) });
+    if (sc === 200) { status.className = 'save-msg ok'; status.textContent = 'Saved.'; }
+    else throw new Error(data.error || 'save_failed');
+  } catch {
+    status.className = 'save-msg err'; status.textContent = 'Couldn’t save — try again in a moment.';
+  }
+};
+
 loadTeam();
 loadBoard();
+loadClients();
+loadCRQ();
 </script>
+<script src="/assistant.js"></script>
 </body>
 </html>
