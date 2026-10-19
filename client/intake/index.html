@@ -81,7 +81,7 @@
 
     <!-- Non-client roles -->
     <div class="block" id="role-note" hidden>
-      <h2>This step isn't required for your role.</h2>
+      <h2>This step isn't required for your account.</h2>
       <p class="sub" id="role-note-body">The client intake is only for client accounts.</p>
       <div class="choice-row"><a class="btn" id="role-note-link" href="/team/">Continue to your dashboard →</a></div>
     </div>
@@ -299,6 +299,7 @@
 <script src="/sky.js"></script>
 <script type="module">
 import { session } from '/auth.js';
+import { tagsOf, hasTag, isOwnerOf, goBlocked } from '/_lib/gates.js';
 const AUTH = 'https://auth.rivaleclipse.dev';
 
 const qparams = new URLSearchParams(location.search);
@@ -330,16 +331,15 @@ function showStep(id) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ---- sign-in + role gate ----
+// ---- sign-in + tag gate ----
 const s = await session().catch(() => null);
 if (!s) {
-  location.href = '/sign-in/?next=' + encodeURIComponent(location.pathname + location.search);
-  throw new Error('redirect');
+  goBlocked('signin', location.pathname + location.search);
 }
-const role = String(s.role ?? s.user?.role ?? '').toLowerCase();
-const owner = !!(s.user?.is_owner ?? s.is_owner);
-const elevated = role === 'team' || role === 'admin' || owner;
-const isClient = role === 'client';
+const tags = tagsOf(s);
+const owner = isOwnerOf(s);
+const elevated = hasTag(s, 'team') || hasTag(s, 'admin');
+const isClient = tags.includes('client');
 
 document.getElementById('gate-msg').hidden = true;
 // Super-user preview: elevated roles can walk the whole intake flow (?preview=1) without saving anything.
@@ -348,8 +348,8 @@ const PREVIEW = previewMode;
 if (elevated && !previewMode) {
   const note = document.getElementById('role-note');
   const link = document.getElementById('role-note-link');
-  link.href = role === 'team' ? '/team/' : '/admin/';
-  link.textContent = (role === 'team' ? 'Continue to the Team dashboard' : 'Continue to the Admin dashboard') + ' →';
+  link.href = tags.includes('team') ? '/team/' : '/admin/';
+  link.textContent = (tags.includes('team') ? 'Continue to the Team dashboard' : 'Continue to the Admin dashboard') + ' →';
   const pv = document.createElement('a');
   pv.className = 'btn-ghost';
   pv.href = '/client/intake/?preview=1';
@@ -363,7 +363,7 @@ if (elevated && !previewMode) {
 } else if (!isClient) {
   const note = document.getElementById('role-note');
   document.getElementById('role-note-body').innerHTML =
-    'The client intake is only for <b style="color:var(--text)">client</b> accounts. This account is registered as <b style="color:var(--text)">' + esc(role || 'user') + '</b>.';
+    'The client intake is only for <b style="color:var(--text)">client</b> accounts. This account’s tags: <b style="color:var(--text)">' + esc(tags.length ? tags.join(', ') : 'none (base user)') + '</b>.';
   const link = document.getElementById('role-note-link');
   link.href = '/sign-up/?intent=client';
   link.textContent = 'Register as a Client →';
