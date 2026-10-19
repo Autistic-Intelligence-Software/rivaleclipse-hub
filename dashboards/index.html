@@ -14,6 +14,18 @@
 .user-chip button:hover { color: var(--text); border-color: var(--accent); }
 .pk-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
 .pk-row .auth-btn { width: auto; padding: 10px 18px; font-size: .9rem; }
+.card .row-links { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.card .row-links .go-link { color: var(--accent); font-weight: 700; text-decoration: none; font-size: .95rem; }
+.card .row-links .go-link:hover { text-decoration: underline; }
+#tester-msg { margin-top: 10px; font-size: .95rem; }
+#tester-msg.ok { color: var(--ok); }
+.dash-btn { display: inline-block; background: linear-gradient(135deg, #d4af37, #8a6d1c); color: #0a0a12;
+  font-weight: 800; padding: 12px 24px; border-radius: 10px; font-size: .95rem; border: none; cursor: pointer;
+  text-decoration: none; text-align: center; font-family: inherit; }
+.dash-btn:hover { transform: translateY(-2px); }
+.dash-btn:disabled { opacity: .5; cursor: default; transform: none; }
+.dash-btn.ghost { background: none; border: 1px solid var(--accent); color: var(--accent); }
+.portal-note { color: var(--muted); font-size: .9rem; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -29,8 +41,50 @@
     <div class="user-chip"><span id="who"></span><button id="logout">Sign out</button></div>
   </div>
 
-  <div class="section-label">Bot dashboards</div>
-  <div class="grid" id="dash-grid"></div>
+  <div class="section-label">Your Bot Dashboards</div>
+  <div class="block" id="bots-block">
+    <h2>Your Bot Dashboards</h2>
+    <p class="sub">Manage your Discord servers on each bot.</p>
+    <div class="grid" id="dash-grid"></div>
+  </div>
+
+  <div class="section-label">More</div>
+  <div class="grid">
+    <div class="card">
+      <div class="dic">🌐</div>
+      <h2>Web Services, Web Apps &amp; Invite more Bots</h2>
+      <p>Everything else Rival Eclipse ships — open in your browser or add to your servers.</p>
+      <div class="row-links">
+        <a class="go-link" href="/web-apps/">Browse Web Apps / Services <span>→</span></a>
+        <a class="go-link" href="/apps-bots/">Browse &amp; invite more Bots <span>→</span></a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="dic">💼</div>
+      <h2>Client Portal, Dev Services, Apply to be Tester</h2>
+      <p>Work with the team directly — track projects, request services, or help test.</p>
+      <div class="row-links">
+        <div id="portal-slot"></div>
+        <a class="go-link" href="/dev-request/">Request Dev Services <span>→</span></a>
+        <div>
+          <button class="dash-btn" id="tester-btn" type="button">Apply to be Tester</button>
+          <p id="tester-msg"></p>
+        </div>
+      </div>
+    </div>
+    <a class="card" id="admin-card" style="display:none" href="/admin/">
+      <div class="dic">🛡️</div>
+      <h2>Admin Dashboards</h2>
+      <p>User registry, role management, the team, and per-user messages.</p>
+      <div class="go">Open admin <span>→</span></div>
+    </a>
+    <a class="card" id="team-card" style="display:none" href="/team/">
+      <div class="dic">📋</div>
+      <h2>Project Workflow, Project Code, &amp; Team Member Dashboards</h2>
+      <p>Track every dev request from new to delivered — status, notes, and deliverables.</p>
+      <div class="go">Open team <span>→</span></div>
+    </a>
+  </div>
 
   <div class="block" id="security-block">
     <h2>🔐 Faster sign-in next time</h2>
@@ -45,7 +99,7 @@
 </main>
 <script src="/sky.js"></script>
 <script type="module">
-import { session, logout, packages, passkeyRegister } from '/auth.js';
+import { session, logout, packages, passkeyRegister, registerIntent } from '/auth.js';
 
 const FALLBACK = [
   { name: 'Bouncer', slug: 'bouncer', dashboard_url: 'https://bouncer.rivaleclipse.dev/dashboard/', description: 'Anti-scam bouncer for your server — quarantine, verification, scam intel.', icon_emoji: '🛡️' },
@@ -57,9 +111,21 @@ const FALLBACK = [
 
 const s = await session();
 if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent(location.href); throw new Error('redirect'); }
-document.getElementById('who').textContent = (s.discord?.username ? '@' + s.discord.username : s.user.email);
+const user = s.user || {};
+const role = (user.role || 'user').toLowerCase();
+const isOwner = !!user.is_owner;
+const isClient = role === 'client' || role === 'admin' || isOwner;
+
+document.getElementById('who').textContent = (s.discord?.username ? '@' + s.discord.username : user.email);
 document.getElementById('logout').onclick = logout;
 
+// Admin-only doors — rendered in markup but hidden for non-admins.
+if (role === 'admin' || isOwner) {
+  document.getElementById('admin-card').style.display = '';
+  document.getElementById('team-card').style.display = '';
+}
+
+// Bot dashboards (card 1).
 let pkgs = await packages();
 if (!pkgs.length) pkgs = FALLBACK;
 document.getElementById('dash-grid').innerHTML = pkgs.map((p) => `
@@ -69,6 +135,45 @@ document.getElementById('dash-grid').innerHTML = pkgs.map((p) => `
     <div class="go">Open <span>→</span></div>
   </a>`).join('');
 
+// Card 3: Client Portal entry — clickable for clients, otherwise a "not a client yet" note.
+const slot = document.getElementById('portal-slot');
+if (isClient) {
+  slot.innerHTML = '<a class="go-link" href="/client/dashboard/">Open Client Portal <span>→</span></a>';
+} else {
+  slot.innerHTML = '<a class="go-link" href="/sign-up/?intent=client">Become a client — open the portal <span>→</span></a>' +
+    '<p class="portal-note">Not a client account yet — registering as a client unlocks the portal, dev-request filing, and direct messaging with the team.</p>';
+}
+
+// Card 3: Apply to be Tester.
+const tbtn = document.getElementById('tester-btn');
+const tmsg = document.getElementById('tester-msg');
+const testerPending = !!user.tester_pending;
+if (role === 'tester' || isOwner || role === 'admin') {
+  tbtn.disabled = true;
+  tmsg.textContent = (isOwner || role === 'admin') ? 'You already have team-level access.' : 'You’re already a tester.';
+} else if (testerPending) {
+  tbtn.disabled = true;
+  tmsg.textContent = 'Tester application sent — we review applications personally and will update your account.';
+} else {
+  tbtn.onclick = async () => {
+    tbtn.disabled = true; tbtn.textContent = 'Sending…';
+    try {
+      const { status } = await registerIntent('tester');
+      if (status === 200) {
+        tmsg.className = 'ok'; tmsg.textContent = 'Tester application sent — we review applications personally and will update your account.';
+        tbtn.style.display = 'none';
+      } else {
+        tmsg.textContent = 'Couldn’t send that right now — try again in a moment.';
+        tbtn.disabled = false; tbtn.textContent = 'Apply to be Tester';
+      }
+    } catch {
+      tmsg.textContent = 'Couldn’t send that right now — try again in a moment.';
+      tbtn.disabled = false; tbtn.textContent = 'Apply to be Tester';
+    }
+  };
+}
+
+// Passkey promo card.
 const list = s.passkeys || [];
 document.getElementById('pk-list').innerHTML = list.length
   ? '<p class="sub">This account has ' + list.length + ' passkey' + (list.length > 1 ? 's' : '') + ' (' + list.map((k) => k.name).join(', ') + ').</p>'
