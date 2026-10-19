@@ -27,6 +27,8 @@
 #form-msg.ok{color:#7ddf9a}
 #form-msg.err{color:#ff9a9a}
 .step-note{font-size:.82rem;color:var(--muted);margin-top:6px}
+.trial-banner{background:#0e1a12;border:1px solid #2f7d4f;border-radius:12px;padding:14px 16px;
+  font-size:.95rem;line-height:1.6;margin:0 0 16px}
 </style>
 </head>
 <body>
@@ -43,7 +45,11 @@
       <input type="hidden" name="category" value="apply">
       <input type="hidden" name="type" id="f-type" value="">
       <input type="hidden" name="details" id="f-details" value="">
+      <input type="hidden" name="trial" id="f-trial" value="">
+      <input type="hidden" name="promo_code" id="f-promo" value="">
       <input type="text" name="company" style="display:none" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+      <div id="trial-banner" class="trial-banner" hidden></div>
 
       <h2>I am a…</h2>
       <div class="pick-cards">
@@ -190,6 +196,12 @@
 
         <div class="sub-block" id="sub-self" hidden>
           <p class="step-note" style="margin:8px 0">We'll hand you everything you need and walk you through it step by step. <a href="/handoff/" target="_blank" rel="noopener">Preview the self-hosting walkthrough →</a></p>
+          <label style="margin-top:10px">How should we deliver your site's code at handoff? <span class="step-note">(required)</span></label>
+          <div class="radios">
+            <label><input type="radio" name="code_delivery" value="Secure dashboard download"> <span><b>Secure dashboard download</b><br><span class="step-note">Download your site as a zip from your client dashboard. Links expire after 7 days and are limited to a few downloads — no public URLs, ever.</span></span></label>
+            <label><input type="radio" name="code_delivery" value="Private GitHub repository"> <span><b>Private GitHub repository</b><br><span class="step-note">We push your code to a private repo and invite your GitHub username as a collaborator. Best if you're comfortable with git.</span></span></label>
+            <label><input type="radio" name="code_delivery" value="Password-protected archive"> <span><b>Password-protected archive</b><br><span class="step-note">We send a password-locked zip; the password is shown separately inside your client dashboard, never in the same message as the file.</span></span></label>
+          </div>
           <p class="step-note">Your full personalized handoff (with your site files) will appear in your client dashboard when your project is delivered.</p>
         </div>
       </div>
@@ -275,6 +287,20 @@ if (!s) {
   if (s.user?.email) document.getElementById('f-email').value = s.user.email;
 }
 
+// ---- URL params: managed-hosting trial entry from /handoff/ ----
+const qparams = new URLSearchParams(location.search);
+const hostingParam = qparams.get('hosting');
+const promoParam = (qparams.get('promo') || '').trim().slice(0, 40);
+if (qparams.get('trial') === '1') {
+  document.getElementById('f-trial').value = 'yes';
+  const banner = document.getElementById('trial-banner');
+  banner.innerHTML = promoParam
+    ? '🎉 <b>Free trial active</b> — your promo code gets you <b>1 month</b> of managed hosting &amp; care free. No card required — we\'ll set it up with you.'
+    : '🎉 <b>Free trial active</b> — <b>2 weeks</b> of managed hosting &amp; care, on us. No card required — we\'ll set it up with you.';
+  banner.hidden = false;
+}
+if (promoParam) document.getElementById('f-promo').value = promoParam;
+
 // ---- progressive disclosure helpers ----
 function setEnabled(root, on) {
   root.querySelectorAll('input, select, textarea').forEach((el) => { el.disabled = !on; });
@@ -300,6 +326,11 @@ document.querySelectorAll('input[name="role"]').forEach((r) => {
     setEnabled(amb, !isBiz);
     setEnabled(shared, true);
     document.getElementById('f-type').value = isBiz ? 'Business owner application' : 'Brand ambassador application';
+    // Preselect managed hosting when arriving from the /handoff/ trial CTA.
+    if (isBiz && hostingParam === 'managed') {
+      const hc = form.querySelector('input[name="hosting_choice"][value="Host it for me"]');
+      if (hc && !hc.checked) { hc.checked = true; hc.dispatchEvent(new Event('change', { bubbles: true })); }
+    }
     // Re-sync conditional blocks in case boxes were checked before switching paths.
     document.querySelectorAll('[data-toggle]').forEach(syncToggle);
   });
@@ -327,6 +358,7 @@ const FIELDS = [
   ['webapp_desc', 'Web app idea'], ['bot_desc', 'Bot idea'], ['bot_members', 'Server size'],
   ['other_desc', 'Other idea'], ['budget', 'Budget'], ['timeline', 'Timeline'], ['extra', 'Anything else'],
   ['hosting_choice', 'Hosting choice'], ['max_build_cost', 'Max build cost'], ['max_monthly_sub', 'Max monthly subscription'],
+  ['code_delivery', 'Code delivery'], ['trial', 'Free trial'], ['promo_code', 'Promo code'],
   ['collab', 'Ways to work together'], ['refer_count', 'Businesses to introduce'],
   ['social_audience', 'Audience'], ['content_link', 'Work link'], ['collab_other', 'Other collaboration'],
   ['why_us', 'Why Rival Eclipse'],
@@ -364,6 +396,10 @@ form.addEventListener('submit', async (e) => {
       const mb = form.querySelector('[name="max_build_cost"]').value;
       const ms = form.querySelector('[name="max_monthly_sub"]').value;
       if (!mb || !ms) { msg.className = 'err'; msg.textContent = 'Since we\'re hosting it for you, tell us your max build cost and max monthly subscription so we can estimate accurately.'; return; }
+    }
+    if (hc.value === "I'll host it myself") {
+      const cd = form.querySelector('input[name="code_delivery"]:checked');
+      if (!cd) { msg.className = 'err'; msg.textContent = 'Pick how you\'d like your site\'s code delivered at handoff.'; return; }
     }
   }
   btn.disabled = true;
