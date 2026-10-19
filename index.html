@@ -6,6 +6,14 @@
 <title>Rival Eclipse — Everything under rivaleclipse.dev</title>
 <meta name="description" content="The home of everything built under rivaleclipse.dev — Discord bots, web apps, and custom development services by Rival Eclipse.">
 <link rel="stylesheet" href="/style.css">
+<style>
+.acct-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 26px; }
+.acct-panels .block { margin-top: 0; display: flex; flex-direction: column; }
+.acct-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+.acct-btns .btn { text-align: center; }
+.btn.ghost { background: none; border: 1px solid var(--accent); color: var(--accent); }
+.btn.ghost:hover { transform: translateY(-2px); }
+</style>
 </head>
 <body>
 <canvas id="sky" aria-hidden="true"></canvas>
@@ -39,6 +47,25 @@
         <div class="go">Get a quote <span>→</span></div>
       </a>
     </div>
+
+    <div class="acct-panels">
+      <div class="block">
+        <h2>User Login &amp; Registration</h2>
+        <p class="sub">One account for every Rival Eclipse bot dashboard, web app, and service.</p>
+        <div class="acct-btns">
+          <a class="btn" href="/sign-in/">Sign in</a>
+          <a class="btn ghost" href="/sign-up/">Register New User</a>
+          <a class="btn ghost" href="/sign-up/?intent=client">Register Client</a>
+        </div>
+      </div>
+      <div class="block">
+        <h2>Client Portal</h2>
+        <p class="sub">Already a client? Track your requests, projects, and billing — and message the team directly.</p>
+        <div class="acct-btns">
+          <a class="btn" href="/client/">Client Sign In</a>
+        </div>
+      </div>
+    </div>
   </div>
 </main>
 
@@ -51,6 +78,7 @@
       <a href="/help/">Help</a>
       <a href="/ToS-Privacy-legal/">ToS &amp; Privacy</a>
       <a href="/sign-in/">Sign in</a>
+      <a href="/client/">Client Portal</a>
     </nav>
   </div>
 </footer>
