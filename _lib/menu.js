@@ -1,7 +1,8 @@
 // Rival Eclipse site-wide account menu (vanilla JS, no dependencies).
 // Include as <script src="/_lib/menu.js"></script> before </body> on every page.
 // Top-right: Discord pfp avatar button -> dropdown (My profile, Dashboards,
-// Enter Promo code, Enter Team code, Sign out). Signed out -> "Sign in" button.
+// [owners only] Owner, Enter Promo code, Enter Team code, Sign out).
+// Signed out -> "Sign in" button.
 // Hides legacy per-page .user-chip blocks (the menu replaces them).
 (function () {
   if (window.__reMenuInit) return;
@@ -74,18 +75,28 @@
     return d.username ? '@' + d.username : (u.email || 'Account');
   }
 
+  // Owner implies every tag; env-derived owners may not carry the tag yet.
+  function isOwnerSession(s) {
+    if (!s) return false;
+    if (s.is_owner || (s.user && s.user.is_owner)) return true;
+    const tags = (s.user && Array.isArray(s.user.tags)) ? s.user.tags : [];
+    return tags.map((t) => String(t).toLowerCase()).includes('owner');
+  }
+
   function renderSignedOut() {
     const next = encodeURIComponent(location.pathname + location.search);
     host.innerHTML = `<a class="re-menu-signin" href="/sign-in/?next=${next}">Sign in</a>`;
   }
 
   function renderSignedIn(s) {
+    const ownerItem = isOwnerSession(s) ? '<a href="/owner/" role="menuitem">👑 Owner</a>' : '';
     host.innerHTML = `
       <button class="re-menu-btn" id="re-menu-btn" aria-label="Account menu" aria-haspopup="true">${avatarFor(s)}</button>
       <div class="re-menu-drop" id="re-menu-drop" role="menu">
         <div class="who">${esc(labelFor(s))}</div>
         <a href="/profile/" role="menuitem">👤 My profile</a>
         <a href="/dashboards/" role="menuitem">📊 Dashboards</a>
+        ${ownerItem}
         <a href="/promo/" role="menuitem">🎟️ Enter Promo code</a>
         <a href="/team-code/" role="menuitem">🔑 Enter Team code</a>
         <div class="sep"></div>
