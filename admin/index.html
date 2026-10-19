@@ -62,6 +62,12 @@
 .act-btn:disabled { opacity: .5; cursor: default; }
 .role-tag { font-size: .78rem; font-weight: 700; padding: 4px 12px; border-radius: 999px;
   border: 1px solid var(--line); color: var(--muted); }
+.tag-checks { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.tag-check { display: inline-flex; align-items: center; gap: 5px; font-size: .85rem;
+  color: var(--text); cursor: pointer; white-space: nowrap; }
+.tag-check input { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+.tag-check input:disabled { cursor: not-allowed; }
+.tag-check:has(input:disabled) { color: var(--muted); cursor: not-allowed; }
 #admin-msg { margin-top: 14px; font-size: .95rem; }
 #admin-msg.ok { color: var(--ok); }
 #admin-msg.err { color: #ff7070; }
@@ -77,7 +83,7 @@
   <div id="admin-ui" style="display:none">
     <div class="dash-head">
       <div><h1 class="page-title">Admin</h1>
-      <p class="page-sub">User registry, roles, the team, per-user messages, and escalated change requests.</p></div>
+      <p class="page-sub">User registry, tags, the team, per-user messages, and escalated change requests.</p></div>
       <div class="user-chip"><span id="who"></span><button id="logout">Sign out</button></div>
     </div>
     <div class="tabs">
@@ -87,13 +93,13 @@
     </div>
     <div class="block" id="tab-users">
       <h2>User Registry</h2>
-      <p class="sub">Search accounts and change roles. Client/tester/team promotions apply immediately; admin promotions are owner-only.</p>
+      <p class="sub">Search accounts and toggle tags — tags stack, each one adds its permissions. Client/tester/team apply immediately; the admin tag is owner-only.</p>
       <div class="search-row">
         <input id="user-search" type="search" placeholder="Search by email or Discord…" autocomplete="off">
       </div>
       <div style="overflow-x:auto">
       <table class="utable">
-        <thead><tr><th>Email</th><th>Discord</th><th>Role</th><th>Flags</th><th>Created</th><th></th></tr></thead>
+        <thead><tr><th>Email</th><th>Discord</th><th>Tags</th><th>Flags</th><th>Created</th><th></th></tr></thead>
         <tbody id="users-body"><tr><td colspan="6" class="dim">Loading…</td></tr></tbody>
       </table>
       </div>
@@ -116,6 +122,7 @@
 <script src="/sky.js"></script>
 <script type="module">
 import { session, logout } from '/auth.js';
+import { tagsOf, hasTag, isOwnerOf, goBlocked } from '/_lib/gates.js';
 const AUTH = 'https://auth.rivaleclipse.dev';
 
 async function api(path, opts = {}) {
@@ -132,19 +139,12 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
 
 // ---------- gate ----------
 const s = await session();
-const user = (s && s.user) || {};
-const isOwner = !!((s && s.is_owner) ?? user.is_owner);
-const role = (user.role || '').toLowerCase();
 if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent('/admin/'); throw new Error('redirect'); }
-if (!(role === 'admin' || isOwner)) {
-  document.getElementById('gate').innerHTML = `
-    <div class="denied"><div class="block">
-      <h2>403 — Not authorized</h2>
-      <p class="sub">This area is for Rival Eclipse admins only. Your account is registered as <b style="color:var(--text)">${esc(role || 'user')}</b>.</p>
-      <p><a href="/dashboards/">← Back to dashboards</a></p>
-    </div></div>`;
-  throw new Error('denied');
-}
+// Stackable tags: the admin tag (or owner) opens the registry.
+// Anything else gets the friendly "Admins only" interstitial — never a raw 403.
+if (!hasTag(s, 'admin')) goBlocked('admin');
+const user = (s && s.user) || {};
+const isOwner = isOwnerOf(s);
 document.getElementById('gate').style.display = 'none';
 document.getElementById('admin-ui').style.display = '';
 document.getElementById('who').textContent = s.discord?.username ? '@' + s.discord.username : user.email;
@@ -178,10 +178,20 @@ const flagsOf = (u) => {
   return extra.join(', ') || '—';
 };
 const discordOf = (u) => u.discord_username || (u.discord && u.discord.username ? '@' + u.discord.username : '') || '—';
-const roleOptions = (current) => {
-  const base = ['user', 'client', 'tester', 'team'];
-  if (isOwner) base.push('admin');
-  return base.map((r) => `<option value="${r}"${r === current ? ' selected' : ''}>${r}</option>`).join('');
+// Stackable tags — one checkbox each. The admin checkbox is owner-only;
+// an owner's own row is fully locked (nothing editable on it).
+const ALL_TAGS = ['client', 'tester', 'team', 'admin'];
+const tagCheckboxes = (u) => {
+  const uid = u.id ?? u.user_id ?? '';
+  const uTags = tagsOf({ user: u });
+  const locked = !!u.is_owner;
+  return ALL_TAGS.map((t) => {
+    const checked = uTags.includes(t) ? ' checked' : '';
+    const disabled = (locked || (t === 'admin' && !isOwner)) ? ' disabled' : '';
+    const title = locked ? 'Owner accounts can’t be changed here'
+      : (t === 'admin' && !isOwner) ? 'Only the owner can grant the admin tag' : '';
+    return `<label class="tag-check" title="${esc(title)}"><input type="checkbox" class="tag-box" data-uid="${esc(uid)}" value="${t}"${checked}${disabled}> ${t}</label>`;
+  }).join('');
 };
 
 function renderUsers(users) {
@@ -189,9 +199,9 @@ function renderUsers(users) {
   usersBody.innerHTML = users.map((u, i) => {
     const uid = u.id ?? u.user_id ?? '';
     return `<tr data-uid="${esc(uid)}">
-      <td>${esc(u.email || '—')}</td>
+      <td>${esc(u.email || '—')}${u.is_owner ? ' <span class="role-tag">owner</span>' : ''}</td>
       <td class="dim">${esc(discordOf(u))}</td>
-      <td><select class="role-select" data-uid="${esc(uid)}">${roleOptions((u.role || 'user').toLowerCase())}</select></td>
+      <td><div class="tag-checks">${tagCheckboxes(u)}</div></td>
       <td class="dim">${esc(flagsOf(u))}</td>
       <td class="dim">${esc(fmtDate(u.created_at || u.created))}</td>
       <td><button class="msg-toggle" data-uid="${esc(uid)}" data-email="${esc(u.email || '')}">Messages</button></td>
@@ -220,21 +230,46 @@ document.getElementById('user-search').addEventListener('input', (e) => {
   searchTimer = setTimeout(() => loadUsers(e.target.value.trim()), 300);
 });
 
-usersBody.addEventListener('change', async (e) => {
-  const sel = e.target.closest('.role-select');
-  if (!sel) return;
-  const uid = sel.dataset.uid;
-  const newRole = sel.value;
+// Single role the legacy endpoint understands, when the tags endpoint isn't deployed yet.
+const legacyRoleOf = (tags) => {
+  for (const t of ['admin', 'team', 'tester', 'client']) if (tags.includes(t)) return t;
+  return 'user';
+};
+
+async function saveTags(uid, tags) {
   say('Saving…');
-  const { status, data } = await api('/api/admin/users/' + encodeURIComponent(uid) + '/role', {
-    method: 'PATCH', body: JSON.stringify({ role: newRole }),
+  let r = await api('/api/admin/users/' + encodeURIComponent(uid) + '/tags', {
+    method: 'PUT', body: JSON.stringify({ tags }),
   });
-  say(status === 200 ? `Role updated to ${newRole}.` : (data.error || 'Couldn’t update the role.'), status === 200);
+  if (r.status === 404) {
+    // Auth hasn't deployed the tags endpoint yet — fall back to the single-role endpoint.
+    r = await api('/api/admin/users/' + encodeURIComponent(uid) + '/role', {
+      method: 'PATCH', body: JSON.stringify({ role: legacyRoleOf(tags) }),
+    });
+    if (r.status === 200) {
+      say(`Saved as single role “${legacyRoleOf(tags)}” (tags endpoint not deployed yet — stacked tags apply once it is).`, true);
+      return;
+    }
+  }
+  say(r.status === 200 ? `Tags updated: ${tags.length ? tags.join(', ') : 'none (base user)'}.` : (r.data.error || 'Couldn’t update the tags.'), r.status === 200);
+  if (r.status === 200) loadUsers(document.getElementById('user-search').value.trim());
+}
+
+usersBody.addEventListener('change', async (e) => {
+  const box = e.target.closest('.tag-box');
+  if (!box || box.disabled) return;
+  const uid = box.dataset.uid;
+  const row = box.closest('tr[data-uid]');
+  const tags = [...row.querySelectorAll('.tag-box:checked')].map((b) => b.value);
+  await saveTags(uid, tags);
 });
 
+const isTeamMsg = (m) => m.from_admin || m.team ||
+  (Array.isArray(m.author_tags) && m.author_tags.map((t) => String(t).toLowerCase()).includes('admin')) ||
+  m.role === 'admin' || m.author_role === 'admin'; // legacy message shape fallback
 const threadOf = (m) => ({
-  from: m.from_admin || m.role === 'admin' || m.author_role === 'admin' ? 'Team' : (m.author_name || m.from || 'User'),
-  team: !!(m.from_admin || m.role === 'admin' || m.author_role === 'admin'),
+  from: isTeamMsg(m) ? 'Team' : (m.author_name || m.from || 'User'),
+  team: isTeamMsg(m),
   body: m.body || m.text || '',
   when: m.created_at || m.created || '',
 });
@@ -285,28 +320,30 @@ async function loadTeam() {
   if (status !== 200) { list.innerHTML = '<p class="dim">Couldn’t load the team.</p>'; return; }
   const members = data.team || data.members || [];
   list.innerHTML = members.length ? members.map((m) => {
-    const mRole = (m.role || '').toLowerCase();
-    const canPromote = isOwner && mRole !== 'admin' && !m.is_owner;
+    const mTags = tagsOf({ user: m });
+    const pills = (m.is_owner ? ['owner'] : mTags.length ? mTags : ['member'])
+      .map((t) => `<span class="role-tag">${esc(t)}</span>`).join(' ');
+    const uid = m.id ?? m.user_id ?? '';
+    const canToggleAdmin = isOwner && !m.is_owner;
     return `<div class="team-row">
       <div><div class="nm">${esc(m.name || m.email || m.discord_username || '—')}</div>
       <div class="dim">${esc(m.email || '')}${m.discord_username ? ' · @' + esc(m.discord_username) : ''}</div></div>
       <div style="display:flex;align-items:center;gap:12px">
-        <span class="role-tag">${esc(m.is_owner ? 'owner' : mRole || 'member')}</span>
-        ${canPromote ? `<button class="promote-btn" data-promote="${esc(m.id ?? m.user_id ?? '')}">Promote to admin</button>` : ''}
+        ${pills}
+        ${canToggleAdmin ? `<button class="promote-btn" data-uid="${esc(uid)}" data-tags="${esc(mTags.join(','))}">${mTags.includes('admin') ? 'Remove admin' : 'Make admin'}</button>` : ''}
       </div>
     </div>`;
   }).join('') : '<p class="dim">No team members yet.</p>';
 }
 document.getElementById('team-list').addEventListener('click', async (e) => {
-  const btn = e.target.closest('[data-promote]');
+  const btn = e.target.closest('[data-uid]');
   if (!btn) return;
-  const uid = btn.dataset.promote;
-  btn.disabled = true; btn.textContent = 'Promoting…';
-  const { status, data } = await api('/api/admin/users/' + encodeURIComponent(uid) + '/role', {
-    method: 'PATCH', body: JSON.stringify({ role: 'admin' }),
-  });
-  if (status === 200) loadTeam();
-  else { btn.disabled = false; btn.textContent = 'Promote to admin'; say(data.error || 'Promotion failed.', false); }
+  const uid = btn.dataset.uid;
+  const tags = (btn.dataset.tags || '').split(',').filter(Boolean);
+  const next = tags.includes('admin') ? tags.filter((t) => t !== 'admin') : [...tags, 'admin'];
+  btn.disabled = true; btn.textContent = 'Saving…';
+  await saveTags(uid, next);
+  loadTeam();
 });
 
 // ---------- escalated change requests ----------
