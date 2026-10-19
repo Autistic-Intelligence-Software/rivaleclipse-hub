@@ -176,7 +176,7 @@ const fmtFeatures = (f) => Array.isArray(f) ? f.join(', ') : (f || '');
 // ---------- gate (team, admins, and the owner) ----------
 const s = await session();
 const user = (s && s.user) || {};
-const isOwner = !!user.is_owner;
+const isOwner = !!((s && s.is_owner) ?? user.is_owner);
 const role = (user.role || '').toLowerCase();
 const elevated = role === 'team' || role === 'admin' || isOwner;
 if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent('/team/'); throw new Error('redirect'); }
