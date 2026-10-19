@@ -125,15 +125,28 @@ if (role === 'admin' || isOwner) {
   document.getElementById('team-card').style.display = '';
 }
 
-// Bot dashboards (card 1).
-let pkgs = await packages();
-if (!pkgs.length) pkgs = FALLBACK;
-document.getElementById('dash-grid').innerHTML = pkgs.map((p) => `
-  <a class="card" href="${p.dashboard_url}">
-    <span class="badge dash">${p.icon_emoji || '📦'} dashboard</span>
-    <h2>${p.name}</h2><p>${p.description || ''}</p>
-    <div class="go">Open <span>→</span></div>
-  </a>`).join('');
+// Bot dashboards (card 1) — the ONLY card that needs a linked Discord.
+// Everything else on this page works fully without it.
+const dashGrid = document.getElementById('dash-grid');
+if (s.has_discord ?? !!s.discord) {
+  let pkgs = await packages();
+  if (!pkgs.length) pkgs = FALLBACK;
+  dashGrid.innerHTML = pkgs.map((p) => `
+    <a class="card" href="${p.dashboard_url}">
+      <span class="badge dash">${p.icon_emoji || '📦'} dashboard</span>
+      <h2>${p.name}</h2><p>${p.description || ''}</p>
+      <div class="go">Open <span>→</span></div>
+    </a>`).join('');
+} else {
+  dashGrid.innerHTML = `
+    <div class="card">
+      <span class="badge dash">🔗 discord</span>
+      <h2>Link Discord to manage your bots</h2>
+      <p>Bot dashboards need your Discord account so they know which servers you manage.
+      Everything else here works without it — link anytime.</p>
+      <div class="go" style="margin-top:12px;"><a class="dash-btn" href="https://auth.rivaleclipse.dev/auth/discord?action=pair&next=${encodeURIComponent('/dashboards/')}">Link Discord</a></div>
+    </div>`;
+}
 
 // Card 3: Client Portal entry — clickable for clients, otherwise a "not a client yet" note.
 const slot = document.getElementById('portal-slot');
