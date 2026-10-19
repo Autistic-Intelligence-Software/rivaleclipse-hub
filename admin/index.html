@@ -63,7 +63,7 @@
 <canvas id="sky" aria-hidden="true"></canvas>
 <main>
 <div class="wrap">
-  <div class="crumb"><a href="/account/">← My account</a></div>
+  <div class="crumb"><a href="/dashboards/">← Dashboards</a></div>
   <div id="gate"><p class="sub">Loading…</p></div>
   <div id="admin-ui" style="display:none">
     <div class="dash-head">
@@ -126,7 +126,7 @@ if (!(role === 'admin' || isOwner)) {
     <div class="denied"><div class="block">
       <h2>403 — Not authorized</h2>
       <p class="sub">This area is for Rival Eclipse admins only. Your account is registered as <b style="color:var(--text)">${esc(role || 'user')}</b>.</p>
-      <p><a href="/account/">← Back to My account</a></p>
+      <p><a href="/dashboards/">← Back to dashboards</a></p>
     </div></div>`;
   throw new Error('denied');
 }
