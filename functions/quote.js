@@ -284,7 +284,13 @@ export async function onRequestPost({ request, env }) {
   // forwarded to the auth service's rate-limit endpoint before anything delivers.
   const cookie = request.headers.get('cookie') || '';
   if (!cookie) {
-    return json({ ok: false, error: 'not_signed_in', next: nextPath(request) }, 401, origin);
+    // Friendly blocked contract: XHR gets JSON, page loads get the interstitial.
+    const accept = request.headers.get('accept') || '';
+    const next = nextPath(request);
+    if (accept.includes('text/html')) {
+      return Response.redirect(new URL('/blocked/?reason=signin&next=' + encodeURIComponent(next), request.url).toString(), 302);
+    }
+    return json({ ok: false, blocked: { reason: 'signin', next } }, 401, origin);
   }
   const logStatus = await logRequestWithAuth(cookie, d.category, d.features);
   if (logStatus === 429) {
