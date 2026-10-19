@@ -43,6 +43,7 @@
 <script src="/sky.js"></script>
 <script type="module">
 import { session, registerIntent } from '/auth.js';
+import { tagsOf } from '/_lib/gates.js';
 const q = new URLSearchParams(location.search);
 const to = q.get('to') || '/dashboards/';
 const intent = q.get('intent');
@@ -56,7 +57,7 @@ if (s.has_discord ?? !!s.discord) { location.href = to; throw new Error('redirec
 // Client-intent registrations get flagged on their first authenticated page.
 const user = s.user || {};
 const isOwner = !!(s.is_owner ?? user.is_owner);
-if (intent === 'client' && (user.role || 'user') !== 'client' && !isOwner) {
+if (intent === 'client' && !tagsOf(s).includes('client') && !isOwner) {
   try { await registerIntent('client'); } catch { /* non-fatal */ }
 }
 
