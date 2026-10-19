@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enter Promo code — Rival Eclipse</title>
+<meta name="description" content="Redeem a Rival Eclipse promo code.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.code-card { max-width: 480px; margin: 30px auto 0; }
+.code-card .block { margin-top: 0; text-align: center; }
+.code-form { display: flex; gap: 10px; margin-top: 18px; }
+.code-form input { flex: 1; background: #0d0d15; border: 1px solid var(--line); border-radius: 10px;
+  color: var(--text); padding: 13px 14px; font-size: 1rem; font-family: inherit; text-transform: uppercase; min-width: 0; }
+.code-form input:focus { outline: none; border-color: var(--accent); }
+.code-form button { flex: none; }
+#code-msg { margin-top: 16px; font-size: .95rem; line-height: 1.6; min-height: 1.5em; }
+#code-msg.ok { color: var(--ok); }
+#code-msg.err { color: #ff7070; }
+.benefit { background: #101019; border: 1px solid var(--accent); border-radius: 12px; padding: 16px; margin-top: 14px; }
+.fine { color: var(--muted); font-size: .85rem; margin-top: 18px; }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+<div class="wrap">
+  <div class="crumb"><a href="/dashboards/">← Dashboards</a></div>
+  <div class="code-card"><div class="block">
+    <div style="font-size:2.4rem;">🎟️</div>
+    <h2>Enter Promo code</h2>
+    <p class="sub">Got a promo code from us? Enter it below.</p>
+    <form class="code-form" id="code-form">
+      <input id="code-input" placeholder="PROMO-XXXX-XXXX" autocomplete="off" spellcheck="false" maxlength="64">
+      <button class="btn" type="submit">Redeem</button>
+    </form>
+    <div id="code-msg"></div>
+    <p class="fine">Every redemption is recorded on your account. Promo perks are applied by our team — usually within a day.</p>
+  </div></div>
+</div>
+</main>
+<script src="/sky.js"></script>
+<script type="module">
+import { session, redeemCode } from '/auth.js';
+
+const s = await session();
+if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent('/promo/'); throw new Error('redirect'); }
+
+const msg = document.getElementById('code-msg');
+const say = (t, ok) => { msg.innerHTML = t; msg.className = ok ? 'ok' : 'err'; };
+const esc = (x) => String(x ?? '').replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+document.getElementById('code-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const code = document.getElementById('code-input').value.trim();
+  if (!code) { say('Enter your code first.', false); return; }
+  say('Checking…', true);
+  const { status, data } = await redeemCode(code);
+  if (status === 404 && !data.error) {
+    // The endpoint itself doesn't exist yet (auth not deployed) — not an unknown code.
+    say('The code system is coming online — try again in a bit.', false);
+    return;
+  }
+  if (status === 200 && data.ok) {
+    if (data.type === 'promo') {
+      say(`✅ Code accepted.<div class="benefit">${esc(data.benefit || 'Promo applied to your account.')}</div>`, true);
+    } else {
+      say(`✅ Code accepted — <b>${esc(data.tag || data.type)}</b> access granted. <a href="/dashboards/">Go to your dashboards →</a>`, true);
+    }
+    return;
+  }
+  say({
+    unknown_code: 'That code wasn’t recognized — check it and try again.',
+    already_used: 'That code was already used.',
+  }[data.error] || 'Couldn’t redeem that code right now — try again in a moment.', false);
+};
+</script>
+<script src="/_lib/menu.js"></script>
+<script src="/assistant.js"></script>
+</body>
+</html>
