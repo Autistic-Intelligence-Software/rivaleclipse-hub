@@ -154,8 +154,25 @@
 <footer><div class="wrap"><span>© 2026 Rival Eclipse</span><nav><a href="/help/">Help</a><a href="/ToS-Privacy-legal/">ToS &amp; Privacy</a><a href="/sign-in/">Sign in</a><a href="/client/">Client Portal</a></nav></div></footer>
 <script src="/sky.js"></script>
 <script type="module">
-import { session, logout, generateCode, listCodes, revokeCode } from '/auth.js';
-import { tagsOf, hasTag, isOwnerOf, goBlocked } from '/_lib/gates.js';
+// Hardened gate: dynamic imports + a session timeout, so a stale cache or a
+// hung sign-in service can never leave this page stuck on "Loading…" forever.
+const failGate = (msg, btnLabel, btnHref) => {
+  document.getElementById('gate').innerHTML =
+    '<p class="sub">' + msg + '</p>' +
+    '<p><button class="act-btn" id="gate-btn">' + btnLabel + '</button></p>';
+  document.getElementById('gate-btn').onclick = () => { location.href = btnHref; };
+  throw new Error('gate-failed');
+};
+
+let session, logout, generateCode, listCodes, revokeCode;
+let tagsOf, hasTag, isOwnerOf, goBlocked;
+try {
+  ({ session, logout, generateCode, listCodes, revokeCode } = await import('/auth.js'));
+  ({ tagsOf, hasTag, isOwnerOf, goBlocked } = await import('/_lib/gates.js'));
+} catch (e) {
+  failGate('The page didn\u2019t load cleanly \u2014 this is usually a stale cache.',
+    'Reload fresh', '/admin/?fresh=' + Date.now());
+}
 const AUTH = 'https://auth.rivaleclipse.dev';
 
 async function api(path, opts = {}) {
@@ -171,7 +188,15 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // ---------- gate ----------
-const s = await session();
+let s = null;
+try {
+  s = await Promise.race([
+    session(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('session-timeout')), 15000)),
+  ]);
+} catch (e) {
+  failGate('Couldn\u2019t reach the sign-in service. Check your connection.', 'Retry', '/admin/');
+}
 if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent('/admin/'); throw new Error('redirect'); }
 // Stackable tags: the admin tag (or owner) opens the registry.
 // Anything else gets the friendly "Admins only" interstitial — never a raw 403.
