@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner — Rival Eclipse</title>
+<meta name="description" content="Rival Eclipse owner dashboard — invite codes and full control.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.dash-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.gen-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 16px; }
+.gen-card { border: 1px solid var(--line); border-radius: 12px; padding: 18px; background: rgba(13,13,21,.6); }
+.gen-card h3 { margin: 0 0 6px; font-size: 1.05rem; }
+.gen-card p { font-size: .88rem; color: var(--muted); margin: 0 0 14px; line-height: 1.55; }
+.gen-card.danger { border-color: #6b2d2d; }
+.code-out { display: none; margin-top: 12px; background: #0d0d15; border: 1px dashed var(--accent);
+  border-radius: 10px; padding: 12px; font-family: monospace; font-size: 1.05rem; letter-spacing: .04em;
+  word-break: break-all; }
+.code-out.show { display: block; }
+.code-row { display: flex; gap: 8px; margin-top: 10px; }
+.copy-btn { background: none; border: 1px solid var(--accent); color: var(--accent); border-radius: 8px;
+  padding: 8px 14px; cursor: pointer; font-size: .85rem; font-weight: 700; font-family: inherit; flex: none; }
+.copy-btn:hover { background: rgba(201,162,39,.12); }
+.gen-btn { background: linear-gradient(135deg, #d4af37, #8a6d1c); color: #0a0a12; font-weight: 800;
+  border: none; border-radius: 10px; padding: 11px 20px; cursor: pointer; font-size: .92rem; font-family: inherit; }
+.gen-btn:hover { transform: translateY(-2px); }
+.gen-btn:disabled { opacity: .5; cursor: default; transform: none; }
+.warn { font-size: .82rem; color: #ff9d6b; margin-top: 12px; line-height: 1.55; }
+.ctable { width: 100%; border-collapse: collapse; font-size: .88rem; margin-top: 8px; }
+.ctable th { text-align: left; color: var(--muted); font-weight: 600; font-size: .78rem;
+  text-transform: uppercase; letter-spacing: .06em; padding: 10px 8px; border-bottom: 1px solid var(--line); }
+.ctable td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ctable .mono { font-family: monospace; letter-spacing: .03em; }
+.dim { color: var(--muted); font-size: .85rem; }
+.revoke-btn { background: none; border: 1px solid #6b2d2d; color: #ff7070; border-radius: 8px;
+  padding: 6px 12px; cursor: pointer; font-size: .82rem; font-family: inherit; }
+.revoke-btn:hover { background: rgba(255,112,112,.08); }
+.revoke-btn:disabled { opacity: .4; cursor: default; }
+#owner-msg { margin-top: 14px; font-size: .95rem; }
+#owner-msg.ok { color: var(--ok); }
+#owner-msg.err { color: #ff7070; }
+.promo-row { display: flex; gap: 8px; margin-top: 10px; }
+.promo-row input { flex: 1; background: #0d0d15; border: 1px solid var(--line); border-radius: 8px;
+  color: var(--text); padding: 9px 12px; font-size: .88rem; font-family: inherit; min-width: 0; }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+<div class="wrap">
+  <div class="crumb"><a href="/dashboards/">← Dashboards</a></div>
+  <div id="gate"><p class="sub">Loading…</p></div>
+  <div id="owner-ui" style="display:none">
+    <div class="dash-head">
+      <div><h1 class="page-title">👑 Owner</h1>
+      <p class="page-sub">Invite codes and full control. Codes are one-time use and never expire until used.</p></div>
+    </div>
+    <div class="block">
+      <h2>Generate invite codes</h2>
+      <p class="sub">Each code grants exactly its tag, one time. Share a code with the person — they enter it under <a href="/team-code/">Enter Team code</a>.</p>
+      <div class="gen-grid">
+        <div class="gen-card">
+          <h3>📋 Team code</h3>
+          <p>Grants the <b>team</b> tag — client chats, change requests, feature flags.</p>
+          <button class="gen-btn" data-gen="team">Generate Team code</button>
+          <div class="code-out" id="out-team"></div>
+          <div class="code-row" id="row-team" style="display:none"><button class="copy-btn" data-copy="out-team">Copy</button></div>
+        </div>
+        <div class="gen-card">
+          <h3>🛡️ Admin code</h3>
+          <p>Grants the <b>admin</b> tag — user registry, team management, escalations.</p>
+          <button class="gen-btn" data-gen="admin">Generate Admin code</button>
+          <div class="code-out" id="out-admin"></div>
+          <div class="code-row" id="row-admin" style="display:none"><button class="copy-btn" data-copy="out-admin">Copy</button></div>
+        </div>
+        <div class="gen-card danger">
+          <h3>👑 Owner code</h3>
+          <p>Grants the <b>owner</b> tag — full control of everything.</p>
+          <button class="gen-btn" data-gen="owner">Generate Owner code</button>
+          <div class="code-out" id="out-owner"></div>
+          <div class="code-row" id="row-owner" style="display:none"><button class="copy-btn" data-copy="out-owner">Copy</button></div>
+          <p class="warn">Only share this with someone you trust completely — it grants full control, and it can’t be taken back from here.</p>
+        </div>
+        <div class="gen-card">
+          <h3>🎟️ Promo code</h3>
+          <p>A promo perk with your own wording — redeemed under “Enter Promo code”.</p>
+          <div class="promo-row"><input id="promo-benefit" placeholder="e.g. 1 month free of the Service package" maxlength="200"></div>
+          <div style="margin-top:10px;"><button class="gen-btn" data-gen="promo">Generate Promo code</button></div>
+          <div class="code-out" id="out-promo"></div>
+          <div class="code-row" id="row-promo" style="display:none"><button class="copy-btn" data-copy="out-promo">Copy</button></div>
+        </div>
+      </div>
+      <p id="owner-msg"></p>
+    </div>
+    <div class="block">
+      <h2>All codes</h2>
+      <p class="sub">Unused codes can be revoked. Used codes show who redeemed them.</p>
+      <div style="overflow-x:auto"><table class="ctable">
+        <thead><tr><th>Code</th><th>Type</th><th>Created</th><th>Status</th><th></th></tr></thead>
+        <tbody id="codes-body"><tr><td colspan="5" class="dim">Loading…</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+</main>
+<script src="/sky.js"></script>
+<script type="module">
+import { session } from '/auth.js';
+import { generateCode, listCodes, revokeCode } from '/auth.js';
+import { hasTag, goBlocked } from '/_lib/gates.js';
+
+const s = await session();
+if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent('/owner/'); throw new Error('redirect'); }
+if (!hasTag(s, 'owner')) goBlocked('admin');
+document.getElementById('gate').style.display = 'none';
+document.getElementById('owner-ui').style.display = '';
+
+const msg = document.getElementById('owner-msg');
+const say = (t, ok) => { msg.textContent = t; msg.className = ok === true ? 'ok' : ok === false ? 'err' : ''; };
+const esc = (x) => String(x ?? '').replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const onlineError = (status, data) => status === 404 && !data.error;
+
+document.querySelectorAll('[data-gen]').forEach((btn) => {
+  btn.onclick = async () => {
+    const type = btn.dataset.gen;
+    const benefit = type === 'promo' ? document.getElementById('promo-benefit').value.trim() : undefined;
+    if (type === 'promo' && !benefit) { say('Describe the promo perk first — it’s what the user will see.', false); return; }
+    btn.disabled = true;
+    const { status, data } = await generateCode(type, benefit);
+    btn.disabled = false;
+    if (onlineError(status, data)) { say('The code system is coming online — try again in a bit.', false); return; }
+    if (status === 200 && data.ok && data.code) {
+      const out = document.getElementById('out-' + type);
+      out.textContent = data.code;
+      out.classList.add('show');
+      document.getElementById('row-' + type).style.display = '';
+      say(`${type.charAt(0).toUpperCase() + type.slice(1)} code ready — copy it and share it directly.`, true);
+      loadCodes();
+    } else {
+      say(data.error || 'Couldn’t generate the code.', false);
+    }
+  };
+});
+
+document.querySelectorAll('[data-copy]').forEach((btn) => {
+  btn.onclick = async () => {
+    const t = document.getElementById(btn.dataset.copy).textContent;
+    try { await navigator.clipboard.writeText(t); btn.textContent = 'Copied ✓'; }
+    catch { btn.textContent = 'Copy failed — select it manually'; }
+    setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+  };
+});
+
+const fmtWhen = (v) => { try { return v ? new Date(v).toLocaleString() : '—'; } catch { return '—'; } };
+
+async function loadCodes() {
+  const body = document.getElementById('codes-body');
+  const { status, data } = await listCodes();
+  if (onlineError(status, data)) { body.innerHTML = '<tr><td colspan="5" class="dim">Code system coming online…</td></tr>'; return; }
+  if (status !== 200) { body.innerHTML = '<tr><td colspan="5" class="dim">Couldn’t load codes.</td></tr>'; return; }
+  const codes = data.codes || [];
+  if (!codes.length) { body.innerHTML = '<tr><td colspan="5" class="dim">No codes yet.</td></tr>'; return; }
+  body.innerHTML = codes.map((c) => {
+    const used = !!c.used_by;
+    return `<tr>
+      <td class="mono">${esc(c.code)}</td>
+      <td>${esc(c.type)}${c.benefit ? `<div class="dim">${esc(c.benefit)}</div>` : ''}</td>
+      <td class="dim">${esc(c.created_by || '')}<br>${esc(fmtWhen(c.created_at))}</td>
+      <td class="dim">${used ? `Used by ${esc(c.used_by)}<br>${esc(fmtWhen(c.used_at))}` : 'Unused'}</td>
+      <td>${used ? '' : `<button class="revoke-btn" data-revoke="${esc(c.id)}">Revoke</button>`}</td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('codes-body').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-revoke]');
+  if (!btn) return;
+  if (!confirm('Revoke this code? It will never be redeemable.')) return;
+  btn.disabled = true;
+  const { status, data } = await revokeCode(btn.dataset.revoke);
+  if (status === 200) { say('Code revoked.', true); loadCodes(); }
+  else say(data.error || 'Couldn’t revoke the code.', false);
+});
+
+loadCodes();
+</script>
+<script src="/_lib/menu.js"></script>
+<script src="/assistant.js"></script>
+</body>
+</html>
