@@ -84,6 +84,12 @@
       <p>Track every dev request from new to delivered — status, notes, and deliverables.</p>
       <div class="go">Open team <span>→</span></div>
     </a>
+    <a class="card" id="owner-card" style="display:none" href="/owner/">
+      <div class="dic">👑</div>
+      <h2>Owner</h2>
+      <p>Invite codes &amp; full control.</p>
+      <div class="go">Open owner <span>→</span></div>
+    </a>
   </div>
 
   <div class="block" id="security-block">
@@ -124,6 +130,9 @@ if (hasTag(s, 'admin')) {
 }
 if (hasTag(s, 'team') || hasTag(s, 'admin')) {
   document.getElementById('team-card').style.display = '';
+}
+if (hasTag(s, 'owner')) {
+  document.getElementById('owner-card').style.display = '';
 }
 
 // Bot dashboards (card 1) — the ONLY card that needs a linked Discord.
