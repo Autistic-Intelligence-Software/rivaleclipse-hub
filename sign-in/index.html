@@ -41,19 +41,69 @@
       </form>
       <p id="form-msg"></p>
       <p class="sub" style="margin-top:18px; font-size:.85rem;">New here? <a href="/sign-up/">Create an account</a> — it takes a minute, just your email.</p>
+      <div class="divider">have a team code?</div>
+      <div id="code-section" style="display:none">
+        <div id="code-signedin" style="display:none">
+          <form id="code-form" style="display:flex;gap:10px;">
+            <input type="text" id="code-input" placeholder="TEAM-XXXX-XXXX" autocomplete="off" spellcheck="false" maxlength="64"
+              style="flex:1;background:#0d0d15;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:12px 14px;font-size:.95rem;font-family:inherit;text-transform:uppercase;min-width:0;">
+            <button class="btn" type="submit" style="flex:none;">Redeem</button>
+          </form>
+          <p id="code-msg" style="margin-top:10px;font-size:.9rem;"></p>
+        </div>
+        <p class="sub" id="code-signedout" style="display:none;font-size:.9rem;">Sign in first, then enter your code — you’ll land right back here.</p>
+      </div>
+      <p class="sub" id="code-link-wrap" style="margin-top:14px;font-size:.85rem;display:none;">Have a team code? <a href="/sign-in/?code=1">Enter it here</a></p>
     </div>
   </div>
 </div>
 </main>
 <script src="/sky.js"></script>
 <script type="module">
-import { session, requestMagicLink, discordLogin, passkeyLogin, nextUrl } from '/auth.js';
+import { session, requestMagicLink, discordLogin, passkeyLogin, nextUrl, redeemCode } from '/auth.js';
 const msg = document.getElementById('form-msg');
-const next = nextUrl();
+const codeMode = new URLSearchParams(location.search).has('code');
+const next = codeMode ? '/sign-in/?code=1' : nextUrl();
 function say(t, ok) { msg.textContent = t; msg.className = ok ? 'ok' : 'err'; }
 
-// Already signed in? bounce to destination.
-session().then((s) => { if (s) location.href = next || '/dashboards/'; });
+// Already signed in? bounce to destination — unless we're here to enter a team code.
+session().then((s) => {
+  if (codeMode) { showCodeSection(!!s); return; }
+  if (s) location.href = next || '/dashboards/';
+});
+if (!codeMode) document.getElementById('code-link-wrap').style.display = '';
+
+function showCodeSection(signedIn) {
+  document.getElementById('code-section').style.display = '';
+  document.getElementById('code-signedin').style.display = signedIn ? '' : 'none';
+  document.getElementById('code-signedout').style.display = signedIn ? 'none' : '';
+}
+
+const codeMsg = document.getElementById('code-msg');
+const csay = (t, ok) => { codeMsg.innerHTML = t; codeMsg.className = ok ? 'ok' : 'err'; };
+const cesc = (x) => String(x ?? '').replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const GRANTED = {
+  team: 'You’re on the team. <a href="/team/">Open the Team dashboard →</a>',
+  admin: 'Admin access granted. <a href="/admin/">Open the Admin dashboard →</a>',
+  owner: 'Owner access granted. <a href="/owner/">Open the Owner dashboard →</a>',
+};
+document.getElementById('code-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const code = document.getElementById('code-input').value.trim();
+  if (!code) { csay('Enter your code first.', false); return; }
+  csay('Checking…', true);
+  const { status, data } = await redeemCode(code);
+  if (status === 404 && !data.error) { csay('The code system is coming online — try again in a bit.', false); return; }
+  if (status === 200 && data.ok) {
+    const tag = String(data.tag || data.type || '').toLowerCase();
+    csay(`✅ ${GRANTED[tag] || `Code accepted — <b>${cesc(tag)}</b> access granted. <a href="/dashboards/">Go to your dashboards →</a>`}`, true);
+    return;
+  }
+  csay({ unknown_code: 'That code wasn’t recognized — check it and try again.',
+    already_used: 'That code was already used.' }[data.error]
+    || 'Couldn’t redeem that code right now — try again in a moment.', false);
+};
 
 document.getElementById('discord-btn').onclick = () => discordLogin(next);
 document.getElementById('passkey-btn').onclick = async () => {
@@ -76,5 +126,6 @@ document.getElementById('magic-form').onsubmit = async (e) => {
   say(status === 200 ? 'Check your inbox — the link expires in 15 minutes.' : (data.error === 'rate_limited' ? 'Too many requests — wait a few minutes.' : 'Couldn’t send the email. Try again.'), status === 200);
 };
 </script>
+<script src="/_lib/menu.js"></script>
 </body>
 </html>
