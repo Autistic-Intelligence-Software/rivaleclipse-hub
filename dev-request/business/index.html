@@ -279,8 +279,9 @@ document.getElementById('quote-form').addEventListener('submit', async (e) => {
       msg.className = 'ok';
       msg.textContent = 'Brief received — we\'ll reply personally, usually within a day.';
       e.target.reset(); imgPreview.innerHTML = '';
-    } else if (out.error === 'not_signed_in') {
-      location.href = '/sign-in/?next=' + encodeURIComponent(out.next || location.pathname);
+    } else if (out.blocked || out.error === 'not_signed_in') {
+      const _bn = (out.blocked && out.blocked.next) || out.next || location.pathname;
+      location.href = '/blocked/?reason=signin&next=' + encodeURIComponent(_bn);
       return;
     } else { throw new Error(out.error || 'delivery_failed'); }
   } catch (err) {
