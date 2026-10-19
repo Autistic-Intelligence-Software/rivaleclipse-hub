@@ -15,6 +15,7 @@
 .prod-card ul li{color:var(--muted);font-size:.93rem;line-height:1.55;padding-left:20px;position:relative}
 .prod-card ul li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
 .prod-card .hint{font-size:.82rem;color:var(--muted);letter-spacing:.04em}
+.prod-card .needs-line{font-size:.82rem;color:var(--accent);font-weight:700;margin-top:8px;letter-spacing:.02em}
 /* Modal */
 .overlay{position:fixed;inset:0;z-index:50;background:rgba(3,3,8,.78);backdrop-filter:blur(3px);
   display:none;align-items:flex-start;justify-content:center;padding:4vh 16px;overflow-y:auto}
@@ -48,7 +49,7 @@
   <div class="wrap">
     <div class="crumb"><a href="/">← Rival Eclipse</a></div>
     <h1 class="page-title">Products &amp; Services</h1>
-    <p class="page-sub">Everything we make, in one place. Click any product for the full details — no account needed to look around.</p>
+    <p class="page-sub">Everything we make, in one place. Click any product for the full details — no account needed to look around. Each item says exactly what you need to use it.</p>
 
     <div class="block mission">
       <h2>Our Mission</h2>
@@ -177,8 +178,13 @@
 <script src="/sky.js"></script>
 <script>
 var PRODUCTS = {
+// kind: 'bot' (dashboard needs linked Discord) | 'account' (needs free sign-in)
+//        | 'open' (no account needed — its own email flow on the site)
 bouncer: {
   name: "Bouncer Bot (beta)",
+  kind: "bot",
+  dashboard: "https://bouncer.rivaleclipse.dev/dashboard/",
+  needs: "Linked Discord for the dashboard",
   tag: "Anti-scam bouncer for your Discord server. Free while in beta.",
   visit: "https://bouncer.rivaleclipse.dev",
   visitLabel: "Open Bouncer portal",
@@ -195,6 +201,9 @@ bouncer: {
 },
 chatmate: {
   name: "Chat-Mate (beta)",
+  kind: "bot",
+  dashboard: "https://chatmate.rivaleclipse.dev/dashboard/",
+  needs: "Linked Discord for the dashboard",
   tag: "Server housekeeping that learns your rules. Free while in beta.",
   visit: "https://chatmate.rivaleclipse.dev",
   visitLabel: "Open Chat-Mate dashboard",
@@ -211,6 +220,9 @@ chatmate: {
 },
 tim: {
   name: "Tim (beta)",
+  kind: "bot",
+  dashboard: "https://tim.rivaleclipse.dev/dashboard/",
+  needs: "Linked Discord for the dashboard",
   tag: "An AI chatbot for your server — your key, your rules. Free while in beta.",
   visit: "https://tim.rivaleclipse.dev",
   visitLabel: "Open Tim dashboard",
@@ -227,6 +239,9 @@ tim: {
 },
 vibecheck: {
   name: "VibeCheck (beta)",
+  kind: "bot",
+  dashboard: "https://vibecheck.rivaleclipse.dev/dashboard/",
+  needs: "Linked Discord for the dashboard",
   tag: "Know how your community actually feels. Free while in beta.",
   visit: "https://vibecheck.rivaleclipse.dev",
   visitLabel: "Open VibeCheck dashboard",
@@ -243,6 +258,9 @@ vibecheck: {
 },
 jayrain: {
   name: "FreeMium JayRain (beta)",
+  kind: "bot",
+  dashboard: "https://freemiumjayrain.rivaleclipse.dev/dashboard/",
+  needs: "Linked Discord for the dashboard",
   tag: "Music for your server, powered by the community. Free while in beta.",
   visit: "https://freemiumjayrain.rivaleclipse.dev",
   visitLabel: "Open JayRain dashboard",
@@ -259,6 +277,8 @@ jayrain: {
 },
 forge: {
   name: "Bot Forge",
+  kind: "account",
+  needs: "Free account sign-in",
   tag: "Describe a bot in plain words — get working code. Web-only.",
   visit: "https://botforge.rivaleclipse.dev",
   visitLabel: "Open Bot Forge",
@@ -275,6 +295,8 @@ forge: {
 },
 qr: {
   name: "GIF to QR Converter",
+  kind: "open",
+  needs: "Nothing — email sign-in happens on the site",
   tag: "Artistic QR codes with your artwork fused in. 5 free, then $0.99 unlimited.",
   visit: "https://customqr.rivaleclipse.dev",
   visitLabel: "Open QR Converter",
@@ -291,6 +313,8 @@ qr: {
 },
 customdev: {
   name: "Custom Dev Services",
+  kind: "account",
+  needs: "Free account to request",
   tag: "Need something built? We build it, you own it.",
   visit: "/dev-request/",
   visitLabel: "Request a quote",
@@ -323,11 +347,12 @@ function openProduct(key){
   modalBody.innerHTML =
     '<h2 id="modal-title">'+escHtml(p.name)+'</h2>' +
     '<p class="mtag">'+escHtml(p.tag)+'</p>' +
+    '<p class="mtag" style="color:var(--accent);font-weight:700">Needs: '+escHtml(p.needs || 'Nothing')+'</p>' +
     '<h3>What it is</h3>' + p.overview +
     '<h3>Terms of Service</h3>' + p.tos +
     '<h3>Privacy Policy</h3>' + p.privacy +
     '<h3>Frequently asked questions</h3><div class="faq">'+faqHtml+'</div>' +
-    '<div class="visit-row"><a class="btn" href="'+p.visit+'">Visit →</a></div>';
+    '<div class="visit-row"><a class="btn" id="visit-cta" href="'+p.visit+'" data-key="'+key+'">'+escHtml(p.visitLabel || 'Visit')+' →</a></div>';
   lastFocus = document.activeElement;
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -350,6 +375,37 @@ overlay.addEventListener('click', function(e){
 });
 document.addEventListener('keydown', function(e){
   if(e.key === 'Escape' && overlay.classList.contains('open')) closeProduct();
+});
+</script>
+<script type="module">
+// Smart routing: every product states what it needs, and the visit CTA
+// takes you through the friendly /blocked/ flow instead of dead-ending.
+import { session } from '/auth.js';
+import { hasDiscord, blockedUrl } from '/_lib/gates.js';
+
+// "Needs" labels on the cards, from the single PRODUCTS map.
+document.querySelectorAll('.prod-card[data-product]').forEach((card) => {
+  const p = (window.PRODUCTS || {})[card.getAttribute('data-product')];
+  if (!p || !p.needs) return;
+  const el = document.createElement('div');
+  el.className = 'needs-line';
+  el.textContent = 'Needs: ' + p.needs;
+  card.appendChild(el);
+});
+
+// Intercept the overlay visit CTA.
+document.getElementById('overlay').addEventListener('click', async (e) => {
+  const cta = e.target.closest('#visit-cta');
+  if (!cta) return;
+  e.preventDefault();
+  const p = (window.PRODUCTS || {})[cta.getAttribute('data-key')] || {};
+  const kind = p.kind || 'open';
+  const dest = (kind === 'bot' && p.dashboard) ? p.dashboard : (cta.getAttribute('href') || p.visit);
+  if (kind === 'open') { location.href = dest; return; }
+  const s = await session().catch(() => null);
+  if (!s) { location.href = blockedUrl('signin', dest); return; }
+  if (kind === 'bot' && !hasDiscord(s)) { location.href = blockedUrl('discord', dest); return; }
+  location.href = dest;
 });
 </script>
 <script src="/assistant.js"></script>
