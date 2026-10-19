@@ -113,7 +113,7 @@ const s = await session();
 if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent(location.href); throw new Error('redirect'); }
 const user = s.user || {};
 const role = (user.role || 'user').toLowerCase();
-const isOwner = !!user.is_owner;
+const isOwner = !!(s.is_owner ?? user.is_owner);
 const isClient = role === 'client' || role === 'admin' || isOwner;
 
 document.getElementById('who').textContent = (s.discord?.username ? '@' + s.discord.username : user.email);
