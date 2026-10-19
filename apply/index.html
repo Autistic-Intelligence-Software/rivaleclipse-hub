@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apply — Work with Rival Eclipse</title>
+<meta name="description" content="Business owner or brand ambassador? Register and apply to work with Rival Eclipse — custom builds and partnerships.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.pick-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:10px 0 4px}
+.pick{display:block;background:#0d0d15;border:1px solid var(--line);border-radius:14px;padding:18px;cursor:pointer}
+.pick input{accent-color:var(--accent);width:auto !important}
+.pick:has(input:checked){border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.pick b{display:block;font-size:1.05rem;margin:8px 0 6px}
+.pick span{color:var(--muted);font-size:.9rem;line-height:1.5}
+.feats{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:8px;margin:6px 0 4px}
+.feat{display:flex;align-items:center;gap:10px;background:#0d0d15;border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;font-size:.88rem;color:var(--muted);cursor:pointer;font-weight:normal;margin:0 !important}
+.feat input{accent-color:var(--accent);width:auto !important}
+.feat:has(input:checked){border-color:var(--accent);color:var(--text)}
+.radios{display:flex;flex-direction:column;gap:8px;margin:10px 0 4px;font-size:.9rem;color:var(--muted)}
+.radios label{display:flex;align-items:center;gap:10px;cursor:pointer}
+.radios input{accent-color:var(--accent);width:auto !important}
+.sub-block{margin:6px 0 2px;padding:2px 0 2px 16px;border-left:2px solid var(--line)}
+.sub-block[hidden]{display:none}
+#form-msg{margin:14px 0;font-size:.95rem}
+#form-msg.ok{color:#7ddf9a}
+#form-msg.err{color:#ff9a9a}
+.step-note{font-size:.82rem;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+  <div class="wrap">
+    <div class="crumb"><a href="/">← Rival Eclipse</a></div>
+    <h1 class="page-title">Work with Rival Eclipse</h1>
+    <p class="page-sub">One short application — it adapts to you, so you only ever see the questions that apply.</p>
+
+    <div class="block" id="gate-msg"><p class="sub">Checking sign-in…</p></div>
+
+    <form class="quote block" id="apply-form" hidden novalidate>
+      <input type="hidden" name="category" value="apply">
+      <input type="hidden" name="type" id="f-type" value="">
+      <input type="hidden" name="details" id="f-details" value="">
+      <input type="text" name="company" style="display:none" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+      <h2>I am a…</h2>
+      <div class="pick-cards">
+        <label class="pick">
+          <input type="radio" name="role" value="Business owner" required>
+          <b>🏢 Business owner</b>
+          <span>I want Rival Eclipse to build something for my business — a website, web app, or Discord bot.</span>
+        </label>
+        <label class="pick">
+          <input type="radio" name="role" value="Brand ambassador" required>
+          <b>📣 Brand ambassador</b>
+          <span>I want to team up — referring businesses, promoting, or creating content with Rival Eclipse.</span>
+        </label>
+      </div>
+
+      <!-- ============ BUSINESS OWNER PATH ============ -->
+      <div id="biz" hidden>
+        <h2>Your business</h2>
+        <label>Business name
+          <input type="text" name="name" maxlength="80" placeholder="e.g. Sunny Side Diner">
+        </label>
+        <label>Business type
+          <select name="business_type">
+            <option value="">Select…</option>
+            <option>Restaurant / Cafe</option>
+            <option>Salon / Barbershop</option>
+            <option>Retail / Shop</option>
+            <option>Services</option>
+            <option>Other</option>
+          </select>
+        </label>
+        <label>Current website <span class="step-note">(optional)</span>
+          <input type="url" name="website" placeholder="https://…">
+        </label>
+
+        <h2>What are you looking for?</h2>
+        <div class="feats">
+          <label class="feat"><input type="checkbox" name="looking_for" value="New website" data-toggle="sub-website"> New website</label>
+          <label class="feat"><input type="checkbox" name="looking_for" value="Web app" data-toggle="sub-webapp"> Web app</label>
+          <label class="feat"><input type="checkbox" name="looking_for" value="Discord bot" data-toggle="sub-bot"> Discord bot</label>
+          <label class="feat"><input type="checkbox" name="looking_for" value="Something else" data-toggle="sub-other"> Something else</label>
+        </div>
+
+        <div class="sub-block" id="sub-website" hidden>
+          <label>Which features should it have? <span class="step-note">(tick all that apply)</span></label>
+          <div class="feats">
+            <label class="feat"><input type="checkbox" name="features" value="Online booking / scheduling"> Online booking / scheduling</label>
+            <label class="feat"><input type="checkbox" name="features" value="E-commerce checkout"> Online store</label>
+            <label class="feat"><input type="checkbox" name="features" value="Photo gallery"> Photo gallery</label>
+            <label class="feat"><input type="checkbox" name="features" value="Contact form"> Contact form</label>
+            <label class="feat"><input type="checkbox" name="features" value="Blog / news"> Blog / news</label>
+            <label class="feat"><input type="checkbox" name="features" value="Newsletter signup"> Newsletter signup</label>
+          </div>
+          <label>Do you already have a domain?</label>
+          <div class="radios">
+            <label><input type="radio" name="has_domain" value="Yes"> Yes</label>
+            <label><input type="radio" name="has_domain" value="No"> No</label>
+          </div>
+        </div>
+
+        <div class="sub-block" id="sub-webapp" hidden>
+          <label>Describe what it should do
+            <textarea name="webapp_desc" placeholder="What problem should it solve? Who uses it?"></textarea>
+          </label>
+        </div>
+
+        <div class="sub-block" id="sub-bot" hidden>
+          <label>What should the bot do?
+            <textarea name="bot_desc" placeholder="e.g. welcome new members, run ticket support, post daily specials…"></textarea>
+          </label>
+          <label>Roughly how many members?
+            <select name="bot_members">
+              <option value="">Select…</option>
+              <option>Under 100</option>
+              <option>100 – 500</option>
+              <option>500 – 2,000</option>
+              <option>2,000+</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="sub-block" id="sub-other" hidden>
+          <label>Tell us what you have in mind
+            <textarea name="other_desc" placeholder="Anything — if software can do it, we can probably build it."></textarea>
+          </label>
+        </div>
+
+        <h2>Budget &amp; timing</h2>
+        <label>Budget range
+          <select name="budget">
+            <option value="">Select…</option>
+            <option>Under $500</option>
+            <option>$500 – $1,500</option>
+            <option>$1,500 – $5,000</option>
+            <option>$5,000+</option>
+            <option>Not sure yet</option>
+          </select>
+        </label>
+        <label>Timeline
+          <select name="timeline">
+            <option value="">Select…</option>
+            <option>ASAP</option>
+            <option>1 month</option>
+            <option>2 – 3 months</option>
+            <option>Flexible</option>
+          </select>
+        </label>
+        <label>Anything else we should know? <span class="step-note">(optional)</span>
+          <textarea name="extra" placeholder="Goals, must-haves, things you've tried before…"></textarea>
+        </label>
+      </div>
+
+      <!-- ============ BRAND AMBASSADOR PATH ============ -->
+      <div id="amb" hidden>
+        <h2>About you</h2>
+        <label>Your name
+          <input type="text" name="name" maxlength="80" placeholder="Your name">
+        </label>
+
+        <h2>How would you like to work with us?</h2>
+        <div class="feats">
+          <label class="feat"><input type="checkbox" name="collab" value="Refer businesses" data-toggle="sub-refer"> Refer businesses</label>
+          <label class="feat"><input type="checkbox" name="collab" value="Promote on social media" data-toggle="sub-social"> Promote on social media</label>
+          <label class="feat"><input type="checkbox" name="collab" value="Create content" data-toggle="sub-content"> Create content</label>
+          <label class="feat"><input type="checkbox" name="collab" value="Other" data-toggle="sub-collab-other"> Other</label>
+        </div>
+
+        <div class="sub-block" id="sub-refer" hidden>
+          <label>How many businesses could you introduce us to?
+            <select name="refer_count">
+              <option value="">Select…</option>
+              <option>1 – 3</option>
+              <option>4 – 10</option>
+              <option>10+</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="sub-block" id="sub-social" hidden>
+          <label>Where's your audience? <span class="step-note">(platform + follower count)</span>
+            <input type="text" name="social_audience" maxlength="200" placeholder="e.g. TikTok — 12k followers">
+          </label>
+        </div>
+
+        <div class="sub-block" id="sub-content" hidden>
+          <label>Link to your work
+            <input type="url" name="content_link" placeholder="https://…">
+          </label>
+        </div>
+
+        <div class="sub-block" id="sub-collab-other" hidden>
+          <label>Tell us more
+            <textarea name="collab_other" placeholder="How do you want to team up?"></textarea>
+          </label>
+        </div>
+
+        <label>Why do you want to team up with Rival Eclipse?
+          <textarea name="why_us" placeholder="What drew you to us?"></textarea>
+        </label>
+      </div>
+
+      <!-- ============ SHARED ============ -->
+      <div id="shared" hidden>
+        <h2>Where can we reach you?</h2>
+        <label>Email
+          <input type="email" name="email" id="f-email" maxlength="120" required placeholder="you@example.com">
+        </label>
+        <div id="form-msg"></div>
+        <button class="btn" id="q-submit" type="submit">Submit application</button>
+        <p class="step-note">One application per week per account — same as dev requests.</p>
+      </div>
+    </form>
+  </div>
+</main>
+<script src="/sky.js"></script>
+<script type="module">
+import { session } from '/auth.js';
+
+const form = document.getElementById('apply-form');
+const biz = document.getElementById('biz');
+const amb = document.getElementById('amb');
+const shared = document.getElementById('shared');
+
+// ---- sign-in gate ----
+const s = await session().catch(() => null);
+if (!s) {
+  location.href = '/sign-in/?next=' + encodeURIComponent('/apply/');
+} else {
+  document.getElementById('gate-msg').hidden = true;
+  form.hidden = false;
+  if (s.user?.email) document.getElementById('f-email').value = s.user.email;
+}
+
+// ---- progressive disclosure helpers ----
+function setEnabled(root, on) {
+  root.querySelectorAll('input, select, textarea').forEach((el) => { el.disabled = !on; });
+}
+function syncToggle(cb) {
+  const target = document.getElementById(cb.dataset.toggle);
+  if (!target) return;
+  target.hidden = !cb.checked;
+  setEnabled(target, cb.checked);
+}
+// Start with both paths disabled; nothing visible until a role is picked.
+setEnabled(biz, false);
+setEnabled(amb, false);
+setEnabled(shared, false);
+
+document.querySelectorAll('input[name="role"]').forEach((r) => {
+  r.addEventListener('change', () => {
+    const isBiz = document.querySelector('input[name="role"]:checked')?.value === 'Business owner';
+    biz.hidden = !isBiz;
+    amb.hidden = isBiz;
+    shared.hidden = false;
+    setEnabled(biz, isBiz);
+    setEnabled(amb, !isBiz);
+    setEnabled(shared, true);
+    document.getElementById('f-type').value = isBiz ? 'Business owner application' : 'Brand ambassador application';
+    // Re-sync conditional blocks in case boxes were checked before switching paths.
+    document.querySelectorAll('[data-toggle]').forEach(syncToggle);
+  });
+});
+document.querySelectorAll('[data-toggle]').forEach((cb) => {
+  cb.addEventListener('change', () => syncToggle(cb));
+  syncToggle(cb);
+});
+
+// ---- compose a readable summary for the required `details` field ----
+const FIELDS = [
+  ['role', 'I am a'], ['name', 'Name'], ['business_type', 'Business type'], ['website', 'Current website'],
+  ['looking_for', 'Looking for'], ['features', 'Website features'], ['has_domain', 'Already has a domain'],
+  ['webapp_desc', 'Web app idea'], ['bot_desc', 'Bot idea'], ['bot_members', 'Server size'],
+  ['other_desc', 'Other idea'], ['budget', 'Budget'], ['timeline', 'Timeline'], ['extra', 'Anything else'],
+  ['collab', 'Ways to work together'], ['refer_count', 'Businesses to introduce'],
+  ['social_audience', 'Audience'], ['content_link', 'Work link'], ['collab_other', 'Other collaboration'],
+  ['why_us', 'Why Rival Eclipse'],
+];
+function fieldVal(name) {
+  const vals = [];
+  form.querySelectorAll(`[name="${name}"]`).forEach((el) => {
+    if (el.disabled) return;
+    if (el.type === 'checkbox' || el.type === 'radio') { if (el.checked) vals.push(el.value); }
+    else if (el.value.trim()) vals.push(el.value.trim());
+  });
+  return vals.join('; ');
+}
+function composeDetails() {
+  return FIELDS.map(([n, l]) => {
+    const v = fieldVal(n);
+    return v ? `${l}: ${v}` : '';
+  }).filter(Boolean).join('\n');
+}
+
+// ---- submit ----
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('form-msg');
+  const btn = document.getElementById('q-submit');
+  document.getElementById('f-details').value = composeDetails();
+  const email = document.getElementById('f-email').value.trim();
+  const role = document.querySelector('input[name="role"]:checked');
+  if (!role) { msg.className = 'err'; msg.textContent = 'Pick "Business owner" or "Brand ambassador" up top first.'; return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { msg.className = 'err'; msg.textContent = 'Please enter a valid email.'; return; }
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  msg.className = '';
+  msg.textContent = '';
+  const ERRORS = {
+    invalid: 'Please fill in your name, a valid email, and the fields above.',
+    rate_limited: 'You’ve already sent a request this week — one per week per account. We’ll reply to your original soon.',
+    delivery_failed: 'Something went wrong on our end. Please try again in a minute.',
+  };
+  try {
+    const res = await fetch('/quote', { method: 'POST', body: new FormData(form) });
+    const out = await res.json();
+    if (out.ok) {
+      msg.className = 'ok';
+      msg.textContent = 'Application received — we’ll be in touch.';
+      form.reset();
+      biz.hidden = true; amb.hidden = true; shared.hidden = true;
+      setEnabled(biz, false); setEnabled(amb, false); setEnabled(shared, false);
+      document.querySelectorAll('[data-toggle]').forEach(syncToggle);
+    } else if (out.error === 'not_signed_in') {
+      location.href = '/sign-in/?next=' + encodeURIComponent(out.next || '/apply/');
+      return;
+    } else {
+      msg.className = 'err';
+      msg.textContent = ERRORS[out.error] || 'Something went wrong. Please try again.';
+    }
+  } catch {
+    msg.className = 'err';
+    msg.textContent = 'Couldn’t reach the server. Check your connection and try again.';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Submit application';
+});
+</script>
+</body>
+</html>
