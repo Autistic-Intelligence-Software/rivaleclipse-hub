@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Portal — Rival Eclipse</title>
+<meta name="description" content="The Rival Eclipse client portal — track your requests, projects, and billing, and message the team directly.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.auth-card { max-width: 520px; margin: 30px auto 0; }
+.auth-card .block { margin-top: 0; }
+.auth-methods { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
+.auth-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
+  padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: #0d0d15;
+  color: var(--text); font-size: 1rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+.auth-btn:hover { border-color: var(--accent); }
+.cta-list { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
+.cta-list .btn { text-align: center; }
+.cta-list .btn-ghost { text-align: center; }
+.btn-ghost { display: inline-block; border: 1px solid var(--accent); color: var(--accent); font-weight: 700;
+  padding: 15px 40px; border-radius: 12px; font-size: 1.05rem; text-decoration: none; transition: transform .15s ease; }
+.btn-ghost:hover { transform: translateY(-2px); }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+<div class="wrap">
+  <div class="crumb"><a href="/">← Rival Eclipse</a></div>
+  <div class="auth-card">
+    <div class="block" id="gate">
+      <h2>Client Portal</h2>
+      <p class="sub">Loading…</p>
+    </div>
+  </div>
+</div>
+</main>
+<footer><div class="wrap"><span>© 2026 Rival Eclipse</span><nav><a href="/help/">Help</a><a href="/ToS-Privacy-legal/">ToS &amp; Privacy</a><a href="/sign-in/">Sign in</a><a href="/client/">Client Portal</a></nav></div></footer>
+<script src="/sky.js"></script>
+<script type="module">
+import { session, requestMagicLink } from '/auth.js';
+const gate = document.getElementById('gate');
+
+const s = await session();
+if (s) {
+  const role = ((s.user || {}).role || 'user').toLowerCase();
+  const owner = !!(s.user || {}).is_owner;
+  if (role === 'client' || role === 'admin' || owner) {
+    // Client, admin, or owner — straight into the portal.
+    location.href = '/client/dashboard/';
+  } else {
+    // Signed in, but not a client account.
+    gate.innerHTML = `
+      <h2>Not a client account yet</h2>
+      <p class="sub">This account is registered as a <b style="color:var(--text)">${role}</b>, so the client portal isn't available on it yet. Register as a client to unlock project tracking, billing per app, and direct messaging with the team.</p>
+      <div class="cta-list">
+        <a class="btn" href="/sign-up/?intent=client">Register as Client</a>
+        <a class="btn-ghost" href="/dev-request/">Request Services</a>
+      </div>
+      <p class="sub" style="margin-top:18px; font-size:.85rem;">New to working with us? <a href="/Client-intake/">Read the client intake walkthrough</a>.</p>`;
+  }
+} else {
+  // No session — magic-link sign-in scoped back to the portal.
+  gate.innerHTML = `
+    <h2>Client Sign In</h2>
+    <p class="sub">Sign in to enter the client portal — your requests, projects, billing, and a direct line to the team.</p>
+    <form class="quote" id="magic-form">
+      <label for="email">Email address</label>
+      <input type="email" id="email" required autocomplete="email" placeholder="you@example.com">
+      <button class="btn" type="submit" style="width:100%; margin-top: 14px;">Email me a sign-in link</button>
+    </form>
+    <p id="form-msg"></p>
+    <p class="sub" style="margin-top:18px; font-size:.85rem;">Prefer another way in? <a href="/sign-in/?next=${encodeURIComponent('/client/')}">Sign in with Discord or a passkey</a>.<br>
+    Not a client yet? <a href="/sign-up/?intent=client">Register as a client</a> or <a href="/Client-intake/">read the client intake walkthrough</a>.</p>`;
+  const msg = document.getElementById('form-msg');
+  document.getElementById('magic-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    msg.className = 'ok'; msg.textContent = 'Sending…';
+    const { status, data } = await requestMagicLink(email, '/client/');
+    msg.className = status === 200 ? 'ok' : 'err';
+    msg.textContent = status === 200 ? 'Check your inbox — the link expires in 15 minutes.'
+      : (data.error === 'rate_limited' ? 'Too many requests — wait a few minutes.' : 'Couldn’t send the email. Try again.');
+  };
+}
+</script>
+</body>
+</html>
