@@ -154,6 +154,44 @@
         <label>Anything else we should know? <span class="step-note">(optional)</span>
           <textarea name="extra" placeholder="Goals, must-haves, things you've tried before…"></textarea>
         </label>
+
+        <h2>Hosting &amp; care</h2>
+        <label>How do you want your site hosted?</label>
+        <div class="radios">
+          <label><input type="radio" name="hosting_choice" value="Host it for me" data-toggle="sub-host"> Host it for me</label>
+          <label><input type="radio" name="hosting_choice" value="I'll host it myself" data-toggle="sub-self"> I'll host it myself</label>
+        </div>
+
+        <div class="sub-block" id="sub-host" hidden>
+          <p class="step-note" style="margin:8px 0">Rival Eclipse takes care of hosting, updates, major changes, and live-update push — edit hours, holidays and promos from your client dashboard and they go live on your site.</p>
+          <label>Max build cost <span class="step-note">(what's the most you'll pay for the build?)</span>
+            <select name="max_build_cost">
+              <option value="">Select…</option>
+              <option>Under $500</option>
+              <option>$500 – $1,500</option>
+              <option>$1,500 – $5,000</option>
+              <option>$5,000 – $10,000</option>
+              <option>$10,000+</option>
+              <option>No strict cap — quote me</option>
+            </select>
+          </label>
+          <label>Max monthly subscription <span class="step-note">(most you'll pay per month for hosting &amp; care)</span>
+            <select name="max_monthly_sub">
+              <option value="">Select…</option>
+              <option>$0 – $29</option>
+              <option>$30 – $99</option>
+              <option>$100 – $299</option>
+              <option>$300+</option>
+              <option>No strict cap — quote me</option>
+            </select>
+          </label>
+          <p class="step-note">These caps tell us your budget so we can give you an accurate estimate — you'll approve the final price before anything starts.</p>
+        </div>
+
+        <div class="sub-block" id="sub-self" hidden>
+          <p class="step-note" style="margin:8px 0">We'll hand you everything you need and walk you through it step by step. <a href="/handoff/" target="_blank" rel="noopener">Preview the self-hosting walkthrough →</a></p>
+          <p class="step-note">Your full personalized handoff (with your site files) will appear in your client dashboard when your project is delivered.</p>
+        </div>
       </div>
 
       <!-- ============ BRAND AMBASSADOR PATH ============ -->
@@ -267,7 +305,18 @@ document.querySelectorAll('input[name="role"]').forEach((r) => {
   });
 });
 document.querySelectorAll('[data-toggle]').forEach((cb) => {
-  cb.addEventListener('change', () => syncToggle(cb));
+  cb.addEventListener('change', () => {
+    // Radios in the same group: hide the siblings' targets first, then show the picked one.
+    if (cb.type === 'radio' && cb.name) {
+      document.querySelectorAll(`input[type="radio"][name="${cb.name}"][data-toggle]`).forEach((r) => {
+        if (r === cb || !r.checked) {
+          const t = document.getElementById(r.dataset.toggle);
+          if (t && r !== cb) { t.hidden = true; setEnabled(t, false); }
+        }
+      });
+    }
+    syncToggle(cb);
+  });
   syncToggle(cb);
 });
 
@@ -277,6 +326,7 @@ const FIELDS = [
   ['looking_for', 'Looking for'], ['features', 'Website features'], ['has_domain', 'Already has a domain'],
   ['webapp_desc', 'Web app idea'], ['bot_desc', 'Bot idea'], ['bot_members', 'Server size'],
   ['other_desc', 'Other idea'], ['budget', 'Budget'], ['timeline', 'Timeline'], ['extra', 'Anything else'],
+  ['hosting_choice', 'Hosting choice'], ['max_build_cost', 'Max build cost'], ['max_monthly_sub', 'Max monthly subscription'],
   ['collab', 'Ways to work together'], ['refer_count', 'Businesses to introduce'],
   ['social_audience', 'Audience'], ['content_link', 'Work link'], ['collab_other', 'Other collaboration'],
   ['why_us', 'Why Rival Eclipse'],
@@ -307,6 +357,15 @@ form.addEventListener('submit', async (e) => {
   const role = document.querySelector('input[name="role"]:checked');
   if (!role) { msg.className = 'err'; msg.textContent = 'Pick "Business owner" or "Brand ambassador" up top first.'; return; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { msg.className = 'err'; msg.textContent = 'Please enter a valid email.'; return; }
+  if (role.value === 'Business owner') {
+    const hc = document.querySelector('input[name="hosting_choice"]:checked');
+    if (!hc) { msg.className = 'err'; msg.textContent = 'Pick how you want your site hosted — "Host it for me" or "I\'ll host it myself".'; return; }
+    if (hc.value === 'Host it for me') {
+      const mb = form.querySelector('[name="max_build_cost"]').value;
+      const ms = form.querySelector('[name="max_monthly_sub"]').value;
+      if (!mb || !ms) { msg.className = 'err'; msg.textContent = 'Since we\'re hosting it for you, tell us your max build cost and max monthly subscription so we can estimate accurately.'; return; }
+    }
+  }
   btn.disabled = true;
   btn.textContent = 'Sending…';
   msg.className = '';
