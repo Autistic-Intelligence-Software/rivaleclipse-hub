@@ -72,6 +72,24 @@
 #admin-msg.ok { color: var(--ok); }
 #admin-msg.err { color: #ff7070; }
 .denied { max-width: 520px; margin: 60px auto; text-align: center; }
+.gen-btn { background: linear-gradient(135deg, #d4af37, #8a6d1c); color: #0a0a12; font-weight: 800;
+  border: none; border-radius: 10px; padding: 11px 20px; cursor: pointer; font-size: .92rem; font-family: inherit; }
+.gen-btn:hover { transform: translateY(-2px); }
+.gen-btn:disabled { opacity: .5; cursor: default; transform: none; }
+.code-out { display: none; margin-top: 12px; background: #0d0d15; border: 1px dashed var(--accent);
+  border-radius: 10px; padding: 12px; font-family: monospace; font-size: 1.05rem; letter-spacing: .04em;
+  word-break: break-all; max-width: 420px; }
+.code-out.show { display: block; }
+.code-row { display: flex; gap: 8px; margin-top: 10px; }
+.copy-btn { background: none; border: 1px solid var(--accent); color: var(--accent); border-radius: 8px;
+  padding: 8px 14px; cursor: pointer; font-size: .85rem; font-weight: 700; font-family: inherit; }
+.copy-btn:hover { background: rgba(201,162,39,.12); }
+.revoke-btn { background: none; border: 1px solid #6b2d2d; color: #ff7070; border-radius: 8px;
+  padding: 6px 12px; cursor: pointer; font-size: .82rem; font-family: inherit; }
+.revoke-btn:hover { background: rgba(255,112,112,.08); }
+.revoke-btn:disabled { opacity: .4; cursor: default; }
+#codes-msg.ok { color: var(--ok); }
+#codes-msg.err { color: #ff7070; }
 </style>
 </head>
 <body>
@@ -89,6 +107,7 @@
     <div class="tabs">
       <button class="tab-btn active" data-tab="users">User Registry</button>
       <button class="tab-btn" data-tab="team">Team</button>
+      <button class="tab-btn" data-tab="codes">Team Codes</button>
       <button class="tab-btn" data-tab="crq">Change Requests</button>
     </div>
     <div class="block" id="tab-users">
@@ -110,6 +129,20 @@
       <p class="sub">Team members and their access. Admin promotions are restricted to the owner.</p>
       <div id="team-list"><p class="dim">Loading…</p></div>
     </div>
+    <div class="block" id="tab-codes" style="display:none">
+      <h2>Team Codes</h2>
+      <p class="sub">One-time invite codes that grant the <b>team</b> tag. Share a code with someone you approve — they enter it under “Enter Team code” in their account menu.</p>
+      <div style="margin:14px 0;">
+        <button class="gen-btn" id="gen-team-code">Generate Team code</button>
+      </div>
+      <div class="code-out" id="admin-code-out"></div>
+      <div class="code-row" id="admin-code-row" style="display:none"><button class="copy-btn" id="admin-code-copy">Copy</button></div>
+      <p id="codes-msg" style="margin-top:10px;font-size:.95rem;"></p>
+      <div style="overflow-x:auto;margin-top:8px;"><table class="utable">
+        <thead><tr><th>Code</th><th>Type</th><th>Created</th><th>Status</th><th></th></tr></thead>
+        <tbody id="codes-body"><tr><td colspan="5" class="dim">Loading…</td></tr></tbody>
+      </table></div>
+    </div>
     <div class="block" id="tab-crq" style="display:none">
       <h2>Change Requests — escalated</h2>
       <p class="sub">Requests the team sent up for admin review. Accept or decline with an optional note.</p>
@@ -121,7 +154,7 @@
 <footer><div class="wrap"><span>© 2026 Rival Eclipse</span><nav><a href="/help/">Help</a><a href="/ToS-Privacy-legal/">ToS &amp; Privacy</a><a href="/sign-in/">Sign in</a><a href="/client/">Client Portal</a></nav></div></footer>
 <script src="/sky.js"></script>
 <script type="module">
-import { session, logout } from '/auth.js';
+import { session, logout, generateCode, listCodes, revokeCode } from '/auth.js';
 import { tagsOf, hasTag, isOwnerOf, goBlocked } from '/_lib/gates.js';
 const AUTH = 'https://auth.rivaleclipse.dev';
 
@@ -156,10 +189,11 @@ document.querySelectorAll('.tab-btn').forEach((b) => {
     document.querySelectorAll('.tab-btn').forEach((x) => x.classList.remove('active'));
     b.classList.add('active');
     const t = b.dataset.tab;
-    document.getElementById('tab-users').style.display = t === 'users' ? '' : 'none';
-    document.getElementById('tab-team').style.display = t === 'team' ? '' : 'none';
-    document.getElementById('tab-crq').style.display = t === 'crq' ? '' : 'none';
+    document.querySelectorAll('[id^="tab-"]').forEach((el) => {
+      el.style.display = el.id === 'tab-' + t ? '' : 'none';
+    });
     if (t === 'crq') loadCRQ();
+    if (t === 'codes') loadCodes();
   };
 });
 
@@ -179,19 +213,22 @@ const flagsOf = (u) => {
 };
 const discordOf = (u) => u.discord_username || (u.discord && u.discord.username ? '@' + u.discord.username : '') || '—';
 // Stackable tags — one checkbox each. The admin checkbox is owner-only;
-// an owner's own row is fully locked (nothing editable on it).
+// an owner's own row is fully locked (nothing editable on it). The owner tag
+// itself is granted by invite code only — it renders as a badge, never a checkbox.
 const ALL_TAGS = ['client', 'tester', 'team', 'admin'];
 const tagCheckboxes = (u) => {
   const uid = u.id ?? u.user_id ?? '';
   const uTags = tagsOf({ user: u });
-  const locked = !!u.is_owner;
+  origTags[uid] = [...uTags];
+  const locked = !!u.is_owner || uTags.includes('owner');
+  const ownerBadge = uTags.includes('owner') ? ' <span class="role-tag">owner</span>' : '';
   return ALL_TAGS.map((t) => {
     const checked = uTags.includes(t) ? ' checked' : '';
     const disabled = (locked || (t === 'admin' && !isOwner)) ? ' disabled' : '';
     const title = locked ? 'Owner accounts can’t be changed here'
       : (t === 'admin' && !isOwner) ? 'Only the owner can grant the admin tag' : '';
     return `<label class="tag-check" title="${esc(title)}"><input type="checkbox" class="tag-box" data-uid="${esc(uid)}" value="${t}"${checked}${disabled}> ${t}</label>`;
-  }).join('');
+  }).join('') + ownerBadge;
 };
 
 function renderUsers(users) {
@@ -236,32 +273,107 @@ const legacyRoleOf = (tags) => {
   return 'user';
 };
 
-async function saveTags(uid, tags) {
+async function saveTags(uid, add, remove) {
   say('Saving…');
+  // The tags endpoint takes an add/remove diff (codes-granted owner tags can't
+  // be touched here at all — the API rejects them).
   let r = await api('/api/admin/users/' + encodeURIComponent(uid) + '/tags', {
-    method: 'PUT', body: JSON.stringify({ tags }),
+    method: 'PUT', body: JSON.stringify({ add, remove }),
   });
-  if (r.status === 404) {
-    // Auth hasn't deployed the tags endpoint yet — fall back to the single-role endpoint.
+  if (r.status === 404 && !r.data.error) {
+    // The endpoint itself doesn't exist yet — fall back to the single-role endpoint.
+    const merged = [...new Set([...origTagsFor(uid), ...add].filter((t) => !remove.includes(t)))];
     r = await api('/api/admin/users/' + encodeURIComponent(uid) + '/role', {
-      method: 'PATCH', body: JSON.stringify({ role: legacyRoleOf(tags) }),
+      method: 'PATCH', body: JSON.stringify({ role: legacyRoleOf(merged) }),
     });
     if (r.status === 200) {
-      say(`Saved as single role “${legacyRoleOf(tags)}” (tags endpoint not deployed yet — stacked tags apply once it is).`, true);
+      say(`Saved as single role “${legacyRoleOf(merged)}” (tags endpoint not deployed yet — stacked tags apply once it is).`, true);
       return;
     }
   }
-  say(r.status === 200 ? `Tags updated: ${tags.length ? tags.join(', ') : 'none (base user)'}.` : (r.data.error || 'Couldn’t update the tags.'), r.status === 200);
+  const label = [...add.map((t) => '+' + t), ...remove.map((t) => '−' + t)].join(' ') || 'no change';
+  say(r.status === 200 ? `Tags updated (${label}).`
+    : ({ owner_tag_code_only: 'The owner tag is granted by invite code only — not here.',
+         admin_tag_owner_only: 'Only the owner can grant or remove the admin tag.',
+         cannot_change_owner_tags: 'Owner accounts can’t be changed here.' }[r.data.error]
+       || 'Couldn’t update the tags.'), r.status === 200);
   if (r.status === 200) loadUsers(document.getElementById('user-search').value.trim());
 }
+
+// Original tags per row, captured at render time for diffing.
+const origTags = {};
+const origTagsFor = (uid) => origTags[uid] || [];
 
 usersBody.addEventListener('change', async (e) => {
   const box = e.target.closest('.tag-box');
   if (!box || box.disabled) return;
   const uid = box.dataset.uid;
   const row = box.closest('tr[data-uid]');
-  const tags = [...row.querySelectorAll('.tag-box:checked')].map((b) => b.value);
-  await saveTags(uid, tags);
+  const now = [...row.querySelectorAll('.tag-box:checked')].map((b) => b.value);
+  const orig = origTagsFor(uid);
+  const add = now.filter((t) => !orig.includes(t));
+  const remove = orig.filter((t) => !now.includes(t));
+  await saveTags(uid, add, remove);
+});
+
+// ---------- team codes ----------
+const codesMsg = document.getElementById('codes-msg');
+const csay = (t, ok) => { codesMsg.textContent = t; codesMsg.className = ok === true ? 'ok' : ok === false ? 'err' : ''; };
+const codesOnline = (status, data) => !(status === 404 && !data.error);
+const fmtWhen = (v) => { try { return v ? new Date(v).toLocaleString() : '—'; } catch { return '—'; } };
+
+document.getElementById('gen-team-code').onclick = async (e) => {
+  const btn = e.target;
+  btn.disabled = true;
+  const { status, data } = await generateCode('team');
+  btn.disabled = false;
+  if (!codesOnline(status, data)) { csay('The code system is coming online — try again in a bit.', false); return; }
+  if (status === 200 && data.ok && data.code) {
+    const out = document.getElementById('admin-code-out');
+    out.textContent = data.code;
+    out.classList.add('show');
+    document.getElementById('admin-code-row').style.display = '';
+    csay('Team code ready — copy it and share it with the person you approved.', true);
+    loadCodes();
+  } else {
+    csay(data.error || 'Couldn’t generate the code.', false);
+  }
+};
+
+document.getElementById('admin-code-copy').onclick = async (e) => {
+  const t = document.getElementById('admin-code-out').textContent;
+  try { await navigator.clipboard.writeText(t); e.target.textContent = 'Copied ✓'; }
+  catch { e.target.textContent = 'Copy failed — select it manually'; }
+  setTimeout(() => { e.target.textContent = 'Copy'; }, 2000);
+};
+
+async function loadCodes() {
+  const body = document.getElementById('codes-body');
+  const { status, data } = await listCodes();
+  if (!codesOnline(status, data)) { body.innerHTML = '<tr><td colspan="5" class="dim">Code system coming online…</td></tr>'; return; }
+  if (status !== 200) { body.innerHTML = '<tr><td colspan="5" class="dim">Couldn’t load codes.</td></tr>'; return; }
+  const codes = (data.codes || []).filter((c) => c.type === 'team' || c.type === 'promo');
+  if (!codes.length) { body.innerHTML = '<tr><td colspan="5" class="dim">No team codes yet.</td></tr>'; return; }
+  body.innerHTML = codes.map((c) => {
+    const used = !!c.used_by;
+    return `<tr>
+      <td style="font-family:monospace;letter-spacing:.03em;">${esc(c.code)}</td>
+      <td>${esc(c.type)}${c.benefit ? `<div class="dim">${esc(c.benefit)}</div>` : ''}</td>
+      <td class="dim">${esc(fmtWhen(c.created_at))}</td>
+      <td class="dim">${used ? `Used by ${esc(c.used_by)}` : 'Unused'}</td>
+      <td>${used ? '' : `<button class="revoke-btn" data-revoke="${esc(c.id)}">Revoke</button>`}</td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('codes-body').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-revoke]');
+  if (!btn) return;
+  if (!confirm('Revoke this code? It will never be redeemable.')) return;
+  btn.disabled = true;
+  const { status, data } = await revokeCode(btn.dataset.revoke);
+  if (status === 200) { csay('Code revoked.', true); loadCodes(); }
+  else csay(data.error || 'Couldn’t revoke the code.', false);
 });
 
 const isTeamMsg = (m) => m.from_admin || m.team ||
@@ -394,5 +506,6 @@ loadUsers();
 loadTeam();
 </script>
 <script src="/assistant.js"></script>
+<script src="/_lib/menu.js"></script>
 </body>
 </html>
