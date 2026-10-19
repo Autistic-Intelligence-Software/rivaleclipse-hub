@@ -421,8 +421,9 @@ form.addEventListener('submit', async (e) => {
       biz.hidden = true; amb.hidden = true; shared.hidden = true;
       setEnabled(biz, false); setEnabled(amb, false); setEnabled(shared, false);
       document.querySelectorAll('[data-toggle]').forEach(syncToggle);
-    } else if (out.error === 'not_signed_in') {
-      location.href = '/sign-in/?next=' + encodeURIComponent(out.next || '/apply/');
+    } else if (out.blocked || out.error === 'not_signed_in') {
+      const _bn = (out.blocked && out.blocked.next) || out.next || '/apply/';
+      location.href = '/blocked/?reason=signin&next=' + encodeURIComponent(_bn);
       return;
     } else {
       msg.className = 'err';
