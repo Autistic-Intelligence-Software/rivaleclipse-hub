@@ -100,6 +100,7 @@
 <script src="/sky.js"></script>
 <script type="module">
 import { session, logout, packages, passkeyRegister, registerIntent } from '/auth.js';
+import { hasTag, hasDiscord } from '/_lib/gates.js';
 
 const FALLBACK = [
   { name: 'Bouncer', slug: 'bouncer', dashboard_url: 'https://bouncer.rivaleclipse.dev/dashboard/', description: 'Anti-scam bouncer for your server — quarantine, verification, scam intel.', icon_emoji: '🛡️' },
@@ -111,24 +112,24 @@ const FALLBACK = [
 
 const s = await session();
 if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent(location.href); throw new Error('redirect'); }
-const user = s.user || {};
-const role = (user.role || 'user').toLowerCase();
-const isOwner = !!(s.is_owner ?? user.is_owner);
-const isClient = role === 'client' || role === 'admin' || isOwner;
+const isClient = hasTag(s, 'client');
 
-document.getElementById('who').textContent = (s.discord?.username ? '@' + s.discord.username : user.email);
+document.getElementById('who').textContent = (s.discord?.username ? '@' + s.discord.username : s.user.email);
 document.getElementById('logout').onclick = logout;
 
-// Admin-only doors — rendered in markup but hidden for non-admins.
-if (role === 'admin' || isOwner) {
+// Tag-gated doors — rendered in markup but hidden without the tag.
+// Owner implies every tag, so owners always see all cards.
+if (hasTag(s, 'admin')) {
   document.getElementById('admin-card').style.display = '';
+}
+if (hasTag(s, 'team') || hasTag(s, 'admin')) {
   document.getElementById('team-card').style.display = '';
 }
 
 // Bot dashboards (card 1) — the ONLY card that needs a linked Discord.
 // Everything else on this page works fully without it.
 const dashGrid = document.getElementById('dash-grid');
-if (s.has_discord ?? !!s.discord) {
+if (hasDiscord(s)) {
   let pkgs = await packages();
   if (!pkgs.length) pkgs = FALLBACK;
   dashGrid.innerHTML = pkgs.map((p) => `
@@ -160,10 +161,10 @@ if (isClient) {
 // Card 3: Apply to be Tester.
 const tbtn = document.getElementById('tester-btn');
 const tmsg = document.getElementById('tester-msg');
-const testerPending = !!user.tester_pending;
-if (role === 'tester' || isOwner || role === 'admin') {
+const testerPending = !!(s.user || {}).tester_pending;
+if (hasTag(s, 'tester') || hasTag(s, 'admin')) {
   tbtn.disabled = true;
-  tmsg.textContent = (isOwner || role === 'admin') ? 'You already have team-level access.' : 'You’re already a tester.';
+  tmsg.textContent = (hasTag(s, 'admin')) ? 'You already have team-level access.' : 'You’re already a tester.';
 } else if (testerPending) {
   tbtn.disabled = true;
   tmsg.textContent = 'Tester application sent — we review applications personally and will update your account.';
