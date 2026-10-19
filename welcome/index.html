@@ -35,6 +35,15 @@
         <a class="discord-btn" id="link-btn" href="#">Link Discord now</a>
         <a class="skip-btn" id="skip-btn" href="/dashboards/">Skip for now</a>
       </div>
+      <div class="divider" style="display:flex;align-items:center;gap:12px;color:var(--muted);font-size:.85rem;margin:22px 0 6px;">
+        <span style="flex:1;height:1px;background:var(--line);"></span>have a team code?<span style="flex:1;height:1px;background:var(--line);"></span>
+      </div>
+      <form id="code-form" style="display:flex;gap:10px;max-width:420px;margin:0 auto;">
+        <input type="text" id="code-input" placeholder="TEAM-XXXX-XXXX" autocomplete="off" spellcheck="false" maxlength="64"
+          style="flex:1;background:#0d0d15;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:12px 14px;font-size:.95rem;font-family:inherit;text-transform:uppercase;min-width:0;">
+        <button class="discord-btn" type="submit" style="flex:none;border:none;cursor:pointer;font-family:inherit;">Redeem</button>
+      </form>
+      <p id="code-msg" style="margin-top:10px;font-size:.9rem;min-height:1.4em;"></p>
       <p class="fine">Linking connects your Discord so bot dashboards know which servers you manage. We only read your Discord identity — we never post as you.</p>
     </div>
   </div>
@@ -42,7 +51,7 @@
 </main>
 <script src="/sky.js"></script>
 <script type="module">
-import { session, registerIntent } from '/auth.js';
+import { session, registerIntent, redeemCode } from '/auth.js';
 import { tagsOf } from '/_lib/gates.js';
 const q = new URLSearchParams(location.search);
 const to = q.get('to') || '/dashboards/';
@@ -64,6 +73,29 @@ if (intent === 'client' && !tagsOf(s).includes('client') && !isOwner) {
 document.getElementById('link-btn').href =
   'https://auth.rivaleclipse.dev/auth/discord?action=pair&next=' + encodeURIComponent(to);
 document.getElementById('skip-btn').href = to;
+
+// Team code redemption, right here on the welcome screen.
+const codeMsg = document.getElementById('code-msg');
+const csay = (t, ok) => { codeMsg.innerHTML = t; codeMsg.style.color = ok ? 'var(--ok)' : '#ff7070'; };
+const cesc = (x) => String(x ?? '').replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+document.getElementById('code-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const code = document.getElementById('code-input').value.trim();
+  if (!code) { csay('Enter your code first.', false); return; }
+  csay('Checking…', true);
+  const { status, data } = await redeemCode(code);
+  if (status === 404 && !data.error) { csay('The code system is coming online — try again in a bit.', false); return; }
+  if (status === 200 && data.ok) {
+    const tag = String(data.tag || data.type || '').toLowerCase();
+    csay(`✅ Code accepted — <b>${cesc(tag)}</b> access is now on your account. Continue below whenever you’re ready.`, true);
+    return;
+  }
+  csay({ unknown_code: 'That code wasn’t recognized — check it and try again.',
+    already_used: 'That code was already used.' }[data.error]
+    || 'Couldn’t redeem that code right now — try again in a moment.', false);
+};
 </script>
+<script src="/_lib/menu.js"></script>
 </body>
 </html>
