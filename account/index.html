@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Account — Rival Eclipse</title>
+<meta name="description" content="Your Rival Eclipse account home — Discord dashboards, products, dev requests, tester applications, and the client portal.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.acct-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.user-chip { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .92rem; }
+.user-chip button { background: none; border: 1px solid var(--line); color: var(--muted);
+  border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: .85rem; }
+.user-chip button:hover { color: var(--text); border-color: var(--accent); }
+.role-pill { font-size: .75rem; font-weight: 700; padding: 4px 12px; border-radius: 999px;
+  border: 1px solid var(--line); color: var(--muted); }
+.role-pill.client { color: #f3d27a; border-color: #5a4a1c; }
+.role-pill.admin { color: #b9a7ff; border-color: #3a3357; }
+.role-pill.tester { color: #8fe3a8; border-color: #2c4a35; }
+.acct-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 12px; }
+.acct-actions { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
+.acct-actions .btn, .acct-actions .btn-ghost { text-align: center; }
+.btn-ghost { display: inline-block; border: 1px solid var(--accent); color: var(--accent); font-weight: 700;
+  padding: 15px 40px; border-radius: 12px; font-size: 1.05rem; text-decoration: none; transition: transform .15s ease; }
+.btn-ghost:hover { transform: translateY(-2px); }
+.locked { opacity: .55; }
+.portal-note { color: var(--muted); font-size: .9rem; margin-top: 10px; }
+#tester-msg { margin-top: 10px; font-size: .95rem; }
+#tester-msg.ok { color: var(--ok); }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+<div class="wrap">
+  <div class="crumb"><a href="/">← Rival Eclipse</a></div>
+  <div class="acct-head">
+    <div><h1 class="page-title">My account</h1>
+    <p class="page-sub">Your Rival Eclipse home — everything under one login.</p></div>
+    <div class="user-chip"><span id="who"></span><span class="role-pill" id="role-pill"></span><button id="logout">Sign out</button></div>
+  </div>
+
+  <div class="acct-grid">
+    <a class="card" href="/dashboards/">
+      <div class="dic">🖥️</div><h2>Discord Dashboards</h2>
+      <p>Manage your Discord servers on each bot — VibeCheck, Bouncer, Chat-Mate, Tim, and FreeMium JayRain.</p>
+      <div class="go">Open dashboards <span>→</span></div>
+    </a>
+    <a class="card" href="/apps-bots/">
+      <div class="dic">🤖</div><h2>See all products</h2>
+      <p>Every bot and app we ship — what each one does and where to get it. <a href="/web-apps/" style="color:var(--accent)">Web apps</a> live here too.</p>
+      <div class="go">Browse products <span>→</span></div>
+    </a>
+    <a class="card" href="/dev-request/">
+      <div class="dic">🛠️</div><h2>Request Services</h2>
+      <p>Need something built? Describe it in plain language and get a fixed-price quote in writing. One request per week.</p>
+      <div class="go">Start a request <span>→</span></div>
+    </a>
+    <a class="card" href="/admin/" id="admin-card" style="display:none">
+      <div class="dic">🛡️</div><h2>Admin Dashboard</h2>
+      <p>User registry, role management, the team, and per-user messages.</p>
+      <div class="go">Open admin <span>→</span></div>
+    </a>
+  </div>
+
+  <div class="section-label">More</div>
+  <div class="block">
+    <div class="acct-actions">
+      <div>
+        <button class="btn" id="tester-btn" type="button">Apply to be Tester</button>
+        <p id="tester-msg"></p>
+      </div>
+      <a class="btn-ghost" href="/dev-request/">Request Developer Services</a>
+      <div id="portal-slot"></div>
+      <p class="sub" style="margin:0">New to working with us? <a href="/Client-intake/">Read the client intake walkthrough</a> — the path from request to finished product.</p>
+    </div>
+  </div>
+</div>
+</main>
+<footer><div class="wrap"><span>© 2026 Rival Eclipse</span><nav><a href="/help/">Help</a><a href="/ToS-Privacy-legal/">ToS &amp; Privacy</a><a href="/sign-in/">Sign in</a><a href="/client/">Client Portal</a></nav></div></footer>
+<script src="/sky.js"></script>
+<script type="module">
+import { session, logout, registerIntent } from '/auth.js';
+
+const s = await session();
+if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent('/account/'); throw new Error('redirect'); }
+
+const user = s.user || {};
+const role = (user.role || 'user').toLowerCase();
+const isOwner = !!user.is_owner;
+const isClient = role === 'client' || role === 'admin' || isOwner;
+
+document.getElementById('who').textContent = s.discord?.username ? '@' + s.discord.username : (user.email || '');
+document.getElementById('logout').onclick = logout;
+const pill = document.getElementById('role-pill');
+pill.textContent = isOwner ? 'owner' : role;
+pill.classList.add(role === 'admin' || isOwner ? 'admin' : role);
+
+// Admin door — only for admins and the owner.
+if (role === 'admin' || isOwner) {
+  document.getElementById('admin-card').style.display = '';
+}
+
+// Client Portal entry — clickable for clients, otherwise a "not a client yet" note.
+const slot = document.getElementById('portal-slot');
+if (isClient) {
+  slot.innerHTML = '<a class="btn-ghost" href="/client/dashboard/">Open Client Portal</a>';
+} else {
+  slot.innerHTML = '<a class="btn-ghost locked" href="/sign-up/?intent=client">Become a client — open the portal</a>' +
+    '<p class="portal-note">Not a client account yet — registering as a client unlocks the portal, dev-request filing, and direct messaging with the team.</p>';
+}
+
+// Apply to be Tester.
+const tbtn = document.getElementById('tester-btn');
+const tmsg = document.getElementById('tester-msg');
+if (role === 'tester' || isOwner || role === 'admin') {
+  tbtn.disabled = true; tbtn.style.opacity = '.55';
+  tmsg.textContent = isOwner || role === 'admin' ? 'You already have team-level access.' : 'You’re already a tester.';
+} else {
+  tbtn.onclick = async () => {
+    tbtn.disabled = true; tbtn.textContent = 'Sending…';
+    try {
+      const { status } = await registerIntent('tester');
+      if (status === 200) {
+        tmsg.className = 'ok'; tmsg.textContent = 'Tester application sent — we review applications personally and will update your account.';
+        tbtn.style.display = 'none';
+      } else {
+        tmsg.textContent = 'Couldn’t send that right now — try again in a moment.';
+        tbtn.disabled = false; tbtn.textContent = 'Apply to be Tester';
+      }
+    } catch {
+      tmsg.textContent = 'Couldn’t send that right now — try again in a moment.';
+      tbtn.disabled = false; tbtn.textContent = 'Apply to be Tester';
+    }
+  };
+}
+</script>
+</body>
+</html>
