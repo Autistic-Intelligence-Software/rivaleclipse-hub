@@ -3,13 +3,24 @@
 const AUTH = 'https://auth.rivaleclipse.dev';
 
 async function api(path, opts = {}) {
-  const r = await fetch(AUTH + path, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    ...opts,
-  });
-  const data = await r.json().catch(() => ({}));
-  return { status: r.status, data };
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    const r = await fetch(AUTH + path, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      ...opts,
+      signal: ctrl.signal,
+    });
+    const data = await r.json().catch(() => ({}));
+    return { status: r.status, data };
+  } catch (e) {
+    // Never throw on network failure: callers branch on status, so a dead
+    // connection surfaces as { status: 0 } instead of hanging the page.
+    return { status: 0, data: { error: e && e.name === 'AbortError' ? 'timeout' : 'network' } };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function session() {
