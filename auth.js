@@ -104,3 +104,22 @@ export async function registerIntent(kind) {
 export function nextUrl() {
   return new URLSearchParams(location.search).get('next') || '';
 }
+
+// ---- Invite / promo codes ----
+export async function redeemCode(code) {
+  return api('/api/codes/redeem', { method: 'POST', body: JSON.stringify({ code }) });
+}
+
+export async function generateCode(type, benefit) {
+  const body = { type };
+  if (benefit) body.benefit = benefit;
+  return api('/api/admin/codes', { method: 'POST', body: JSON.stringify(body) });
+}
+
+export async function listCodes() {
+  return api('/api/admin/codes');
+}
+
+export async function revokeCode(id) {
+  return api('/api/admin/codes/' + encodeURIComponent(id), { method: 'DELETE' });
+}
