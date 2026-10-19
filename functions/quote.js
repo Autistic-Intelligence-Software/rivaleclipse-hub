@@ -132,6 +132,8 @@ function briefHtml(d) {
     ? `<tr><td>${esc(k)}</td><td><b>${esc(v).replace(/\n/g, '<br>')}</b></td></tr>` : '';
   const colors = (d.colors || []).join(', ');
   const features = (d.features || []).join(', ');
+  const answers = Object.entries(d.answers || {})
+    .map(([k, v]) => row(prettyKey(k), Array.isArray(v) ? v.join('; ') : v)).join('');
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Project brief — ${esc(d.name)}</title>
 <style>body{font-family:sans-serif;max-width:640px;margin:0 auto;padding:32px;color:#222}
 h1{font-size:24px}table{border-collapse:collapse;width:100%;font-size:14px}
@@ -148,6 +150,7 @@ ${row('Color rule', d.color_mode === 'exclusive' ? 'ONLY the selected colors' : 
 ${row('Business address', d.address)}${row('Business hours', d.hours)}${row('Slogan', d.slogan)}
 ${row('Services / products', d.services)}
 ${row('Optional features', features)}
+${answers}
 </table>
 <h3>Project details</h3><p>${esc(d.details).replace(/\n/g, '<br>')}</p>
 ${d.extra ? `<h3>Extra information</h3><p>${esc(d.extra).replace(/\n/g, '<br>')}</p>` : ''}
@@ -155,6 +158,11 @@ ${(d.images || []).length ? `<h3>Uploaded images (${d.images.length})</h3><div c
   d.images.map((f) => `<img src="${esc(f)}" alt="upload">`).join('') + `</div>` : ''}
 <p style="color:#999;font-size:12px;margin-top:32px">Submitted via rivaleclipse.dev/dev-request — unedited applicant data.</p>
 </body></html>`;
+}
+
+// Turn a form field name like "business_type" into "Business type" for display.
+function prettyKey(k) {
+  return String(k).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 // ---------- account gate helpers ----------
@@ -253,6 +261,20 @@ export async function onRequestPost({ request, env }) {
     features: fd.getAll('features').map((f) => clean(f, 60)).filter(Boolean).slice(0, 24),
     submitted: new Date().toISOString(),
   };
+  // Application forms (/apply/ and future adaptive forms) send extra fields
+  // beyond the dev-request set — keep them all under `answers` so nothing
+  // the applicant wrote is lost from brief.json or the email.
+  const KNOWN_FIELDS = new Set(['category', 'name', 'email', 'phone', 'type', 'budget',
+    'details', 'colors', 'color_mode', 'address', 'hours', 'slogan', 'services',
+    'extra', 'features', 'company', 'images']);
+  d.answers = {};
+  for (const k of new Set([...fd.keys()])) {
+    if (KNOWN_FIELDS.has(k)) continue;
+    const vals = fd.getAll(k)
+      .map((v) => (typeof v === 'string' ? clean(v, 500) : ''))
+      .filter(Boolean);
+    if (vals.length) d.answers[k] = vals.length === 1 ? vals[0] : vals;
+  }
   if (!d.name || !d.details || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) {
     return json({ ok: false, error: 'invalid' }, 400, origin);
   }
@@ -329,6 +351,10 @@ export async function onRequestPost({ request, env }) {
   // Fallback until Discord is wired: email the zip to the owner.
   const colorLine = d.colors.length
     ? `Brand colors: ${d.colors.join(', ')} (${d.color_mode === 'exclusive' ? 'ONLY these' : 'preference'})` : '';
+  const answersHtml = Object.entries(d.answers || {}).map(([k, v]) =>
+    `<p><b>${esc(prettyKey(k))}:</b> ${esc(Array.isArray(v) ? v.join('; ') : v).replace(/\n/g, '<br>')}</p>`).join('');
+  const answersText = Object.entries(d.answers || {}).map(([k, v]) =>
+    `${prettyKey(k)}: ${Array.isArray(v) ? v.join('; ') : v}`).join('\n');
   const html =
     `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">` +
     `<h2>New project brief — rivaleclipse.dev/dev-request</h2>` +
@@ -336,6 +362,7 @@ export async function onRequestPost({ request, env }) {
     `<p>Type: <b>${esc(d.type) || '—'}</b> · Budget: <b>${esc(d.budget) || '—'}</b><br>${esc(colorLine)}</p>` +
     (d.features && d.features.length ? `<p><b>Optional features:</b> ${esc(d.features.join(', '))}</p>` : '') +
     `<p>${esc(d.details).replace(/\n/g, '<br>')}</p>` +
+    answersHtml +
     (d.services ? `<p><b>Services/products:</b><br>${esc(d.services).replace(/\n/g, '<br>')}</p>` : '') +
     (d.extra ? `<p><b>Extra:</b><br>${esc(d.extra).replace(/\n/g, '<br>')}</p>` : '') +
     `<p style="color:#999;font-size:12px">Full brief + ${images.length} image(s) attached as ${esc(zipName)}. Discord delivery pending webhook setup.</p></div>`;
@@ -344,6 +371,7 @@ export async function onRequestPost({ request, env }) {
     html,
     `New project brief from ${d.name} <${d.email}>\n` +
     (d.features && d.features.length ? `Optional features: ${d.features.join(', ')}\n\n` : '') +
+    (answersText ? `Application answers:\n${answersText}\n\n` : '') +
     `${d.details}`,
     zipName, zipBytes);
   if (sent !== 'sent') {
