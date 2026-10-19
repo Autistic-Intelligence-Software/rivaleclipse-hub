@@ -6,6 +6,9 @@
 <title>Web Apps / Services — Rival Eclipse</title>
 <meta name="description" content="Web apps and online services by Rival Eclipse: QR tools, bot builders, and utilities.">
 <link rel="stylesheet" href="/style.css">
+<style>
+.card .needs-line{font-size:.82rem;color:var(--accent);font-weight:700;margin-top:8px;letter-spacing:.02em}
+</style>
 </head>
 <body>
 <canvas id="sky" aria-hidden="true"></canvas>
@@ -20,13 +23,15 @@
         <span class="badge open">Open to everyone</span>
         <h2>GIF to QR Converter</h2>
         <p>Turn GIFs and images into artistic, fully-scannable QR codes — the artwork fused right into the code itself. $0.99 unlocks unlimited conversions.</p>
+        <div class="needs-line">Needs: nothing — email sign-in happens on the site</div>
         <div class="go">Visit <span>→</span></div>
       </a>
-      <a class="card" href="https://botforge.rivaleclipse.dev">
+      <a class="card" id="forge-card" href="https://botforge.rivaleclipse.dev">
         <div class="icon"><img src="/forge.webp" alt="Bot Forge icon"></div>
         <span class="badge dash">Dashboard sign-in</span>
         <h2>Bot Forge — Bot Builder</h2>
         <p>Describe the bot you want in plain words — Bot Forge confirms the details, states the honest limits up front, then generates ready-to-run code with a step-by-step hosting guide.</p>
+        <div class="needs-line">Needs: free account sign-in</div>
         <div class="go">Visit <span>→</span></div>
       </a>
     </div>
@@ -45,6 +50,18 @@
   </div>
 </footer>
 <script src="/sky.js"></script>
+<script type="module">
+// Bot Forge needs a signed-in account — route through the friendly
+// interstitial instead of landing on a sign-in wall with no context.
+import { session } from '/auth.js';
+import { blockedUrl } from '/_lib/gates.js';
+document.getElementById('forge-card').addEventListener('click', async (e) => {
+  const s = await session().catch(() => null);
+  if (s) return; // signed in — go straight through
+  e.preventDefault();
+  location.href = blockedUrl('signin', 'https://botforge.rivaleclipse.dev');
+});
+</script>
 <script src="/assistant.js"></script>
 </body>
 </html>
