@@ -6,7 +6,13 @@
 // Text model: @cf/meta/llama-3.1-8b-instruct (primary), @cf/meta/llama-3-8b-instruct fallback.
 // Env: AI (Workers AI binding).
 
-const MODELS = ['@cf/meta/llama-3.1-8b-instruct', '@cf/meta/llama-3-8b-instruct'];
+const MODELS = [
+  '@cf/meta/infire-llama-3.1-8b-instruct',
+  '@cf/mistral/mistral-7b-instruct-v0.2',
+  '@cf/qwen/qwen1.5-14b-chat-awq',
+];
+// NOTE (verified live 2026-10-19): @cf/meta/llama-3.1-8b-instruct was deprecated
+// by Cloudflare on 2026-05-30 (error 5028); infire-llama-3.1-8b-instruct is its successor.
 const LIMIT = 20;
 const WINDOW_MS = 60 * 60 * 1000;
 const hits = new Map(); // ip -> [timestamps]
