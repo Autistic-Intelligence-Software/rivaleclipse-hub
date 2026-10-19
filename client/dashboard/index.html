@@ -134,15 +134,16 @@
 <script src="/sky.js"></script>
 <script type="module">
 import { session, logout, passkeyRegister } from '/auth.js';
+import { tagsOf, isOwnerOf } from '/_lib/gates.js';
 const AUTH = 'https://auth.rivaleclipse.dev';
 
 const s = await session();
 if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent(location.href); throw new Error('redirect'); }
-// Client intake gate (fail-open): clients who haven't completed intake go to /client/intake/ first.
+// Client intake gate (fail-open): client-tagged accounts who haven't completed intake go to /client/intake/ first.
 // Only team/admin/owner bypass; the gate fires only when the backend explicitly reports has_intake === false.
-const _gateRole = String(s.role ?? s.user?.role ?? '').toLowerCase();
-const _gateOwner = !!(s.user?.is_owner ?? s.is_owner);
-if (_gateRole === 'client' && !_gateOwner && s.client && s.client.has_intake === false) {
+const _gateTags = tagsOf(s);
+const _gateOwner = isOwnerOf(s);
+if (_gateTags.includes('client') && !_gateOwner && s.client && s.client.has_intake === false) {
   location.href = '/client/intake/?next=' + encodeURIComponent('/client/dashboard/');
   throw new Error('redirect');
 }
