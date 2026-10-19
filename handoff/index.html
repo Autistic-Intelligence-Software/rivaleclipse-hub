@@ -4,9 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Self-Hosting Walkthrough — Rival Eclipse</title>
-<meta name="description" content="Step-by-step guided walkthrough: put your Rival Eclipse site on your own hosting, at your own pace.">
+<meta name="description" content="The full self-hosting process on one page — real effort, real time — then pick your package: build-only or Rival Eclipse managed service.">
 <link rel="stylesheet" href="/style.css">
 <style>
+.rundown{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:18px 0}
+.rcard{background:#0d0d15;border:1px solid var(--line);border-radius:14px;padding:16px}
+.rcard b{display:block;font-size:1rem;margin:8px 0 6px}
+.rcard span{color:var(--muted);font-size:.87rem;line-height:1.55}
+.rtime{display:inline-block;font-size:.72rem;font-weight:bold;color:var(--accent);
+  border:1px solid var(--accent);border-radius:999px;padding:2px 10px}
+.effort{background:#0d0d15;border:1px solid var(--accent);border-radius:12px;padding:14px 18px;
+  font-size:.98rem;line-height:1.6;margin:6px 0 4px}
+.choice-row{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0 6px}
+.choice-row .btn,.choice-row .btn-ghost{font-size:1rem;padding:14px 26px}
 .wprog{display:flex;gap:6px;margin:18px 0 6px;flex-wrap:wrap}
 .wstep-dot{flex:1;min-width:80px;text-align:center;font-size:.72rem;color:var(--muted);padding-top:8px;
   border-top:3px solid var(--line);cursor:default;line-height:1.4}
@@ -23,6 +33,8 @@
 .plat span{color:var(--muted);font-size:.85rem;line-height:1.5}
 .plat .rec{display:inline-block;font-size:.7rem;background:var(--accent);color:#0a0a0f;font-weight:bold;
   border-radius:999px;padding:2px 10px;margin-bottom:8px}
+.plat .secure{display:block;margin-top:10px;font-size:.78rem;color:var(--muted);
+  border-top:1px dashed var(--line);padding-top:8px}
 .wactions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
 .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--text);border-radius:10px;
   padding:10px 18px;font-size:.95rem;cursor:pointer}
@@ -40,6 +52,13 @@
 .dopt:has(input:checked){border-color:var(--accent)}
 .dopt small{display:block;color:var(--muted);margin-top:4px;line-height:1.5}
 .live{font-size:2rem;margin:10px 0}
+.advantages{list-style:none;padding:0;margin:14px 0;display:grid;gap:10px}
+.advantages li{background:#0d0d15;border:1px solid var(--line);border-radius:10px;padding:12px 14px;
+  font-size:.9rem;line-height:1.55;color:var(--muted)}
+.advantages li b{color:var(--text)}
+.trial-offer{background:#0e1a12;border:1px solid #2f7d4f;border-radius:12px;padding:14px 16px;
+  font-size:.95rem;line-height:1.6;margin:14px 0}
+#guide-wrap,#service-wrap{margin-top:22px}
 </style>
 </head>
 <body>
@@ -48,101 +67,157 @@
   <div class="wrap">
     <div class="crumb"><a href="/">← Rival Eclipse</a></div>
     <h1 class="page-title">Self-Hosting Walkthrough</h1>
-    <p class="page-sub">We'll take it one step at a time. Read the instructions, open what you need, and confirm each step before moving on — no rush, no jargon.</p>
+    <p class="page-sub">Here's the entire process on one page — the real effort and the real time — so you can decide with eyes open before you commit to anything.</p>
 
-    <div class="wprog" id="wprog"></div>
+    <!-- ============ PART 1: RUNDOWN ============ -->
+    <div class="effort">⏱️ <b>About 45–75 minutes of hands-on work</b>, plus waiting on DNS if you connect a domain. No coding, no server knowledge — just following prompts.</div>
 
-    <!-- STEP 0 : platform -->
-    <section class="wstep block" data-step="0">
-      <h2>Step 1 — Pick your platform</h2>
-      <p class="wnote">This is where your site will live. Any of these work great for a Rival Eclipse site — pick the one you like. (No account needed for this walkthrough.)</p>
-      <div class="wplat" id="plat-pick">
-        <label class="plat"><input type="radio" name="platform" value="cloudflare"><span class="rec">Recommended</span><b>Cloudflare Pages</b><span>Free, fast, and simple. This is what we'd use ourselves.</span></label>
-        <label class="plat"><input type="radio" name="platform" value="netlify"><b>Netlify</b><span>Free tier with easy drag-and-drop publishing.</span></label>
-        <label class="plat"><input type="radio" name="platform" value="vercel"><b>Vercel</b><span>Free tier, very popular, smooth setup.</span></label>
-        <label class="plat"><input type="radio" name="platform" value="github"><b>GitHub Pages</b><span>Free hosting tied to a GitHub account. A touch more technical.</span></label>
-        <label class="plat"><input type="radio" name="platform" value="other"><b>Choose other</b><span>Already have a host in mind? Tell us which one.</span></label>
-      </div>
-      <div id="other-wrap" hidden>
-        <label>Platform name
-          <input type="text" id="other-name" class="winput" maxlength="60" placeholder="e.g. Bluehost, Hostinger, AWS…">
+    <div class="rundown">
+      <div class="rcard"><span class="rtime">~5 min</span><b>1. Pick your hosting platform</b><span>Choose where your site will live — Cloudflare Pages (recommended), Netlify, Vercel, GitHub Pages, or a host of your own.</span></div>
+      <div class="rcard"><span class="rtime">~10 min</span><b>2. Create your hosting account</b><span>Sign up free on your chosen platform. It's just an email and a password — nothing technical.</span></div>
+      <div class="rcard"><span class="rtime">~5 min</span><b>3. Get your site files</b><span>Pick how we hand you your code — secure dashboard download, a private GitHub repo, or a password-protected archive. No public links, ever.</span></div>
+      <div class="rcard"><span class="rtime">15–30 min</span><b>4. Deploy your site</b><span>Upload your files following your platform's guide. It's mostly clicking through prompts — the guide opens right when you need it.</span></div>
+      <div class="rcard"><span class="rtime">~15 min + DNS wait</span><b>5. Connect your domain <span style="font-weight:normal">(optional)</span></b><span>Point your own domain at the site, or skip it and use the free address your platform gives you. DNS can take 24–48 hours to finish on its own — nothing for you to do while you wait.</span></div>
+      <div class="rcard"><span class="rtime">~5 min</span><b>6. Go-live check</b><span>Paste your address and we verify the world can see it. Then you're done — the site is yours.</span></div>
+    </div>
+
+    <!-- ============ PART 2: THE CHOICE ============ -->
+    <h2>Your choice</h2>
+    <p class="page-sub">Seen the whole thing? Pick the package that fits:</p>
+    <div class="choice-row">
+      <button class="btn" id="choose-build">Confirm Build only package</button>
+      <button class="btn-ghost" id="choose-service">Try a Rival Eclipse Service package</button>
+    </div>
+
+    <!-- ============ BUILD-ONLY: FULL GUIDE ============ -->
+    <div id="guide-wrap" hidden>
+      <h2>The full step-by-step guide</h2>
+      <p class="wnote">Build-only confirmed. Take it one step at a time — read the instructions, open what you need, and confirm each step before moving on.</p>
+      <div class="wprog" id="wprog"></div>
+
+      <!-- STEP 0 : platform -->
+      <section class="wstep block" data-step="0">
+        <h2>Step 1 — Pick your platform</h2>
+        <p class="wnote">This is where your site will live. Any of these work great for a Rival Eclipse site — pick the one you like. (No account needed for this walkthrough.)</p>
+        <div class="wplat" id="plat-pick">
+          <label class="plat"><input type="radio" name="platform" value="cloudflare"><span class="rec">Recommended</span><b>Cloudflare Pages</b><span>Free, fast, and simple. This is what we'd use ourselves.</span></label>
+          <label class="plat"><input type="radio" name="platform" value="netlify"><b>Netlify</b><span>Free tier with easy drag-and-drop publishing.</span></label>
+          <label class="plat"><input type="radio" name="platform" value="vercel"><b>Vercel</b><span>Free tier, very popular, smooth setup.</span></label>
+          <label class="plat"><input type="radio" name="platform" value="github"><b>GitHub Pages</b><span>Free hosting tied to a GitHub account. A touch more technical.</span></label>
+          <label class="plat"><input type="radio" name="platform" value="other"><b>Choose other</b><span>Already have a host in mind? Tell us which one.</span></label>
+        </div>
+        <div id="other-wrap" hidden>
+          <label>Platform name
+            <input type="text" id="other-name" class="winput" maxlength="60" placeholder="e.g. Bluehost, Hostinger, AWS…">
+          </label>
+          <label>Signup page URL <span class="wnote">(optional — we'll find it for you if you skip this)</span>
+            <input type="url" id="other-url" class="winput" maxlength="300" placeholder="https://…">
+          </label>
+        </div>
+        <div class="wactions">
+          <button class="btn" id="s0-go">Continue</button>
+        </div>
+        <p class="wnote" id="s0-err" hidden style="color:#ff9a9a">Pick a platform first — or choose "other" and type its name.</p>
+      </section>
+
+      <!-- STEP 1 : account -->
+      <section class="wstep block" data-step="1">
+        <h2>Step 2 — Create your account</h2>
+        <p class="wnote" id="s1-instructions"></p>
+        <div class="wactions">
+          <button class="btn-ghost" id="s1-back">← Back</button>
+          <button class="btn" id="s1-start">Start this step — open signup</button>
+          <button class="btn" id="s1-done" disabled>I've created my account →</button>
+        </div>
+      </section>
+
+      <!-- STEP 2 : files / delivery method picker -->
+      <section class="wstep block" data-step="2">
+        <h2>Step 3 — Get your site files</h2>
+        <p class="wnote">When your project is finished, we'll deliver your complete site code using the method you pick here. No public links, ever — your code stays private.</p>
+        <div class="wplat" id="delivery-pick">
+          <label class="plat"><input type="radio" name="delivery" value="dashboard"><span class="rec">Recommended</span><b>Secure dashboard download</b><span>Sign in to your client dashboard to download your site as a zip.</span><span class="secure">Kept secure by: expiring links — downloads work for 7 days and only a few times, then they're gone.</span></label>
+          <label class="plat"><input type="radio" name="delivery" value="github"><b>Private GitHub repository</b><span>We push your code to a private repo and invite your GitHub username as a collaborator. Best if you're comfortable with git — redeploys become a one-click push.</span><span class="secure">Kept secure by: a private repo — only you and people you invite can see it.</span></label>
+          <label class="plat"><input type="radio" name="delivery" value="archive"><b>Password-protected archive</b><span>We send a password-locked zip; the password is shown separately inside your client dashboard, never in the same message as the file.</span><span class="secure">Kept secure by: the file and its password travel separately — one without the other is useless.</span></label>
+        </div>
+        <div id="github-user-wrap" hidden>
+          <label>Your GitHub username <span class="wnote">(optional — you can add it later)</span>
+            <input type="text" id="github-user" class="winput" maxlength="60" placeholder="e.g. octocat">
+          </label>
+        </div>
+        <p class="wnote">We'll use this method when your project is delivered.</p>
+        <div class="wactions">
+          <button class="btn-ghost" id="s2-back">← Back</button>
+          <button class="btn" id="s2-done" disabled>Continue →</button>
+        </div>
+        <p class="wnote" id="s2-err" hidden style="color:#ff9a9a">Pick a delivery method first.</p>
+      </section>
+
+      <!-- STEP 3 : deploy -->
+      <section class="wstep block" data-step="3">
+        <h2>Step 4 — Deploy your site</h2>
+        <p class="wnote" id="s3-instructions"></p>
+        <div class="wactions">
+          <button class="btn-ghost" id="s3-back">← Back</button>
+          <button class="btn" id="s3-start">Open the deploy guide</button>
+          <button class="btn" id="s3-done" disabled>My site is deployed →</button>
+        </div>
+      </section>
+
+      <!-- STEP 4 : domain -->
+      <section class="wstep block" data-step="4">
+        <h2>Step 5 — Domain <span class="wnote">(optional)</span></h2>
+        <p class="wnote">Your site already has a free address from your platform (something like <i>yoursite.pages.dev</i>). A custom domain like <i>yoursite.com</i> is optional — pick what fits:</p>
+        <label class="dopt"><input type="radio" name="domain" value="keep" checked> Keep my current domain
+          <small>If you already own a domain, your platform's guide shows how to point it at your new site — it's usually one DNS record.</small></label>
+        <label class="dopt"><input type="radio" name="domain" value="new"> Transfer or register a new one
+          <small>Buy it from any registrar (Cloudflare Registrar and Namecheap are solid picks), then follow your platform's "custom domain" guide to connect it.</small></label>
+        <label class="dopt"><input type="radio" name="domain" value="skip"> Skip for now
+          <small>Totally fine — your free platform address works perfectly, and you can add a custom domain any time later.</small></label>
+        <div class="wactions">
+          <button class="btn-ghost" id="s4-back">← Back</button>
+          <button class="btn" id="s4-done">Continue →</button>
+        </div>
+      </section>
+
+      <!-- STEP 5 : go-live -->
+      <section class="wstep block" data-step="5">
+        <h2>Step 6 — Go-live check</h2>
+        <p class="wnote">Let's make sure the world can see it. Paste your site's address below and we'll check it loads.</p>
+        <label>Your site URL
+          <input type="url" id="site-url" class="winput" maxlength="300" placeholder="https://yoursite.pages.dev">
         </label>
-        <label>Signup page URL <span class="wnote">(optional — we'll find it for you if you skip this)</span>
-          <input type="url" id="other-url" class="winput" maxlength="300" placeholder="https://…">
-        </label>
-      </div>
-      <div class="wactions">
-        <button class="btn" id="s0-go">Continue</button>
-      </div>
-      <p class="wnote" id="s0-err" hidden style="color:#ff9a9a">Pick a platform first — or choose "other" and type its name.</p>
-    </section>
+        <div class="wactions">
+          <button class="btn-ghost" id="s5-back">← Back</button>
+          <button class="btn" id="s5-check">Check my site</button>
+        </div>
+        <div id="check-result"></div>
+        <div id="live-done" hidden>
+          <div class="live">🎉</div>
+          <p class="wnote"><b>You're live!</b> Your site is up on your own hosting. If anything looks off, our team is one message away — just reach out from your client dashboard.</p>
+        </div>
+      </section>
+    </div>
 
-    <!-- STEP 1 : account -->
-    <section class="wstep block" data-step="1">
-      <h2>Step 2 — Create your account</h2>
-      <p class="wnote" id="s1-instructions"></p>
-      <div class="wactions">
-        <button class="btn-ghost" id="s1-back">← Back</button>
-        <button class="btn" id="s1-start">Start this step — open signup</button>
-        <button class="btn" id="s1-done" disabled>I've created my account →</button>
-      </div>
-    </section>
-
-    <!-- STEP 2 : files -->
-    <section class="wstep block" data-step="2">
-      <h2>Step 3 — Get your site files</h2>
-      <p class="wnote">When your project is finished, we'll place a <b>zip file of your complete site</b> in your client dashboard for you to download. This walkthrough shows you the whole process ahead of time, so nothing will be a surprise.</p>
-      <p class="wnote">Keep that zip somewhere safe on your computer — you'll upload it in the next step.</p>
-      <div class="wactions">
-        <button class="btn-ghost" id="s2-back">← Back</button>
-        <button class="btn" id="s2-done">Got it — I know where my files will be →</button>
-      </div>
-    </section>
-
-    <!-- STEP 3 : deploy -->
-    <section class="wstep block" data-step="3">
-      <h2>Step 4 — Deploy your site</h2>
-      <p class="wnote" id="s3-instructions"></p>
-      <div class="wactions">
-        <button class="btn-ghost" id="s3-back">← Back</button>
-        <button class="btn" id="s3-start">Open the deploy guide</button>
-        <button class="btn" id="s3-done" disabled>My site is deployed →</button>
-      </div>
-    </section>
-
-    <!-- STEP 4 : domain -->
-    <section class="wstep block" data-step="4">
-      <h2>Step 5 — Domain <span class="wnote">(optional)</span></h2>
-      <p class="wnote">Your site already has a free address from your platform (something like <i>yoursite.pages.dev</i>). A custom domain like <i>yoursite.com</i> is optional — pick what fits:</p>
-      <label class="dopt"><input type="radio" name="domain" value="keep" checked> Keep my current domain
-        <small>If you already own a domain, your platform's guide shows how to point it at your new site — it's usually one DNS record.</small></label>
-      <label class="dopt"><input type="radio" name="domain" value="new"> Transfer or register a new one
-        <small>Buy it from any registrar (Cloudflare Registrar and Namecheap are solid picks), then follow your platform's "custom domain" guide to connect it.</small></label>
-      <label class="dopt"><input type="radio" name="domain" value="skip"> Skip for now
-        <small>Totally fine — your free platform address works perfectly, and you can add a custom domain any time later.</small></label>
-      <div class="wactions">
-        <button class="btn-ghost" id="s4-back">← Back</button>
-        <button class="btn" id="s4-done">Continue →</button>
-      </div>
-    </section>
-
-    <!-- STEP 5 : go-live -->
-    <section class="wstep block" data-step="5">
-      <h2>Step 6 — Go-live check</h2>
-      <p class="wnote">Let's make sure the world can see it. Paste your site's address below and we'll check it loads.</p>
-      <label>Your site URL
-        <input type="url" id="site-url" class="winput" maxlength="300" placeholder="https://yoursite.pages.dev">
+    <!-- ============ SERVICE PACKAGE PITCH ============ -->
+    <div id="service-wrap" class="block" hidden>
+      <h2>Let us handle everything</h2>
+      <p class="wnote">The Service package means your site is our job, not your homework:</p>
+      <ul class="advantages">
+        <li><b>No technical work, ever.</b> Hosting, updates, and major changes are handled by our team — you never touch a dashboard you don't understand.</li>
+        <li><b>Live-update push.</b> Change your hours, holidays, and promos right from your client dashboard and they're live on your site in minutes — no redeploying, no waiting on us.</li>
+        <li><b>If something breaks, it's our problem.</b> Monitoring, fixes, and keeping everything running come with the package.</li>
+        <li><b>Direct team support.</b> Message us from your client dashboard whenever you need a change or have a question.</li>
+      </ul>
+      <p class="trial-offer"><b>Free for 2 weeks — no card required.</b> Got a promo code? Get 1 month free instead. We'll set it up with you — nothing is billed automatically.</p>
+      <label>Promo code <span class="wnote">(optional)</span>
+        <input type="text" id="promo-code" class="winput" maxlength="40" placeholder="Enter code if you have one">
       </label>
       <div class="wactions">
-        <button class="btn-ghost" id="s5-back">← Back</button>
-        <button class="btn" id="s5-check">Check my site</button>
+        <button class="btn" id="start-trial">Start my free trial →</button>
       </div>
-      <div id="check-result"></div>
-      <div id="live-done" hidden>
-        <div class="live">🎉</div>
-        <p class="wnote"><b>You're live!</b> Your site is up on your own hosting. If anything looks off, our team is one message away — just reach out from your client dashboard.</p>
-      </div>
-    </section>
+      <p class="wnote">This takes you to the application with managed hosting preselected and your trial noted. After the trial, ongoing pricing is quoted from your budget — you approve everything before anything is ever billed.</p>
+    </div>
 
   </div>
 </main>
@@ -181,8 +256,28 @@
   };
   var STEP_LABELS = ['Platform', 'Account', 'Files', 'Deploy', 'Domain', 'Go-live'];
 
+  // ---- the choice ----
+  document.getElementById('choose-build').addEventListener('click', function () {
+    var g = document.getElementById('guide-wrap');
+    g.hidden = false;
+    document.getElementById('service-wrap').hidden = true;
+    g.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  document.getElementById('choose-service').addEventListener('click', function () {
+    var s = document.getElementById('service-wrap');
+    s.hidden = false;
+    document.getElementById('guide-wrap').hidden = true;
+    s.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  document.getElementById('start-trial').addEventListener('click', function () {
+    var code = document.getElementById('promo-code').value.trim().slice(0, 40);
+    location.href = '/apply/?hosting=managed&trial=1' + (code ? '&promo=' + encodeURIComponent(code) : '');
+  });
+
+  // ---- guide wizard ----
   var platform = null;   // platform key
   var otherName = '', otherUrl = '';
+  var delivery = null;   // code-delivery method
   var step = 0;
   var sections = Array.prototype.slice.call(document.querySelectorAll('.wstep'));
   var prog = document.getElementById('wprog');
@@ -253,9 +348,27 @@
   });
   document.getElementById('s1-done').addEventListener('click', function () { goTo(2); });
 
-  // ---- step 2: files ----
+  // ---- step 2: files / delivery-method picker ----
+  document.querySelectorAll('input[name="delivery"]').forEach(function (r) {
+    r.addEventListener('change', function () {
+      delivery = document.querySelector('input[name="delivery"]:checked').value;
+      document.getElementById('s2-done').disabled = !delivery;
+      document.getElementById('s2-err').hidden = true;
+      document.getElementById('github-user-wrap').hidden = delivery !== 'github';
+    });
+  });
   document.getElementById('s2-back').addEventListener('click', function () { goTo(1); });
-  document.getElementById('s2-done').addEventListener('click', function () { goTo(3); });
+  document.getElementById('s2-done').addEventListener('click', function () {
+    if (!delivery) { document.getElementById('s2-err').hidden = false; return; }
+    try {
+      localStorage.setItem('re-code-delivery', JSON.stringify({
+        method: delivery,
+        github: delivery === 'github' ? document.getElementById('github-user').value.trim() : '',
+        at: Date.now()
+      }));
+    } catch (e) { /* private mode — the pick just won't persist */ }
+    goTo(3);
+  });
 
   // ---- step 3: deploy ----
   document.getElementById('s3-back').addEventListener('click', function () { goTo(2); });
