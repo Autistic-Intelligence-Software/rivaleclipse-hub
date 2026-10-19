@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Intake — Rival Eclipse</title>
+<meta name="description" content="New client onboarding — tell us about your business, see what self-hosting really takes, then pick full service or build only.">
+<link rel="stylesheet" href="/style.css">
+<style>
+/* Mirrors /apply/ adaptive-form + /handoff/ rundown styles (Eclipse theme). */
+.feats{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:8px;margin:6px 0 4px}
+.feat{display:flex;align-items:center;gap:10px;background:#0d0d15;border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;font-size:.88rem;color:var(--muted);cursor:pointer;font-weight:normal;margin:0 !important}
+.feat input{accent-color:var(--accent);width:auto !important}
+.feat:has(input:checked){border-color:var(--accent);color:var(--text)}
+.radios{display:flex;flex-direction:column;gap:8px;margin:10px 0 4px;font-size:.9rem;color:var(--muted)}
+.radios label{display:flex;align-items:center;gap:10px;cursor:pointer}
+.radios input{accent-color:var(--accent);width:auto !important}
+.sub-block{margin:6px 0 2px;padding:2px 0 2px 16px;border-left:2px solid var(--line)}
+.sub-block[hidden]{display:none}
+#form-msg{margin:14px 0;font-size:.95rem}
+#form-msg.ok{color:#7ddf9a}
+#form-msg.err{color:#ff9a9a}
+.step-note{font-size:.82rem;color:var(--muted);margin-top:6px}
+.rundown{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:18px 0}
+.rcard{background:#0d0d15;border:1px solid var(--line);border-radius:14px;padding:16px}
+.rcard b{display:block;font-size:1rem;margin:8px 0 6px}
+.rcard span{color:var(--muted);font-size:.87rem;line-height:1.55}
+.rtime{display:inline-block;font-size:.72rem;font-weight:bold;color:var(--accent);
+  border:1px solid var(--accent);border-radius:999px;padding:2px 10px}
+.effort{background:#0d0d15;border:1px solid var(--accent);border-radius:12px;padding:14px 18px;
+  font-size:.98rem;line-height:1.6;margin:6px 0 4px}
+.choice-row{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0 6px}
+.choice-row .btn,.choice-row .btn-ghost{font-size:1rem;padding:14px 26px}
+.wplat{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0}
+.plat{display:block;background:#0d0d15;border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;position:relative}
+.plat input{accent-color:var(--accent);width:auto !important;position:absolute;opacity:0}
+.plat:has(input:checked){border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.plat b{display:block;font-size:1rem;margin-bottom:6px}
+.plat span{color:var(--muted);font-size:.85rem;line-height:1.5}
+.plat .rec{display:inline-block;font-size:.7rem;background:var(--accent);color:#0a0a0f;font-weight:bold;
+  border-radius:999px;padding:2px 10px;margin-bottom:8px}
+.plat .secure{display:block;margin-top:10px;font-size:.78rem;color:var(--muted);
+  border-top:1px dashed var(--line);padding-top:8px}
+.wactions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.btn-ghost{background:transparent;border:1px solid var(--line);color:var(--text);border-radius:10px;
+  padding:10px 18px;font-size:.95rem;cursor:pointer;text-decoration:none;display:inline-block}
+.btn-ghost:hover{border-color:var(--accent)}
+.advantages{list-style:none;padding:0;margin:14px 0;display:grid;gap:10px}
+.advantages li{background:#0d0d15;border:1px solid var(--line);border-radius:10px;padding:12px 14px;
+  font-size:.9rem;line-height:1.55;color:var(--muted)}
+.advantages li b{color:var(--text)}
+.trial-offer{background:#0e1a12;border:1px solid #2f7d4f;border-radius:12px;padding:14px 16px;
+  font-size:.95rem;line-height:1.6;margin:14px 0}
+.wnote{font-size:.85rem;color:var(--muted);line-height:1.6}
+.stepper{display:flex;gap:8px;margin:20px 0 6px;flex-wrap:wrap}
+.sdot{flex:1;min-width:90px;font-size:.75rem;color:var(--muted);padding-top:8px;
+  border-top:3px solid var(--line);line-height:1.4}
+.sdot.now{border-top-color:var(--accent);color:var(--text);font-weight:bold}
+.sdot.done{border-top-color:var(--accent);color:var(--text)}
+.istep{animation:fadein .25s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.summary-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;
+  border-bottom:1px solid var(--line);font-size:.93rem;flex-wrap:wrap}
+.summary-row:last-child{border-bottom:none}
+.summary-row .k{color:var(--muted)}
+.summary-row .v{color:var(--text);font-weight:600;text-align:right}
+.center-cta{text-align:center;margin-top:18px}
+.center-cta .btn{font-size:1.05rem;padding:16px 44px}
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+  <div class="wrap">
+    <div class="crumb"><a href="/">← Rival Eclipse</a></div>
+    <h1 class="page-title">Client intake</h1>
+    <p class="page-sub">Tell us about your business, see what hosting it yourself really takes, then pick your package.</p>
+
+    <div class="block" id="gate-msg"><p class="sub">Checking sign-in…</p></div>
+
+    <!-- Non-client roles -->
+    <div class="block" id="role-note" hidden>
+      <h2>This step isn't required for your role.</h2>
+      <p class="sub" id="role-note-body">The client intake is only for client accounts.</p>
+      <div class="choice-row"><a class="btn" id="role-note-link" href="/team/">Continue to your dashboard →</a></div>
+    </div>
+
+    <!-- Already completed -->
+    <div class="block" id="already" hidden>
+      <h2>You've already completed intake ✓</h2>
+      <p class="sub">Here's what you picked — if anything changes, message the team from your dashboard.</p>
+      <div id="already-summary"></div>
+      <div class="center-cta"><a class="btn" id="already-link" href="/client/dashboard/">Go to your Client Dashboard →</a></div>
+    </div>
+
+    <div id="intake-wrap" hidden>
+      <div class="stepper" id="stepper">
+        <div class="sdot" data-sdot="1">Step 1<br>Your details</div>
+        <div class="sdot" data-sdot="2">Step 2<br>The breakdown</div>
+        <div class="sdot" data-sdot="3">Step 3<br>Your choice</div>
+        <div class="sdot" data-sdot="4">Done</div>
+      </div>
+
+      <!-- ============ STEP 1 : intake form ============ -->
+      <section class="istep" id="step1">
+        <form class="quote block" id="intake-form" novalidate>
+          <h2>Your business</h2>
+          <label>Your name
+            <input type="text" name="contact_name" id="f-contact" maxlength="80" placeholder="Who are we working with?">
+          </label>
+          <label>Business name
+            <input type="text" name="business_name" id="f-bizname" maxlength="80" placeholder="e.g. Sunny Side Diner">
+          </label>
+          <label>Business type
+            <select name="business_type" id="f-biztype">
+              <option value="">Select…</option>
+              <option>Restaurant / Cafe</option>
+              <option>Salon / Barbershop</option>
+              <option>Retail / Shop</option>
+              <option>Services</option>
+              <option>Other</option>
+            </select>
+          </label>
+          <label>Current website <span class="step-note">(optional)</span>
+            <input type="url" name="website" id="f-website" placeholder="https://…">
+          </label>
+
+          <h2>What do you need built?</h2>
+          <div class="feats">
+            <label class="feat"><input type="checkbox" name="needs" value="Website" data-toggle="sub-need-website"> Website</label>
+            <label class="feat"><input type="checkbox" name="needs" value="Web app" data-toggle="sub-need-webapp"> Web app</label>
+            <label class="feat"><input type="checkbox" name="needs" value="Discord bot" data-toggle="sub-need-bot"> Discord bot</label>
+            <label class="feat"><input type="checkbox" name="needs" value="Something else" data-toggle="sub-need-other"> Something else</label>
+          </div>
+
+          <div class="sub-block" id="sub-need-website" hidden>
+            <label>Which features should the website have? <span class="step-note">(tick all that apply)</span></label>
+            <div class="feats">
+              <label class="feat"><input type="checkbox" name="website_features" value="Booking / scheduling"> Booking / scheduling</label>
+              <label class="feat"><input type="checkbox" name="website_features" value="Online store"> Online store</label>
+              <label class="feat"><input type="checkbox" name="website_features" value="Photo gallery"> Photo gallery</label>
+              <label class="feat"><input type="checkbox" name="website_features" value="Contact form"> Contact form</label>
+              <label class="feat"><input type="checkbox" name="website_features" value="Blog / news"> Blog / news</label>
+              <label class="feat"><input type="checkbox" name="website_features" value="Newsletter signup"> Newsletter signup</label>
+            </div>
+          </div>
+
+          <div class="sub-block" id="sub-need-webapp" hidden>
+            <label>Describe what the web app should do
+              <textarea name="webapp_desc" placeholder="What problem should it solve? Who uses it?"></textarea>
+            </label>
+          </div>
+
+          <div class="sub-block" id="sub-need-bot" hidden>
+            <label>What should the Discord bot do?
+              <textarea name="bot_desc" placeholder="e.g. welcome new members, take orders, post daily specials…"></textarea>
+            </label>
+            <label>Roughly how many members will use it?
+              <select name="bot_members">
+                <option value="">Select…</option>
+                <option>Under 100</option>
+                <option>100 – 500</option>
+                <option>500 – 2,000</option>
+                <option>2,000+</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="sub-block" id="sub-need-other" hidden>
+            <label>Tell us what you have in mind
+              <textarea name="other_desc" placeholder="Anything — if software can do it, we can probably build it."></textarea>
+            </label>
+          </div>
+
+          <h2>Timing</h2>
+          <label>Timeline
+            <select name="timeline" id="f-timeline">
+              <option value="">Select…</option>
+              <option>ASAP</option>
+              <option>1 month</option>
+              <option>2 – 3 months</option>
+              <option>Flexible</option>
+            </select>
+          </label>
+          <label>Anything else we should know? <span class="step-note">(optional)</span>
+            <textarea name="extra" placeholder="Goals, must-haves, things you've tried before…"></textarea>
+          </label>
+
+          <div id="form-msg"></div>
+          <button class="btn" id="step1-submit" type="submit">Continue →</button>
+        </form>
+      </section>
+
+      <!-- ============ STEP 2 : the breakdown ============ -->
+      <section class="istep" id="step2" hidden>
+        <div class="block">
+          <h2>If you host it yourself, here's what that involves:</h2>
+          <div class="effort">⏱️ <b>About 45–75 minutes of hands-on work</b>, plus waiting on DNS if you connect a domain. No coding, no server knowledge — just following prompts.</div>
+          <div class="rundown">
+            <div class="rcard"><span class="rtime">~5 min</span><b>1. Pick your hosting platform</b><span>Choose where your site will live — Cloudflare Pages (recommended), Netlify, Vercel, GitHub Pages, or a host of your own.</span></div>
+            <div class="rcard"><span class="rtime">~10 min</span><b>2. Create your hosting account</b><span>Sign up free on your chosen platform. It's just an email and a password — nothing technical.</span></div>
+            <div class="rcard"><span class="rtime">~5 min</span><b>3. Get your site files</b><span>Pick how we hand you your code — secure dashboard download, a private GitHub repo, or a password-protected archive. No public links, ever.</span></div>
+            <div class="rcard"><span class="rtime">15–30 min</span><b>4. Deploy your site</b><span>Upload your files following your platform's guide. It's mostly clicking through prompts.</span></div>
+            <div class="rcard"><span class="rtime">~15 min + DNS wait</span><b>5. Connect your domain <span style="font-weight:normal">(optional)</span></b><span>Point your own domain at the site, or use the free address your platform gives you. DNS can take 24–48 hours to finish on its own.</span></div>
+            <div class="rcard"><span class="rtime">~5 min</span><b>6. Go-live check</b><span>We'll verify the world can see your site. Then it's yours — including all future updates you make yourself.</span></div>
+          </div>
+          <h2 style="margin-top:24px">Your choice</h2>
+          <p class="sub">Prefer we handle everything? Or just want the build?</p>
+          <div class="choice-row">
+            <button class="btn" id="pick-service" type="button">Full service — hosting, updates, everything handled</button>
+            <button class="btn-ghost" id="pick-build" type="button">Build only</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ STEP 3a : full service ============ -->
+      <section class="istep" id="step3a" hidden>
+        <form class="quote block" id="service-form" novalidate>
+          <h2>Full service</h2>
+          <ul class="advantages">
+            <li><b>Hosting.</b> Your site lives on our managed infrastructure — fast, secure, always on.</li>
+            <li><b>Updates &amp; major changes.</b> Need something changed? We do it — no redeploying, no technical work on your end.</li>
+            <li><b>Live-update push.</b> Change your hours, holidays, and promos from your client dashboard and they're live on your site in minutes.</li>
+            <li><b>If something breaks, it's our problem.</b> Monitoring and fixes come with the package.</li>
+          </ul>
+          <label>Max build cost <span class="step-note">(required — the most you'll pay for the build)</span>
+            <select name="max_build_cost" id="f-max-build">
+              <option value="">Select…</option>
+              <option>Under $500</option>
+              <option>$500 – $1,500</option>
+              <option>$1,500 – $5,000</option>
+              <option>$5,000 – $10,000</option>
+              <option>$10,000+</option>
+              <option>No strict cap — quote me</option>
+            </select>
+          </label>
+          <label>Max monthly subscription <span class="step-note">(required — the most you'll pay per month for hosting &amp; care)</span>
+            <select name="max_monthly_sub" id="f-max-sub">
+              <option value="">Select…</option>
+              <option>$0 – $29</option>
+              <option>$30 – $99</option>
+              <option>$100 – $299</option>
+              <option>$300+</option>
+              <option>No strict cap — quote me</option>
+            </select>
+          </label>
+          <p class="step-note" style="margin:10px 0">These caps tell us your budget so we can give you an accurate estimate — you approve the final price before anything starts.</p>
+          <div class="trial-offer">🎉 <b>Start with 2 weeks free — 1 month free with a promo code.</b> Nothing is billed automatically; we'll set it up with you.</div>
+          <label>Promo code <span class="step-note">(optional — gets you 1 month free instead of 2 weeks)</span>
+            <input type="text" id="f-promo" maxlength="40" placeholder="Enter code if you have one">
+          </label>
+          <div id="service-msg"></div>
+          <div class="wactions">
+            <button class="btn-ghost" id="service-back" type="button">← Back</button>
+            <button class="btn" id="service-submit" type="submit">Confirm full service →</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ============ STEP 3b : build only ============ -->
+      <section class="istep" id="step3b" hidden>
+        <form class="quote block" id="build-form" novalidate>
+          <h2>Build only — how should we deliver your code?</h2>
+          <p class="sub">When your project is finished, your complete site code is delivered securely. Pick your method:</p>
+          <div class="wplat">
+            <label class="plat"><input type="radio" name="code_delivery" value="dashboard_download"><span class="rec">Recommended</span><b>Secure dashboard download</b><span>Download your site as a zip from your client dashboard.</span><span class="secure">Kept secure by: expiring links — downloads work for 7 days and only a few times, then they're gone.</span></label>
+            <label class="plat"><input type="radio" name="code_delivery" value="github_repo"><b>Private GitHub repository</b><span>We push your code to a private repo and invite your GitHub username as a collaborator.</span><span class="secure">Kept secure by: a private repo — only you and people you invite can see it.</span></label>
+            <label class="plat"><input type="radio" name="code_delivery" value="password_archive"><b>Password-protected archive</b><span>We send a password-locked zip; the password is shown separately inside your client dashboard.</span><span class="secure">Kept secure by: the file and its password travel separately — one without the other is useless.</span></label>
+          </div>
+          <div id="gh-wrap" hidden>
+            <label>Your GitHub username <span class="step-note">(optional — you can add it later)</span>
+              <input type="text" id="f-gh-user" maxlength="60" placeholder="e.g. octocat">
+            </label>
+          </div>
+          <div id="build-msg"></div>
+          <div class="wactions">
+            <button class="btn-ghost" id="build-back" type="button">← Back</button>
+            <button class="btn" id="build-submit" type="submit">Confirm build only →</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ============ DONE ============ -->
+      <section class="istep" id="step-done" hidden>
+        <div class="block center-cta">
+          <h2>You're all set. ✓</h2>
+          <p class="sub">Your intake is complete — the team will review your details and reach out about next steps.</p>
+          <a class="btn" id="done-link" href="/client/dashboard/">Go to your Client Dashboard →</a>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+<footer><div class="wrap"><span>© 2026 Rival Eclipse</span><nav><a href="/help/">Help</a><a href="/ToS-Privacy-legal/">ToS &amp; Privacy</a><a href="/sign-in/">Sign in</a><a href="/client/">Client Portal</a></nav></div></footer>
+<script src="/sky.js"></script>
+<script type="module">
+import { session } from '/auth.js';
+const AUTH = 'https://auth.rivaleclipse.dev';
+
+const qparams = new URLSearchParams(location.search);
+const nextUrl = (qparams.get('next') || '/client/dashboard/').toString();
+document.getElementById('already-link').href = nextUrl;
+document.getElementById('done-link').href = nextUrl;
+
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function api(path, opts = {}) {
+  return fetch(AUTH + path, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  }).then(async (r) => ({ status: r.status, data: await r.json().catch(() => ({})) }));
+}
+
+// ---- step navigation ----
+const STEPS = ['step1', 'step2', 'step3a', 'step3b', 'step-done'];
+function showStep(id) {
+  STEPS.forEach((s) => { document.getElementById(s).hidden = (s !== id); });
+  const n = { step1: 1, step2: 2, step3a: 3, step3b: 3, 'step-done': 4 }[id];
+  document.querySelectorAll('[data-sdot]').forEach((d) => {
+    const k = +d.dataset.sdot;
+    d.classList.toggle('now', k === n);
+    d.classList.toggle('done', k < n);
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ---- sign-in + role gate ----
+const s = await session().catch(() => null);
+if (!s) {
+  location.href = '/sign-in/?next=' + encodeURIComponent(location.pathname + location.search);
+  throw new Error('redirect');
+}
+const role = String(s.role ?? s.user?.role ?? '').toLowerCase();
+const owner = !!(s.user?.is_owner ?? s.is_owner);
+const elevated = role === 'team' || role === 'admin' || owner;
+const isClient = role === 'client';
+
+document.getElementById('gate-msg').hidden = true;
+if (elevated) {
+  const note = document.getElementById('role-note');
+  const link = document.getElementById('role-note-link');
+  link.href = role === 'team' ? '/team/' : '/admin/';
+  link.textContent = (role === 'team' ? 'Continue to the Team dashboard' : 'Continue to the Admin dashboard') + ' →';
+  note.hidden = false;
+} else if (!isClient) {
+  const note = document.getElementById('role-note');
+  document.getElementById('role-note-body').innerHTML =
+    'The client intake is only for <b style="color:var(--text)">client</b> accounts. This account is registered as <b style="color:var(--text)">' + esc(role || 'user') + '</b>.';
+  const link = document.getElementById('role-note-link');
+  link.href = '/sign-up/?intent=client';
+  link.textContent = 'Register as a Client →';
+  note.hidden = false;
+} else {
+  // Client role: check whether intake is already done.
+  let existing = null;
+  try {
+    const { status, data } = await api('/api/client/intake');
+    if (status === 200 && data && data.intake) existing = data.intake;
+  } catch { /* backend unreachable — show the form anyway */ }
+  if (existing && existing.hosting_choice) {
+    const hc = existing.hosting_choice === 'full_service' ? 'Full service' : 'Build only';
+    const rows = [
+      ['Package', hc],
+      existing.max_build_cost ? ['Max build cost', existing.max_build_cost] : null,
+      existing.max_monthly_sub ? ['Max monthly subscription', existing.max_monthly_sub] : null,
+      existing.promo_code ? ['Promo code', existing.promo_code] : null,
+      existing.code_delivery ? ['Code delivery', {
+        dashboard_download: 'Secure dashboard download',
+        github_repo: 'Private GitHub repository',
+        password_archive: 'Password-protected archive',
+      }[existing.code_delivery] || existing.code_delivery] : null,
+      existing.created_at ? ['Completed', new Date(existing.created_at).toLocaleString()] : null,
+    ].filter(Boolean);
+    document.getElementById('already-summary').innerHTML =
+      rows.map(([k, v]) => `<div class="summary-row"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join('');
+    document.getElementById('already').hidden = false;
+  } else {
+    document.getElementById('intake-wrap').hidden = false;
+    showStep('step1');
+  }
+}
+
+// ---- progressive disclosure (same pattern as /apply/) ----
+function setEnabled(root, on) {
+  root.querySelectorAll('input, select, textarea').forEach((el) => { el.disabled = !on; });
+}
+function syncToggle(cb) {
+  const target = document.getElementById(cb.dataset.toggle);
+  if (!target) return;
+  target.hidden = !cb.checked;
+  setEnabled(target, cb.checked);
+}
+document.querySelectorAll('#intake-form [data-toggle]').forEach((cb) => {
+  cb.addEventListener('change', () => syncToggle(cb));
+  syncToggle(cb);
+});
+
+// ---- STEP 1 submit ----
+const intakeForm = document.getElementById('intake-form');
+intakeForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('form-msg');
+  const btn = document.getElementById('step1-submit');
+  const contact = document.getElementById('f-contact').value.trim();
+  const bizname = document.getElementById('f-bizname').value.trim();
+  const needs = [...intakeForm.querySelectorAll('input[name="needs"]:checked')].map((c) => c.value);
+  if (!contact || !bizname) { msg.className = 'err'; msg.textContent = 'Tell us your name and your business name first.'; return; }
+  if (!needs.length) { msg.className = 'err'; msg.textContent = 'Pick at least one thing you need built.'; return; }
+  const val = (n) => { const el = intakeForm.querySelector(`[name="${n}"]`); return el && !el.disabled ? el.value.trim() : ''; };
+  const data = {
+    contact_name: contact,
+    business_name: bizname,
+    business_type: val('business_type'),
+    website: val('website'),
+    needs,
+    website_features: [...intakeForm.querySelectorAll('input[name="website_features"]:checked')].filter((c) => !c.disabled).map((c) => c.value),
+    webapp_desc: val('webapp_desc'),
+    bot_desc: val('bot_desc'),
+    bot_members: val('bot_members'),
+    other_desc: val('other_desc'),
+    timeline: val('timeline'),
+    extra: val('extra'),
+  };
+  btn.disabled = true; btn.textContent = 'Saving…'; msg.className = ''; msg.textContent = '';
+  try {
+    const { status, data: out } = await api('/api/client/intake', {
+      method: 'POST', body: JSON.stringify({ data }),
+    });
+    if (status === 200 || status === 201) { showStep('step2'); }
+    else if (status === 401) { location.href = '/sign-in/?next=' + encodeURIComponent(location.pathname + location.search); return; }
+    else { msg.className = 'err'; msg.textContent = out.error === 'rate_limited' ? 'You already sent this — one intake per account. Try reloading the page.' : 'Couldn’t save your details — try again in a moment.'; }
+  } catch {
+    msg.className = 'err'; msg.textContent = 'Couldn’t reach the server. Check your connection and try again.';
+  }
+  btn.disabled = false; btn.textContent = 'Continue →';
+});
+
+// ---- STEP 2 choice ----
+document.getElementById('pick-service').onclick = () => showStep('step3a');
+document.getElementById('pick-build').onclick = () => showStep('step3b');
+document.getElementById('service-back').onclick = () => showStep('step2');
+document.getElementById('build-back').onclick = () => showStep('step2');
+
+// ---- STEP 3a : full service ----
+document.getElementById('service-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('service-msg');
+  const btn = document.getElementById('service-submit');
+  const mb = document.getElementById('f-max-build').value;
+  const ms = document.getElementById('f-max-sub').value;
+  if (!mb || !ms) { msg.className = 'err'; msg.textContent = 'Pick your max build cost and max monthly subscription so we can estimate accurately.'; return; }
+  const promo = document.getElementById('f-promo').value.trim().slice(0, 40);
+  btn.disabled = true; btn.textContent = 'Confirming…'; msg.className = ''; msg.textContent = '';
+  const body = { hosting_choice: 'full_service', max_build_cost: mb, max_monthly_sub: ms, trial: true };
+  if (promo) body.promo_code = promo; // server upgrades trial to 1 month when a promo code is present
+  try {
+    const { status, data: out } = await api('/api/client/intake/choice', { method: 'POST', body: JSON.stringify(body) });
+    if (status === 200 || status === 201) { showStep('step-done'); }
+    else { msg.className = 'err'; msg.textContent = out.error || 'Couldn’t save your choice — try again in a moment.'; }
+  } catch {
+    msg.className = 'err'; msg.textContent = 'Couldn’t reach the server. Check your connection and try again.';
+  }
+  btn.disabled = false; btn.textContent = 'Confirm full service →';
+});
+
+// ---- STEP 3b : build only ----
+const buildForm = document.getElementById('build-form');
+buildForm.querySelectorAll('input[name="code_delivery"]').forEach((r) => {
+  r.addEventListener('change', () => {
+    const gh = buildForm.querySelector('input[name="code_delivery"]:checked')?.value === 'github_repo';
+    document.getElementById('gh-wrap').hidden = !gh;
+    document.getElementById('f-gh-user').disabled = !gh;
+  });
+});
+buildForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('build-msg');
+  const btn = document.getElementById('build-submit');
+  const cd = buildForm.querySelector('input[name="code_delivery"]:checked');
+  if (!cd) { msg.className = 'err'; msg.textContent = 'Pick how you’d like your site’s code delivered at handoff.'; return; }
+  btn.disabled = true; btn.textContent = 'Confirming…'; msg.className = ''; msg.textContent = '';
+  const body = { hosting_choice: 'build_only', code_delivery: cd.value };
+  if (cd.value === 'github_repo') {
+    const gh = document.getElementById('f-gh-user').value.trim().slice(0, 60);
+    if (gh) body.github_username = gh;
+  }
+  try {
+    const { status, data: out } = await api('/api/client/intake/choice', { method: 'POST', body: JSON.stringify(body) });
+    if (status === 200 || status === 201) { showStep('step-done'); }
+    else { msg.className = 'err'; msg.textContent = out.error || 'Couldn’t save your choice — try again in a moment.'; }
+  } catch {
+    msg.className = 'err'; msg.textContent = 'Couldn’t reach the server. Check your connection and try again.';
+  }
+  btn.disabled = false; btn.textContent = 'Confirm build only →';
+});
+</script>
+<script src="/assistant.js"></script>
+</body>
+</html>
