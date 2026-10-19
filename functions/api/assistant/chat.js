@@ -40,7 +40,7 @@ async function roleOf(request) {
     if (r.status !== 200) return 'guest';
     const d = await r.json().catch(() => null);
     const role = (d?.user?.role || 'user').toLowerCase();
-    if (d?.user?.is_owner) return 'admin'; // owner sees the admin guidance
+    if (d?.is_owner ?? d?.user?.is_owner) return 'admin'; // owner sees the admin guidance
     return ['user', 'client', 'tester', 'team', 'admin'].includes(role) ? role : 'user';
   } catch {
     return 'guest';
