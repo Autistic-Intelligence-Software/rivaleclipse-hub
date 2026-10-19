@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome — Rival Eclipse</title>
+<meta name="description" content="Your Rival Eclipse account is ready.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.auth-card { max-width: 560px; margin: 30px auto 0; }
+.auth-card .block { margin-top: 0; text-align: center; }
+.auth-card h3 { margin: 18px 0 8px; }
+.link-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 22px; }
+.discord-btn { display: inline-block; background: #5865F2; color: #fff; font-weight: 800;
+  padding: 13px 26px; border-radius: 10px; text-decoration: none; font-size: 1rem; }
+.discord-btn:hover { background: #4752c4; }
+.skip-btn { display: inline-block; background: none; border: 1px solid var(--line); color: var(--text);
+  font-weight: 700; padding: 13px 26px; border-radius: 10px; text-decoration: none; font-size: 1rem; }
+.skip-btn:hover { border-color: var(--accent); }
+.fine { color: var(--muted); font-size: .85rem; margin-top: 16px; }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+<div class="wrap">
+  <div class="auth-card">
+    <div class="block">
+      <h2>🎉 Your account is ready</h2>
+      <p class="sub">You're signed in. One optional step left:</p>
+      <h3>Link Discord?</h3>
+      <p class="sub">Optional — only needed for bot dashboards (Bouncer, Chat-Mate, Tim, VibeCheck, JayRain).
+      Everything else — dev requests, the client portal, web apps — works without it. You can link anytime later.</p>
+      <div class="link-row">
+        <a class="discord-btn" id="link-btn" href="#">Link Discord now</a>
+        <a class="skip-btn" id="skip-btn" href="/dashboards/">Skip for now</a>
+      </div>
+      <p class="fine">Linking connects your Discord so bot dashboards know which servers you manage. We only read your Discord identity — we never post as you.</p>
+    </div>
+  </div>
+</div>
+</main>
+<script src="/sky.js"></script>
+<script type="module">
+import { session, registerIntent } from '/auth.js';
+const q = new URLSearchParams(location.search);
+const to = q.get('to') || '/dashboards/';
+const intent = q.get('intent');
+
+const s = await session();
+if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent(location.pathname + location.search); throw new Error('redirect'); }
+
+// Already linked? Skip the prompt entirely.
+if (s.has_discord ?? !!s.discord) { location.href = to; throw new Error('redirect'); }
+
+// Client-intent registrations get flagged on their first authenticated page.
+const user = s.user || {};
+const isOwner = !!(s.is_owner ?? user.is_owner);
+if (intent === 'client' && (user.role || 'user') !== 'client' && !isOwner) {
+  try { await registerIntent('client'); } catch { /* non-fatal */ }
+}
+
+document.getElementById('link-btn').href =
+  'https://auth.rivaleclipse.dev/auth/discord?action=pair&next=' + encodeURIComponent(to);
+document.getElementById('skip-btn').href = to;
+</script>
+</body>
+</html>
