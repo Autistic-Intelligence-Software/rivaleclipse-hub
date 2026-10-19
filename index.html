@@ -7,6 +7,7 @@
 <meta name="description" content="The home of everything built under rivaleclipse.dev — Discord bots, web apps, and custom development services by Rival Eclipse.">
 <link rel="stylesheet" href="/style.css">
 <style>
+.auth-band { margin-top: 26px; }
 .acct-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 26px; }
 .acct-panels .block { margin-top: 0; display: flex; flex-direction: column; }
 .acct-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
@@ -48,21 +49,30 @@
       </a>
     </div>
 
+    <div class="block auth-band">
+      <h2>Sign in and new user registration</h2>
+      <p class="sub">One account for every Rival Eclipse bot dashboard, web app, and service.</p>
+      <div class="acct-btns">
+        <a class="btn" href="/sign-in/">Sign in</a>
+        <a class="btn ghost" href="/sign-up/">Register New User</a>
+        <a class="btn ghost" href="/sign-up/?intent=client">Register Client</a>
+      </div>
+    </div>
+
     <div class="acct-panels">
       <div class="block">
-        <h2>User Login &amp; Registration</h2>
-        <p class="sub">One account for every Rival Eclipse bot dashboard, web app, and service.</p>
+        <h2>FAQs, Legal, Privacy Policies, and ToS portals</h2>
+        <p class="sub">Answers and the fine print — where everything lives.</p>
         <div class="acct-btns">
-          <a class="btn" href="/sign-in/">Sign in</a>
-          <a class="btn ghost" href="/sign-up/">Register New User</a>
-          <a class="btn ghost" href="/sign-up/?intent=client">Register Client</a>
+          <a class="btn ghost" href="/help/">FAQs</a>
+          <a class="btn ghost" href="/ToS-Privacy-legal/">Legal, Privacy &amp; ToS</a>
         </div>
       </div>
       <div class="block">
-        <h2>Client Portal</h2>
-        <p class="sub">Already a client? Track your requests, projects, and billing — and message the team directly.</p>
+        <h2>Feedback and Contact portals</h2>
+        <p class="sub">Something to say or something to build? Start here.</p>
         <div class="acct-btns">
-          <a class="btn" href="/client/">Client Sign In</a>
+          <a class="btn" href="/dev-request/">Feedback &amp; Contact</a>
         </div>
       </div>
     </div>
