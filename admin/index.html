@@ -90,6 +90,23 @@
 .revoke-btn:disabled { opacity: .4; cursor: default; }
 #codes-msg.ok { color: var(--ok); }
 #codes-msg.err { color: #ff7070; }
+.merge-btn { background: none; border: 1px solid #6b2d2d; color: #ff9d9d; border-radius: 8px;
+  padding: 6px 12px; cursor: pointer; font-size: .85rem; font-family: inherit; margin-left: 6px; }
+.merge-btn:hover { background: rgba(255,112,112,.08); }
+#merge-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 1000;
+  display: flex; align-items: center; justify-content: center; padding: 20px; }
+#merge-box { background: #101018; border: 1px solid var(--line); border-radius: 14px;
+  max-width: 480px; width: 100%; padding: 22px; }
+#merge-box h3 { margin: 0 0 10px; font-size: 1.1rem; }
+#merge-box select { width: 100%; background: #0d0d15; border: 1px solid var(--line);
+  border-radius: 8px; color: var(--text); padding: 10px 12px; font-size: .92rem;
+  font-family: inherit; margin: 10px 0; }
+#merge-actions { display: flex; gap: 10px; margin-top: 16px; }
+#merge-msg { margin-top: 12px; font-size: .92rem; }
+#merge-msg.ok { color: var(--ok); }
+#merge-msg.err { color: #ff7070; }
+.merge-result { background: #0d0d15; border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px 14px; margin-top: 12px; font-size: .9rem; line-height: 1.7; }
 </style>
 </head>
 <body>
@@ -148,6 +165,20 @@
       <p class="sub">Requests the team sent up for admin review. Accept or decline with an optional note.</p>
       <div id="crq-list"><p class="dim">Loading…</p></div>
     </div>
+  </div>
+</div>
+<div id="merge-overlay" style="display:none">
+  <div id="merge-box">
+    <h3 id="merge-title">Merge account</h3>
+    <p class="sub" id="merge-desc"></p>
+    <select id="merge-target"></select>
+    <p class="sub">Moves the Discord link, tags, purchases, and all data to the target account, then removes the source. This can&rsquo;t be undone.</p>
+    <p class="dim">If you were signed in as the merged-away account, sign in again on the surviving one.</p>
+    <div id="merge-actions">
+      <button class="gen-btn" id="merge-confirm">Merge accounts</button>
+      <button class="act-btn" id="merge-cancel">Cancel</button>
+    </div>
+    <p id="merge-msg"></p>
   </div>
 </div>
 </main>
@@ -226,6 +257,7 @@ document.querySelectorAll('.tab-btn').forEach((b) => {
 const usersBody = document.getElementById('users-body');
 const adminMsg = document.getElementById('admin-msg');
 const say = (t, ok) => { adminMsg.textContent = t; adminMsg.className = ok === true ? 'ok' : ok === false ? 'err' : ''; };
+let lastUsers = []; // last registry snapshot, for the merge-target dropdown
 
 const fmtDate = (v) => { try { return v ? new Date(v).toLocaleDateString() : '—'; } catch { return '—'; } };
 const flagsOf = (u) => {
@@ -266,7 +298,7 @@ function renderUsers(users) {
       <td><div class="tag-checks">${tagCheckboxes(u)}</div></td>
       <td class="dim">${esc(flagsOf(u))}</td>
       <td class="dim">${esc(fmtDate(u.created_at || u.created))}</td>
-      <td><button class="msg-toggle" data-uid="${esc(uid)}" data-email="${esc(u.email || '')}">Messages</button></td>
+      <td><button class="msg-toggle" data-uid="${esc(uid)}" data-email="${esc(u.email || '')}">Messages</button>${isOwner ? `<button class="merge-btn" data-uid="${esc(uid)}" data-email="${esc(u.email || '')}">Merge</button>` : ''}</td>
     </tr>
     <tr class="msg-row" data-uid="${esc(uid)}" style="display:none"><td colspan="6"><div class="thread-box">
       <div class="thread" id="thread-${esc(uid)}"><p class="dim">Loading…</p></div>
@@ -283,7 +315,8 @@ async function loadUsers(q = '') {
   usersBody.innerHTML = '<tr><td colspan="6" class="dim">Loading…</td></tr>';
   const { status, data } = await api('/api/admin/users?q=' + encodeURIComponent(q));
   if (status !== 200) { usersBody.innerHTML = '<tr><td colspan="6" class="dim">Couldn’t load users.</td></tr>'; return; }
-  renderUsers(data.users || []);
+  lastUsers = data.users || [];
+  renderUsers(lastUsers);
 }
 
 let searchTimer;
@@ -424,6 +457,8 @@ async function loadThread(uid) {
 }
 
 usersBody.addEventListener('click', async (e) => {
+  const mrg = e.target.closest('.merge-btn');
+  if (mrg) { openMerge(mrg.dataset.uid, mrg.dataset.email); return; }
   const tgl = e.target.closest('.msg-toggle');
   const send = e.target.closest('[data-send]');
   if (tgl) {
@@ -449,6 +484,81 @@ usersBody.addEventListener('click', async (e) => {
     send.disabled = false;
   }
 });
+
+// ---------- account merge (owner only) ----------
+const mergeOverlay = document.getElementById('merge-overlay');
+const mergeTitle = document.getElementById('merge-title');
+const mergeDesc = document.getElementById('merge-desc');
+const mergeTarget = document.getElementById('merge-target');
+const mergeConfirm = document.getElementById('merge-confirm');
+const mergeCancel = document.getElementById('merge-cancel');
+const mergeMsg = document.getElementById('merge-msg');
+const msay = (t, ok) => { mergeMsg.textContent = t; mergeMsg.className = ok === true ? 'ok' : ok === false ? 'err' : ''; };
+const mergeOnline = (status, data) => !(status === 404 && !data.error);
+let mergeSource = null;
+
+async function doMerge() {
+  const targetId = mergeTarget.value;
+  if (!mergeSource || !targetId) return;
+  mergeConfirm.disabled = true;
+  mergeConfirm.textContent = 'Merging…';
+  msay('', undefined);
+  const { status, data } = await api('/api/admin/users/merge', {
+    method: 'POST', body: JSON.stringify({ source_id: mergeSource.uid, target_id: targetId }),
+  });
+  mergeConfirm.disabled = false;
+  mergeConfirm.textContent = 'Merge accounts';
+  if (!mergeOnline(status, data)) { msay('Merge system coming online — try again in a bit.', false); return; }
+  if (status === 200 && data.ok) {
+    const mv = data.moved || {};
+    const tables = mv.tables && typeof mv.tables === 'object' && Object.keys(mv.tables).length
+      ? Object.entries(mv.tables).map(([t, n]) => `${esc(t)}: ${esc(n)}`).join('<br>')
+      : '—';
+    mergeMsg.innerHTML = `<div class="merge-result"><b>Merged.</b><br>` +
+      `Discord link moved: <b>${mv.discord_link ? 'yes' : 'no'}</b><br>` +
+      `Tags added: <b>${esc((mv.tags || []).join(', ') || 'none')}</b><br>` +
+      `Data moved:<br>${tables}</div>`;
+    mergeMsg.className = 'ok';
+    mergeConfirm.textContent = 'Done';
+    mergeConfirm.onclick = () => {
+      closeMerge();
+      loadUsers(document.getElementById('user-search').value.trim());
+    };
+    return;
+  }
+  if (status === 409 || data.error === 'target_has_discord') {
+    msay('That account already has a Discord linked — pick a different target.', false); return;
+  }
+  msay({
+    self_merge: 'You can\u2019t merge an account into itself.',
+    unknown_user: 'One of those accounts no longer exists — reload the list and try again.',
+    forbidden: 'Only the owner can merge accounts.',
+  }[data.error] || data.error || 'Couldn\u2019t merge the accounts.', false);
+}
+
+function openMerge(uid, email) {
+  mergeSource = { uid, email };
+  mergeTitle.textContent = 'Merge ' + (email || 'account') + ' into…';
+  mergeDesc.textContent = 'Pick the account that survives. Everything moves to it.';
+  msay('', undefined);
+  mergeMsg.className = '';
+  const others = lastUsers.filter((u) => String(u.id ?? u.user_id ?? '') !== String(uid));
+  mergeTarget.innerHTML = others.length
+    ? others.map((u) => {
+        const id = u.id ?? u.user_id ?? '';
+        const d = discordOf(u);
+        return `<option value="${esc(id)}">${esc(u.email || '—')}${d !== '—' ? ' (' + esc(d) + ')' : ''}</option>`;
+      }).join('')
+    : '<option value="">No other accounts to merge into</option>';
+  mergeConfirm.disabled = !others.length;
+  mergeConfirm.textContent = 'Merge accounts';
+  mergeConfirm.onclick = doMerge;
+  mergeOverlay.style.display = 'flex';
+}
+function closeMerge() { mergeOverlay.style.display = 'none'; mergeSource = null; }
+
+mergeCancel.onclick = closeMerge;
+mergeOverlay.addEventListener('click', (e) => { if (e.target === mergeOverlay) closeMerge(); });
 
 // ---------- team tab ----------
 async function loadTeam() {
