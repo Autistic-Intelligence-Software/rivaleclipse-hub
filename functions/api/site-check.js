@@ -53,7 +53,13 @@ export async function onRequestPost({ request }) {
       redirect: 'follow',
       signal: AbortSignal.timeout(12000),
     });
-    // Any HTTP response (even 404/405) means the address is reachable.
+    // Any HTTP response (even 404/405) means the address is reachable —
+    // except Cloudflare edge errors (520-527, 530), which mean the origin
+    // itself couldn't be reached (e.g. DNS failure at the edge).
+    const EDGE_ERRORS = new Set([520, 521, 522, 523, 524, 525, 526, 527, 530]);
+    if (EDGE_ERRORS.has(res.status)) {
+      return json({ ok: true, reachable: false });
+    }
     return json({ ok: true, reachable: true, status: res.status });
   } catch {
     return json({ ok: true, reachable: false });
