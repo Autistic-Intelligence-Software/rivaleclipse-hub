@@ -133,7 +133,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
 // ---------- gate ----------
 const s = await session();
 const user = (s && s.user) || {};
-const isOwner = !!user.is_owner;
+const isOwner = !!((s && s.is_owner) ?? user.is_owner);
 const role = (user.role || '').toLowerCase();
 if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent('/admin/'); throw new Error('redirect'); }
 if (!(role === 'admin' || isOwner)) {
