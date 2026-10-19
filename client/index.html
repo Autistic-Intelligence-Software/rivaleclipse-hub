@@ -44,7 +44,7 @@ const gate = document.getElementById('gate');
 const s = await session();
 if (s) {
   const role = ((s.user || {}).role || 'user').toLowerCase();
-  const owner = !!(s.user || {}).is_owner;
+  const owner = !!(s.is_owner ?? (s.user || {}).is_owner);
   if (role === 'client' || role === 'admin' || owner) {
     // Client, admin, or owner — straight into the portal.
     // Client intake gate (fail-open): clients without intake go to /client/intake/ first.
