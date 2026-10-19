@@ -138,6 +138,14 @@ const AUTH = 'https://auth.rivaleclipse.dev';
 
 const s = await session();
 if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent(location.href); throw new Error('redirect'); }
+// Client intake gate (fail-open): clients who haven't completed intake go to /client/intake/ first.
+// Only team/admin/owner bypass; the gate fires only when the backend explicitly reports has_intake === false.
+const _gateRole = String(s.role ?? s.user?.role ?? '').toLowerCase();
+const _gateOwner = !!(s.user?.is_owner ?? s.is_owner);
+if (_gateRole === 'client' && !_gateOwner && s.client && s.client.has_intake === false) {
+  location.href = '/client/intake/?next=' + encodeURIComponent('/client/dashboard/');
+  throw new Error('redirect');
+}
 document.getElementById('who').textContent = (s.discord?.username ? '@' + s.discord.username : s.user.email);
 document.getElementById('logout').onclick = logout;
 
