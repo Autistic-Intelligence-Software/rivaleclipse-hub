@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Rival Eclipse</title>
+<meta name="description" content="Rival Eclipse admin — user registry, roles, team, and per-user messages.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.dash-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.user-chip { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .92rem; }
+.user-chip button { background: none; border: 1px solid var(--line); color: var(--muted);
+  border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: .85rem; }
+.user-chip button:hover { color: var(--text); border-color: var(--accent); }
+.tabs { display: flex; gap: 10px; margin-top: 22px; }
+.tab-btn { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 10px;
+  padding: 10px 22px; cursor: pointer; font-size: .95rem; font-weight: 600; font-family: inherit; }
+.tab-btn.active { color: var(--text); border-color: var(--accent); }
+.search-row { display: flex; gap: 10px; margin: 18px 0 6px; }
+.search-row input { flex: 1; background: #0d0d15; border: 1px solid var(--line); border-radius: 10px;
+  color: var(--text); padding: 12px 14px; font-size: .95rem; font-family: inherit; }
+.search-row input:focus { outline: none; border-color: var(--accent); }
+.utable { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.utable th { text-align: left; color: var(--muted); font-weight: 600; font-size: .8rem;
+  text-transform: uppercase; letter-spacing: .06em; padding: 10px 8px; border-bottom: 1px solid var(--line); }
+.utable td { padding: 12px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.utable select { background: #0d0d15; border: 1px solid var(--line); border-radius: 8px;
+  color: var(--text); padding: 6px 10px; font-size: .88rem; font-family: inherit; }
+.utable select:focus { outline: none; border-color: var(--accent); }
+.dim { color: var(--muted); font-size: .85rem; }
+.msg-toggle { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 8px;
+  padding: 6px 12px; cursor: pointer; font-size: .85rem; font-family: inherit; }
+.msg-toggle:hover { color: var(--text); border-color: var(--accent); }
+.thread-box { margin: 10px 0; background: #0d0d15; border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+.thread { display: flex; flex-direction: column; gap: 10px; max-height: 260px; overflow-y: auto; margin-bottom: 12px; }
+.msg { padding: 10px 14px; border-radius: 12px; font-size: .9rem; line-height: 1.55; max-width: 85%; }
+.msg .who { font-size: .75rem; color: var(--muted); margin-bottom: 4px; }
+.msg.team { align-self: flex-end; background: #1d1a10; border: 1px solid #4a3f1c; }
+.msg.client { align-self: flex-start; background: #101019; border: 1px solid var(--line); }
+.composer { display: flex; gap: 8px; }
+.composer textarea { flex: 1; background: #0d0d15; border: 1px solid var(--line); border-radius: 10px;
+  color: var(--text); padding: 10px 12px; font-size: .9rem; font-family: inherit; min-height: 44px; resize: vertical; }
+.composer textarea:focus { outline: none; border-color: var(--accent); }
+.composer button { background: linear-gradient(135deg, #d4af37, #8a6d1c); color: #0a0a12; font-weight: 800;
+  border: none; border-radius: 10px; padding: 0 20px; cursor: pointer; font-size: .9rem; }
+.team-row { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 0; border-bottom: 1px solid var(--line); }
+.team-row:last-child { border-bottom: none; }
+.team-row .nm { font-weight: 600; }
+.promote-btn { background: none; border: 1px solid var(--accent); color: var(--accent); border-radius: 8px;
+  padding: 8px 16px; cursor: pointer; font-size: .88rem; font-weight: 600; font-family: inherit; }
+.promote-btn:hover { background: rgba(201,162,39,.12); }
+.promote-btn:disabled { opacity: .5; cursor: default; }
+.role-tag { font-size: .78rem; font-weight: 700; padding: 4px 12px; border-radius: 999px;
+  border: 1px solid var(--line); color: var(--muted); }
+#admin-msg { margin-top: 14px; font-size: .95rem; }
+#admin-msg.ok { color: var(--ok); }
+#admin-msg.err { color: #ff7070; }
+.denied { max-width: 520px; margin: 60px auto; text-align: center; }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+<div class="wrap">
+  <div class="crumb"><a href="/account/">← My account</a></div>
+  <div id="gate"><p class="sub">Loading…</p></div>
+  <div id="admin-ui" style="display:none">
+    <div class="dash-head">
+      <div><h1 class="page-title">Admin</h1>
+      <p class="page-sub">User registry, roles, the team, and per-user messages.</p></div>
+      <div class="user-chip"><span id="who"></span><button id="logout">Sign out</button></div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="users">User Registry</button>
+      <button class="tab-btn" data-tab="team">Team</button>
+    </div>
+    <div class="block" id="tab-users">
+      <h2>User Registry</h2>
+      <p class="sub">Search accounts and change roles. Client/tester promotions apply immediately; admin promotions are owner-only.</p>
+      <div class="search-row">
+        <input id="user-search" type="search" placeholder="Search by email or Discord…" autocomplete="off">
+      </div>
+      <div style="overflow-x:auto">
+      <table class="utable">
+        <thead><tr><th>Email</th><th>Discord</th><th>Role</th><th>Flags</th><th>Created</th><th></th></tr></thead>
+        <tbody id="users-body"><tr><td colspan="6" class="dim">Loading…</td></tr></tbody>
+      </table>
+      </div>
+      <p id="admin-msg"></p>
+    </div>
+    <div class="block" id="tab-team" style="display:none">
+      <h2>Team</h2>
+      <p class="sub">Team members and their access. Admin promotions are restricted to the owner.</p>
+      <div id="team-list"><p class="dim">Loading…</p></div>
+    </div>
+  </div>
+</div>
+</main>
+<footer><div class="wrap"><span>© 2026 Rival Eclipse</span><nav><a href="/help/">Help</a><a href="/ToS-Privacy-legal/">ToS &amp; Privacy</a><a href="/sign-in/">Sign in</a><a href="/client/">Client Portal</a></nav></div></footer>
+<script src="/sky.js"></script>
+<script type="module">
+import { session, logout } from '/auth.js';
+const AUTH = 'https://auth.rivaleclipse.dev';
+
+async function api(path, opts = {}) {
+  const r = await fetch(AUTH + path, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  const data = await r.json().catch(() => ({}));
+  return { status: r.status, data };
+}
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// ---------- gate ----------
+const s = await session();
+const user = (s && s.user) || {};
+const isOwner = !!user.is_owner;
+const role = (user.role || '').toLowerCase();
+if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent('/admin/'); throw new Error('redirect'); }
+if (!(role === 'admin' || isOwner)) {
+  document.getElementById('gate').innerHTML = `
+    <div class="denied"><div class="block">
+      <h2>403 — Not authorized</h2>
+      <p class="sub">This area is for Rival Eclipse admins only. Your account is registered as <b style="color:var(--text)">${esc(role || 'user')}</b>.</p>
+      <p><a href="/account/">← Back to My account</a></p>
+    </div></div>`;
+  throw new Error('denied');
+}
+document.getElementById('gate').style.display = 'none';
+document.getElementById('admin-ui').style.display = '';
+document.getElementById('who').textContent = s.discord?.username ? '@' + s.discord.username : user.email;
+document.getElementById('logout').onclick = logout;
+
+// ---------- tabs ----------
+document.querySelectorAll('.tab-btn').forEach((b) => {
+  b.onclick = () => {
+    document.querySelectorAll('.tab-btn').forEach((x) => x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('tab-users').style.display = b.dataset.tab === 'users' ? '' : 'none';
+    document.getElementById('tab-team').style.display = b.dataset.tab === 'team' ? '' : 'none';
+  };
+});
+
+// ---------- user registry ----------
+const usersBody = document.getElementById('users-body');
+const adminMsg = document.getElementById('admin-msg');
+const say = (t, ok) => { adminMsg.textContent = t; adminMsg.className = ok === true ? 'ok' : ok === false ? 'err' : ''; };
+
+const fmtDate = (v) => { try { return v ? new Date(v).toLocaleDateString() : '—'; } catch { return '—'; } };
+const flagsOf = (u) => {
+  if (Array.isArray(u.flags) && u.flags.length) return u.flags.join(', ');
+  if (typeof u.flags === 'string' && u.flags) return u.flags;
+  const extra = [];
+  if (u.tester_pending) extra.push('tester pending');
+  if (u.client_pending) extra.push('client pending');
+  return extra.join(', ') || '—';
+};
+const discordOf = (u) => u.discord_username || (u.discord && u.discord.username ? '@' + u.discord.username : '') || '—';
+const roleOptions = (current) => {
+  const base = ['user', 'client', 'tester'];
+  if (isOwner) base.push('admin');
+  return base.map((r) => `<option value="${r}"${r === current ? ' selected' : ''}>${r}</option>`).join('');
+};
+
+function renderUsers(users) {
+  if (!users.length) { usersBody.innerHTML = '<tr><td colspan="6" class="dim">No users found.</td></tr>'; return; }
+  usersBody.innerHTML = users.map((u, i) => {
+    const uid = u.id ?? u.user_id ?? '';
+    return `<tr data-uid="${esc(uid)}">
+      <td>${esc(u.email || '—')}</td>
+      <td class="dim">${esc(discordOf(u))}</td>
+      <td><select class="role-select" data-uid="${esc(uid)}">${roleOptions((u.role || 'user').toLowerCase())}</select></td>
+      <td class="dim">${esc(flagsOf(u))}</td>
+      <td class="dim">${esc(fmtDate(u.created_at || u.created))}</td>
+      <td><button class="msg-toggle" data-uid="${esc(uid)}" data-email="${esc(u.email || '')}">Messages</button></td>
+    </tr>
+    <tr class="msg-row" data-uid="${esc(uid)}" style="display:none"><td colspan="6"><div class="thread-box">
+      <div class="thread" id="thread-${esc(uid)}"><p class="dim">Loading…</p></div>
+      <div class="composer">
+        <textarea id="compose-${esc(uid)}" rows="2" maxlength="4000" placeholder="Message ${esc(u.email || 'this user')}…"></textarea>
+        <button data-send="${esc(uid)}">Send</button>
+      </div>
+      <p class="dim" id="sendmsg-${esc(uid)}" style="margin-top:8px"></p>
+    </div></td></tr>`;
+  }).join('');
+}
+
+async function loadUsers(q = '') {
+  usersBody.innerHTML = '<tr><td colspan="6" class="dim">Loading…</td></tr>';
+  const { status, data } = await api('/api/admin/users?q=' + encodeURIComponent(q));
+  if (status !== 200) { usersBody.innerHTML = '<tr><td colspan="6" class="dim">Couldn’t load users.</td></tr>'; return; }
+  renderUsers(data.users || []);
+}
+
+let searchTimer;
+document.getElementById('user-search').addEventListener('input', (e) => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadUsers(e.target.value.trim()), 300);
+});
+
+usersBody.addEventListener('change', async (e) => {
+  const sel = e.target.closest('.role-select');
+  if (!sel) return;
+  const uid = sel.dataset.uid;
+  const newRole = sel.value;
+  say('Saving…');
+  const { status, data } = await api('/api/admin/users/' + encodeURIComponent(uid) + '/role', {
+    method: 'PATCH', body: JSON.stringify({ role: newRole }),
+  });
+  say(status === 200 ? `Role updated to ${newRole}.` : (data.error || 'Couldn’t update the role.'), status === 200);
+});
+
+const threadOf = (m) => ({
+  from: m.from_admin || m.role === 'admin' || m.author_role === 'admin' ? 'Team' : (m.author_name || m.from || 'User'),
+  team: !!(m.from_admin || m.role === 'admin' || m.author_role === 'admin'),
+  body: m.body || m.text || '',
+  when: m.created_at || m.created || '',
+});
+function renderThread(el, msgs) {
+  el.innerHTML = msgs.length ? msgs.map((m0) => {
+    const m = threadOf(m0);
+    return `<div class="msg ${m.team ? 'team' : 'client'}"><div class="who">${esc(m.from)}${m.when ? ' · ' + esc(fmtDate(m.when)) : ''}</div>${esc(m.body)}</div>`;
+  }).join('') : '<p class="dim">No messages yet.</p>';
+  el.scrollTop = el.scrollHeight;
+}
+async function loadThread(uid) {
+  const el = document.getElementById('thread-' + CSS.escape(uid));
+  const { status, data } = await api('/api/admin/messages/' + encodeURIComponent(uid));
+  renderThread(el, status === 200 ? (data.messages || []) : []);
+}
+
+usersBody.addEventListener('click', async (e) => {
+  const tgl = e.target.closest('.msg-toggle');
+  const send = e.target.closest('[data-send]');
+  if (tgl) {
+    const uid = tgl.dataset.uid;
+    const row = usersBody.querySelector(`.msg-row[data-uid="${CSS.escape(uid)}"]`);
+    const open = row.style.display !== 'none';
+    row.style.display = open ? 'none' : '';
+    if (!open) loadThread(uid);
+    return;
+  }
+  if (send) {
+    const uid = send.dataset.send;
+    const ta = document.getElementById('compose-' + CSS.escape(uid));
+    const note = document.getElementById('sendmsg-' + CSS.escape(uid));
+    const body = ta.value.trim();
+    if (!body) return;
+    send.disabled = true;
+    const { status, data } = await api('/api/admin/messages/' + encodeURIComponent(uid), {
+      method: 'POST', body: JSON.stringify({ body }),
+    });
+    if (status === 200) { ta.value = ''; note.textContent = ''; loadThread(uid); }
+    else { note.textContent = data.error || 'Couldn’t send the message.'; }
+    send.disabled = false;
+  }
+});
+
+// ---------- team tab ----------
+async function loadTeam() {
+  const list = document.getElementById('team-list');
+  const { status, data } = await api('/api/admin/team');
+  if (status !== 200) { list.innerHTML = '<p class="dim">Couldn’t load the team.</p>'; return; }
+  const members = data.team || data.members || [];
+  list.innerHTML = members.length ? members.map((m) => {
+    const mRole = (m.role || '').toLowerCase();
+    const canPromote = isOwner && mRole !== 'admin' && !m.is_owner;
+    return `<div class="team-row">
+      <div><div class="nm">${esc(m.name || m.email || m.discord_username || '—')}</div>
+      <div class="dim">${esc(m.email || '')}${m.discord_username ? ' · @' + esc(m.discord_username) : ''}</div></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span class="role-tag">${esc(m.is_owner ? 'owner' : mRole || 'member')}</span>
+        ${canPromote ? `<button class="promote-btn" data-promote="${esc(m.id ?? m.user_id ?? '')}">Promote to admin</button>` : ''}
+      </div>
+    </div>`;
+  }).join('') : '<p class="dim">No team members yet.</p>';
+}
+document.getElementById('team-list').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-promote]');
+  if (!btn) return;
+  const uid = btn.dataset.promote;
+  btn.disabled = true; btn.textContent = 'Promoting…';
+  const { status, data } = await api('/api/admin/users/' + encodeURIComponent(uid) + '/role', {
+    method: 'PATCH', body: JSON.stringify({ role: 'admin' }),
+  });
+  if (status === 200) loadTeam();
+  else { btn.disabled = false; btn.textContent = 'Promote to admin'; say(data.error || 'Promotion failed.', false); }
+});
+
+loadUsers();
+loadTeam();
+</script>
+</body>
+</html>
