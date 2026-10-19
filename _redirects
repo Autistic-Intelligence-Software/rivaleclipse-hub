@@ -1,3 +1,5 @@
 /bots-apps/ /apps-bots/ 301
 /custom-services/ /dev-request/business/ 301
 /custom-services /dev-request/business/ 301
+/account/ /dashboards/ 302
+/account /dashboards/ 302
