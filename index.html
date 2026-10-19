@@ -14,6 +14,9 @@
 .acct-btns .btn { text-align: center; }
 .btn.ghost { background: none; border: 1px solid var(--accent); color: var(--accent); }
 .btn.ghost:hover { transform: translateY(-2px); }
+.doors.grid-2x2 { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 640px) { .doors.grid-2x2 { grid-template-columns: 1fr; } }
+div.door { cursor: pointer; }
 </style>
 </head>
 <body>
@@ -36,7 +39,7 @@
       </div>
     </div>
 
-    <div class="doors">
+    <div class="doors grid-2x2">
       <a class="door" href="/apps-bots/">
         <div class="dic">🤖</div>
         <h2>Bots / Apps</h2>
@@ -55,6 +58,12 @@
         <p>Need something built? Custom websites, web apps, Discord bots, and AI chatbots — fixed-price quotes, you own the code.</p>
         <div class="go">Get a quote <span>→</span></div>
       </a>
+      <div class="door" id="apply-door" role="link" tabindex="0" aria-label="Business owner or brand ambassador? Click here to register and apply">
+        <div class="dic">🤝</div>
+        <h2>Business owner or brand ambassador?</h2>
+        <p>Want us to build for you — or team up with us? Register an account and apply in a couple of minutes.</p>
+        <div class="go">Click here <span>→</span></div>
+      </div>
     </div>
 
     <div class="block auth-band">
@@ -101,5 +110,19 @@
   </div>
 </footer>
 <script src="/sky.js"></script>
+<script type="module">
+import { session } from '/auth.js';
+// 4th door: signed-in users go straight to the application; everyone else
+// registers first, then lands on the application form.
+const goApply = async () => {
+  const s = await session().catch(() => null);
+  location.href = s ? '/apply/' : '/sign-up/?intent=client&next=' + encodeURIComponent('/apply/');
+};
+const door = document.getElementById('apply-door');
+door.addEventListener('click', goApply);
+door.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goApply(); }
+});
+</script>
 </body>
 </html>
