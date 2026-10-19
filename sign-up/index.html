@@ -43,6 +43,7 @@
 <script src="/sky.js"></script>
 <script type="module">
 import { session, requestMagicLink, registerIntent, nextUrl } from '/auth.js';
+import { tagsOf } from '/_lib/gates.js';
 const next = nextUrl();
 const intent = new URLSearchParams(location.search).get('intent');
 const msg = document.getElementById('form-msg');
@@ -57,7 +58,7 @@ if (intent === 'client') {
 const s = await session();
 if (s) {
   // Already signed in: flag the account as wanting client access before continuing.
-  if (intent === 'client' && s.user?.role !== 'client' && !(s.is_owner ?? s.user?.is_owner)) {
+  if (intent === 'client' && !tagsOf(s).includes('client') && !(s.is_owner ?? s.user?.is_owner)) {
     try { await registerIntent('client'); } catch { /* non-fatal; continue */ }
   }
   location.href = next || '/dashboards/';
