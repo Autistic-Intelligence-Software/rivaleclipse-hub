@@ -46,7 +46,7 @@
   <div class="block" id="subs-block"><p class="sub">Loading…</p></div>
 
   <div class="section-label">Messages with the team</div>
-  <div class="block">
+  <div class="block" id="messages-block">
     <h2>Conversation</h2>
     <p class="sub">Message the Rival Eclipse team about your requests and projects — the same thread they see.</p>
     <div class="thread" id="thread"><p class="sub">Loading…</p></div>
@@ -55,6 +55,64 @@
       <div style="margin-top:12px"><button class="btn" type="submit" id="msg-send">Send</button></div>
       <p class="sub" id="msg-note" style="margin-top:8px"></p>
     </form>
+  </div>
+
+  <div class="section-label">My business info</div>
+  <div class="block" id="hours-block">
+    <h2>Hours</h2>
+    <p class="sub" id="hours-note">Your business hours, editable here. Shown wherever your site lists hours.</p>
+    <div id="hours-rows"></div>
+    <div style="margin-top:12px"><button class="btn" id="hours-save" type="button">Save hours</button>
+    <span class="sub" id="hours-updated" style="margin-left:10px"></span></div>
+    <p class="sub" id="hours-msg" style="margin-top:8px"></p>
+  </div>
+
+  <div class="block" id="holidays-block">
+    <h2>Holidays</h2>
+    <p class="sub" id="holidays-note">Special closures or holiday hours — each entry is a date plus a note.</p>
+    <div id="holidays-list"></div>
+    <div class="composer" style="margin-top:10px">
+      <input id="hol-date" type="date" aria-label="Holiday date" style="flex:1;background:#0d0d15;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px 12px;font-size:.9rem;font-family:inherit">
+      <input id="hol-note" type="text" maxlength="120" placeholder="Note, e.g. Closed for Thanksgiving" style="flex:2;background:#0d0d15;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px 12px;font-size:.9rem;font-family:inherit">
+      <button class="btn" id="hol-add" type="button">Add</button>
+    </div>
+    <div style="margin-top:12px"><button class="btn" id="holidays-save" type="button">Save holidays</button>
+    <span class="sub" id="holidays-updated" style="margin-left:10px"></span></div>
+    <p class="sub" id="holidays-msg" style="margin-top:8px"></p>
+  </div>
+
+  <div class="block" id="promos-block">
+    <h2>Promos</h2>
+    <p class="sub" id="promos-note">Current promotions — title, text, and whether each is active.</p>
+    <div id="promos-list"></div>
+    <div style="margin-top:10px;display:grid;grid-template-columns:1fr;gap:8px">
+      <input id="promo-title" type="text" maxlength="120" placeholder="Promo title" style="background:#0d0d15;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px 12px;font-size:.9rem;font-family:inherit">
+      <textarea id="promo-text" maxlength="600" placeholder="Promo details…" rows="2" style="background:#0d0d15;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px 12px;font-size:.9rem;font-family:inherit;resize:vertical"></textarea>
+      <div><button class="btn" id="promo-add" type="button">Add promo</button></div>
+    </div>
+    <div style="margin-top:12px"><button class="btn" id="promos-save" type="button">Save promos</button>
+    <span class="sub" id="promos-updated" style="margin-left:10px"></span></div>
+    <p class="sub" id="promos-msg" style="margin-top:8px"></p>
+  </div>
+
+  <div class="section-label">Request a change</div>
+  <div class="block" id="cr-block">
+    <h2>Request a change</h2>
+    <p class="sub" id="cr-note">Ask the team for a change — hours updates, promo updates, content updates, or anything else.</p>
+    <form id="cr-form" style="display:grid;gap:10px;margin-top:10px">
+      <select id="cr-type" required style="background:#0d0d15;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px 12px;font-size:.95rem;font-family:inherit">
+        <option value="hours_update">Hours update</option>
+        <option value="promo_update">Promo update</option>
+        <option value="content_update">Content update</option>
+        <option value="other">Other</option>
+      </select>
+      <input id="cr-title" type="text" maxlength="120" placeholder="Title" required style="background:#0d0d15;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px 12px;font-size:.95rem;font-family:inherit">
+      <textarea id="cr-details" maxlength="2000" placeholder="Details…" required rows="3" style="background:#0d0d15;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px 12px;font-size:.95rem;font-family:inherit;resize:vertical"></textarea>
+      <div><button class="btn" type="submit" id="cr-send">Send request</button></div>
+      <p class="sub" id="cr-msg" style="margin:0"></p>
+    </form>
+    <h2 style="margin-top:18px">My requests</h2>
+    <div id="cr-list"><p class="sub">Loading…</p></div>
   </div>
 
   <div class="block" style="text-align:center">
@@ -151,5 +209,234 @@ document.getElementById('msg-form').onsubmit = async (e) => {
 };
 loadThread();
 </script>
+<script type="module">
+// ---- Client business info editors + change requests (feature-flag gated) ----
+import { session } from '/auth.js';
+const AUTH = 'https://auth.rivaleclipse.dev';
+const esc2 = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtWhen2 = (v) => { try { return v ? new Date(v).toLocaleString() : ''; } catch { return ''; } };
+async function api2(path, opts = {}) {
+  const r = await fetch(AUTH + path, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  const data = await r.json().catch(() => ({}));
+  return { status: r.status, data };
+}
+
+// Feature flags — server enforces; we only reflect them in the UI.
+let features = {};
+try {
+  const { status, data } = await api2('/api/client/features');
+  if (status === 200) features = data.features ?? data.flags ?? data;
+} catch { /* leave sections usable; server still enforces */ }
+const enabled = (key) => features[key] === true || features[key] === undefined;
+
+function applyFlag(key, blockId) {
+  if (enabled(key)) return true;
+  const block = document.getElementById(blockId);
+  const note = document.createElement('p');
+  note.className = 'sub';
+  note.style.cssText = 'margin:0 0 10px;color:#f3d27a;font-weight:600';
+  note.textContent = 'This section is disabled by the team.';
+  block.insertBefore(note, block.firstChild);
+  block.style.opacity = '.45';
+  block.querySelectorAll('input, textarea, select, button').forEach((el) => { el.disabled = true; });
+  return false;
+}
+const live = {
+  messages: applyFlag('message_board', 'messages-block'),
+  hours: applyFlag('hours_editor', 'hours-block'),
+  holidays: applyFlag('holidays_editor', 'holidays-block'),
+  promos: applyFlag('promos_editor', 'promos-block'),
+  cr: applyFlag('change_requests', 'cr-block'),
+};
+
+// ---------- Hours ----------
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+let hoursState = {};
+function renderHours() {
+  document.getElementById('hours-rows').innerHTML = DAYS.map((d) => {
+    const k = d.toLowerCase();
+    const h = hoursState[k] || {};
+    return `<div class="sub-row"><span style="min-width:96px"><b>${d}</b></span>
+      <span style="display:flex;gap:8px;flex:1;justify-content:flex-end;flex-wrap:wrap">
+      <input data-hk="${k}" data-hf="open" value="${esc2(h.open || '')}" placeholder="Open, e.g. 9:00 AM" aria-label="${d} open"
+        style="width:130px;background:#0d0d15;border:1px solid var(--line);border-radius:8px;color:var(--text);padding:8px 10px;font-size:.88rem;font-family:inherit">
+      <input data-hk="${k}" data-hf="close" value="${esc2(h.close || '')}" placeholder="Close, e.g. 5:00 PM" aria-label="${d} close"
+        style="width:130px;background:#0d0d15;border:1px solid var(--line);border-radius:8px;color:var(--text);padding:8px 10px;font-size:.88rem;font-family:inherit">
+      </span></div>`;
+  }).join('');
+}
+document.getElementById('hours-rows').addEventListener('input', (e) => {
+  const el = e.target.closest('[data-hk]');
+  if (!el) return;
+  hoursState[el.dataset.hk] = hoursState[el.dataset.hk] || {};
+  hoursState[el.dataset.hk][el.dataset.hf] = el.value;
+});
+
+// ---------- Holidays ----------
+let holidays = [];
+function renderHolidays() {
+  const el = document.getElementById('holidays-list');
+  el.innerHTML = holidays.length ? holidays.map((h, i) => `
+    <div class="sub-row"><span><b>${esc2(h.date || '')}</b> — ${esc2(h.note || '')}</span>
+    <button class="btn" type="button" data-hol-del="${i}" style="padding:6px 14px">Remove</button></div>`).join('')
+    : '<p class="sub">No holidays yet.</p>';
+}
+document.getElementById('holidays-list').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-hol-del]');
+  if (!b) return;
+  holidays.splice(+b.dataset.holDel, 1);
+  renderHolidays();
+});
+document.getElementById('hol-add').onclick = () => {
+  const d = document.getElementById('hol-date').value;
+  const n = document.getElementById('hol-note').value.trim();
+  if (!d) return;
+  holidays.push({ date: d, note: n });
+  document.getElementById('hol-date').value = '';
+  document.getElementById('hol-note').value = '';
+  renderHolidays();
+};
+
+// ---------- Promos ----------
+let promos = [];
+function renderPromos() {
+  const el = document.getElementById('promos-list');
+  el.innerHTML = promos.length ? promos.map((p, i) => `
+    <div class="sub-row"><span><b>${esc2(p.title || '')}</b><br><span class="dim">${esc2(p.text || '')}</span></span>
+    <span style="display:flex;gap:8px;align-items:center">
+      <button class="btn" type="button" data-promo-toggle="${i}" style="padding:6px 14px">${p.active ? 'Active' : 'Off'}</button>
+      <button class="btn" type="button" data-promo-del="${i}" style="padding:6px 14px">Remove</button>
+    </span></div>`).join('') : '<p class="sub">No promos yet.</p>';
+}
+document.getElementById('promos-list').addEventListener('click', (e) => {
+  const t = e.target.closest('[data-promo-toggle]');
+  const d = e.target.closest('[data-promo-del]');
+  if (t) { promos[+t.dataset.promoToggle].active = !promos[+t.dataset.promoToggle].active; renderPromos(); }
+  if (d) { promos.splice(+d.dataset.promoDel, 1); renderPromos(); }
+});
+document.getElementById('promo-add').onclick = () => {
+  const t = document.getElementById('promo-title').value.trim();
+  const x = document.getElementById('promo-text').value.trim();
+  if (!t) return;
+  promos.push({ title: t, text: x, active: true });
+  document.getElementById('promo-title').value = '';
+  document.getElementById('promo-text').value = '';
+  renderPromos();
+};
+
+// ---------- load + save content ----------
+async function loadContent(key, onOk) {
+  try {
+    const { status, data } = await api2('/api/client/content/' + key);
+    if (status !== 200) return null;
+    const updated = data.updated_at || data.updatedAt || '';
+    onOk(data, updated);
+    return updated;
+  } catch { return null; }
+}
+function setUpdated(id, v) {
+  const el = document.getElementById(id);
+  if (el && v) el.textContent = 'Last updated ' + fmtWhen2(v);
+}
+async function saveContent(key, payload, msgId) {
+  const msg = document.getElementById(msgId);
+  try {
+    // Contract body shape assumption: { value: <content> }. Confirm with auth worker.
+    const { status, data } = await api2('/api/client/content/' + key, {
+      method: 'PUT', body: JSON.stringify({ value: payload }),
+    });
+    if (status === 200 || status === 201) {
+      msg.textContent = 'Saved.';
+      if (data.updated_at || data.updatedAt) setUpdated(key + 's-updated', data.updated_at || data.updatedAt);
+    } else throw new Error(data.error || 'save_failed');
+  } catch {
+    msg.textContent = 'Couldn’t save — try again in a moment.';
+  }
+}
+if (live.hours) {
+  renderHours();
+  loadContent('hours', (d, u) => {
+    const c = d.content ?? d.value ?? d;
+    hoursState = {};
+    DAYS.forEach((day) => {
+      const k = day.toLowerCase();
+      const h = (c && c[k]) || (c && c[day]) || {};
+      hoursState[k] = { open: h.open || '', close: h.close || '' };
+    });
+    renderHours();
+    setUpdated('hours-updated', u);
+  });
+}
+if (live.holidays) {
+  renderHolidays();
+  loadContent('holidays', (d, u) => {
+    holidays = (d.content ?? d.value ?? d.holidays ?? (Array.isArray(d) ? d : []));
+    if (!Array.isArray(holidays)) holidays = [];
+    renderHolidays();
+    setUpdated('holidays-updated', u);
+  });
+}
+if (live.promos) {
+  renderPromos();
+  loadContent('promos', (d, u) => {
+    promos = (d.content ?? d.value ?? d.promos ?? (Array.isArray(d) ? d : []));
+    if (!Array.isArray(promos)) promos = [];
+    renderPromos();
+    setUpdated('promos-updated', u);
+  });
+}
+if (live.hours) document.getElementById('hours-save').onclick = () => saveContent('hours', hoursState, 'hours-msg');
+if (live.holidays) document.getElementById('holidays-save').onclick = () => saveContent('holidays', holidays, 'holidays-msg');
+if (live.promos) document.getElementById('promos-save').onclick = () => saveContent('promos', promos, 'promos-msg');
+
+// ---------- change requests ----------
+const pillCls = (st) => ({ pending: 'trial', accepted: 'active', declined: '', escalated: 'trial' })[(st || '').toLowerCase()] || '';
+function renderCRs(items) {
+  const el = document.getElementById('cr-list');
+  el.innerHTML = items.length ? items.map((c) => `
+    <div class="sub-row"><span><b>${esc2(c.title || '')}</b>
+      <span class="dim"> · ${esc2(c.type || '')}${c.created_at ? ' · ' + esc2(fmtWhen2(c.created_at)) : ''}</span><br>
+      <span class="dim">${esc2(c.details || '')}</span></span>
+    <span class="pill ${pillCls(c.status)}">${esc2(c.status || 'pending')}</span></div>`).join('')
+    : '<p class="sub">No requests yet.</p>';
+}
+async function loadCRs() {
+  try {
+    const { status, data } = await api2('/api/change-requests');
+    renderCRs(status === 200 ? (data.change_requests || data.requests || []) : []);
+  } catch { document.getElementById('cr-list').innerHTML = '<p class="sub">Couldn’t load requests.</p>'; }
+}
+if (live.cr) {
+  loadCRs();
+  document.getElementById('cr-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('cr-msg');
+    const type = document.getElementById('cr-type').value;
+    const title = document.getElementById('cr-title').value.trim();
+    const details = document.getElementById('cr-details').value.trim();
+    if (!title || !details) return;
+    const btn = document.getElementById('cr-send');
+    btn.disabled = true;
+    try {
+      const { status, data } = await api2('/api/change-requests', {
+        method: 'POST', body: JSON.stringify({ type, title, details }),
+      });
+      if (status === 200 || status === 201) {
+        document.getElementById('cr-title').value = '';
+        document.getElementById('cr-details').value = '';
+        msg.textContent = '';
+        loadCRs();
+      } else throw new Error(data.error || 'send_failed');
+    } catch { msg.textContent = 'Couldn’t send the request — try again in a moment.'; }
+    btn.disabled = false;
+  };
+}
+</script>
+<script src="/assistant.js"></script>
 </body>
 </html>
