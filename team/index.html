@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team — Rival Eclipse</title>
+<meta name="description" content="Rival Eclipse team — team members and the project workflow board.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.dash-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.user-chip { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .92rem; }
+.user-chip button { background: none; border: 1px solid var(--line); color: var(--muted);
+  border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: .85rem; }
+.user-chip button:hover { color: var(--text); border-color: var(--accent); }
+.team-row { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 0; border-bottom: 1px solid var(--line); }
+.team-row:last-child { border-bottom: none; }
+.team-row .nm { font-weight: 600; }
+.role-tag { font-size: .78rem; font-weight: 700; padding: 4px 12px; border-radius: 999px;
+  border: 1px solid var(--line); color: var(--muted); }
+.dim { color: var(--muted); font-size: .85rem; }
+.proj-card { border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 16px;
+  background: rgba(13,13,21,.6); }
+.proj-head { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+.proj-head .nm { font-weight: 700; }
+.badge.cat { color: #f3d27a; border-color: #5a4a1c; }
+.proj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+.proj-grid .full { grid-column: 1 / -1; }
+.field label { display: block; font-size: .8rem; color: var(--muted); font-weight: 600;
+  text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+.field select, .field input, .field textarea { width: 100%; background: #0d0d15; border: 1px solid var(--line);
+  border-radius: 10px; color: var(--text); padding: 10px 12px; font-size: .92rem; font-family: inherit;
+  box-sizing: border-box; }
+.field textarea { min-height: 64px; resize: vertical; }
+.field select:focus, .field input:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
+.save-btn { background: linear-gradient(135deg, #d4af37, #8a6d1c); color: #0a0a12; font-weight: 800;
+  border: none; border-radius: 10px; padding: 12px 28px; cursor: pointer; font-size: .95rem; font-family: inherit;
+  margin-top: 14px; }
+.save-btn:hover { transform: translateY(-2px); }
+.save-btn:disabled { opacity: .5; cursor: default; transform: none; }
+.save-msg { margin-top: 10px; font-size: .9rem; }
+.save-msg.ok { color: var(--ok); }
+.save-msg.err { color: #ff7070; }
+.board-err { color: #ff7070; }
+.denied { max-width: 520px; margin: 60px auto; text-align: center; }
+@media (max-width: 640px) { .proj-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+<div class="wrap">
+  <div class="crumb"><a href="/dashboards/">← Dashboards</a></div>
+  <div id="gate"><p class="sub">Loading…</p></div>
+  <div id="team-ui" style="display:none">
+    <div class="dash-head">
+      <div><h1 class="page-title">Team</h1>
+      <p class="page-sub">Team members and the project workflow board — every dev request from new to delivered.</p></div>
+      <div class="user-chip"><span id="who"></span><button id="logout">Sign out</button></div>
+    </div>
+
+    <div class="block" id="members-block">
+      <h2>Team members</h2>
+      <p class="sub">Everyone with team access.</p>
+      <div id="team-list"><p class="dim">Loading…</p></div>
+    </div>
+
+    <div class="block" id="board-block">
+      <h2>Project Workflow</h2>
+      <p class="sub">Dev requests filed by users and clients. Set the status, add notes, attach the code or deliverable URL — then save.</p>
+      <div id="board-list"><p class="dim">Loading…</p></div>
+    </div>
+  </div>
+</div>
+</main>
+<footer><div class="wrap"><span>© 2026 Rival Eclipse</span><nav><a href="/help/">Help</a><a href="/ToS-Privacy-legal/">ToS &amp; Privacy</a><a href="/sign-in/">Sign in</a><a href="/client/">Client Portal</a></nav></div></footer>
+<script src="/sky.js"></script>
+<script type="module">
+import { session, logout } from '/auth.js';
+const AUTH = 'https://auth.rivaleclipse.dev';
+
+async function api(path, opts = {}) {
+  const r = await fetch(AUTH + path, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  const data = await r.json().catch(() => ({}));
+  return { status: r.status, data };
+}
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtDate = (v) => { try { return v ? new Date(v).toLocaleString() : '—'; } catch { return '—'; } };
+const fmtFeatures = (f) => Array.isArray(f) ? f.join(', ') : (f || '');
+
+// ---------- gate (same as /admin/: admins and the owner only) ----------
+const s = await session();
+const user = (s && s.user) || {};
+const isOwner = !!user.is_owner;
+const role = (user.role || '').toLowerCase();
+if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent('/team/'); throw new Error('redirect'); }
+if (!(role === 'admin' || isOwner)) {
+  document.getElementById('gate').innerHTML = `
+    <div class="denied"><div class="block">
+      <h2>403 — Not authorized</h2>
+      <p class="sub">This area is for Rival Eclipse admins only. Your account is registered as <b style="color:var(--text)">${esc(role || 'user')}</b>.</p>
+      <p><a href="/dashboards/">← Back to dashboards</a></p>
+    </div></div>`;
+  throw new Error('denied');
+}
+document.getElementById('gate').style.display = 'none';
+document.getElementById('team-ui').style.display = '';
+document.getElementById('who').textContent = s.discord?.username ? '@' + s.discord.username : user.email;
+document.getElementById('logout').onclick = logout;
+
+// ---------- team members ----------
+async function loadTeam() {
+  const list = document.getElementById('team-list');
+  try {
+    const { status, data } = await api('/api/admin/team');
+    if (status !== 200) throw new Error(data.error || 'load_failed');
+    const members = data.team || data.members || [];
+    list.innerHTML = members.length ? members.map((m) => {
+      const mRole = (m.role || '').toLowerCase();
+      return `<div class="team-row">
+        <div><div class="nm">${esc(m.name || m.email || m.discord_username || '—')}</div>
+        <div class="dim">${esc(m.email || '')}${m.discord_username ? ' · @' + esc(m.discord_username) : ''}</div></div>
+        <span class="role-tag">${esc(m.is_owner ? 'owner' : mRole || 'member')}</span>
+      </div>`;
+    }).join('') : '<p class="dim">No team members yet.</p>';
+  } catch (e) {
+    list.innerHTML = '<p class="dim">Couldn’t load the team — try refreshing in a moment.</p>';
+  }
+}
+
+// ---------- project workflow board ----------
+const STATUSES = ['new', 'accepted', 'in_progress', 'delivered'];
+const projIdOf = (p) => String(p.id ?? p.project_id ?? '');
+const notesOf = (p) => p.notes ?? p.note ?? '';
+const urlOf = (p) => p.deliverable_url ?? p.code_url ?? p.deliverable ?? '';
+
+function renderBoard(projects) {
+  const board = document.getElementById('board-list');
+  if (!projects.length) { board.innerHTML = '<p class="dim">No projects yet.</p>'; return; }
+  board.innerHTML = projects.map((p) => {
+    const pid = projIdOf(p);
+    const status = (p.status || 'new').toLowerCase();
+    const features = fmtFeatures(p.features);
+    return `<div class="proj-card" data-pid="${esc(pid)}">
+      <div class="proj-head">
+        <span class="nm">${esc(p.user_email || p.email || '—')}</span>
+        <span class="badge cat">${esc(p.category || '—')}</span>
+        <span class="dim">${esc(fmtDate(p.created_at || p.created))}</span>
+      </div>
+      ${features ? `<p class="dim" style="margin:0">Features: ${esc(features)}</p>` : ''}
+      <div class="proj-grid">
+        <div class="field">
+          <label for="st-${esc(pid)}">Status</label>
+          <select id="st-${esc(pid)}">${STATUSES.map((st) =>
+            `<option value="${st}"${st === status ? ' selected' : ''}>${st.replace('_', ' ')}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label for="url-${esc(pid)}">Code / deliverable URL</label>
+          <input id="url-${esc(pid)}" type="url" placeholder="https://…" value="${esc(urlOf(p))}">
+        </div>
+        <div class="field full">
+          <label for="nt-${esc(pid)}">Notes</label>
+          <textarea id="nt-${esc(pid)}" maxlength="4000" placeholder="Workflow notes, handoff details, client feedback…">${esc(notesOf(p))}</textarea>
+        </div>
+      </div>
+      <button class="save-btn" data-save="${esc(pid)}" type="button">Save</button>
+      <p class="save-msg" id="msg-${esc(pid)}"></p>
+    </div>`;
+  }).join('');
+}
+
+async function loadBoard() {
+  const board = document.getElementById('board-list');
+  try {
+    const { status, data } = await api('/api/admin/projects');
+    if (status !== 200) throw new Error(data.error || 'load_failed');
+    renderBoard(data.projects || data.requests || []);
+  } catch (e) {
+    board.innerHTML = '<p class="board-err">Couldn’t load the project board — try refreshing in a moment.</p>';
+  }
+}
+
+document.getElementById('board-list').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-save]');
+  if (!btn) return;
+  const pid = btn.dataset.save;
+  const msg = document.getElementById('msg-' + CSS.escape(pid));
+  const st = document.getElementById('st-' + CSS.escape(pid));
+  const nt = document.getElementById('nt-' + CSS.escape(pid));
+  const url = document.getElementById('url-' + CSS.escape(pid));
+  btn.disabled = true; btn.textContent = 'Saving…';
+  msg.className = 'save-msg'; msg.textContent = '';
+  try {
+    const { status, data } = await api('/api/admin/projects/' + encodeURIComponent(pid), {
+      method: 'PATCH',
+      body: JSON.stringify({ status: st.value, notes: nt.value.trim(), deliverable_url: url.value.trim() }),
+    });
+    if (status !== 200) throw new Error(data.error || 'save_failed');
+    msg.className = 'save-msg ok'; msg.textContent = 'Saved.';
+  } catch {
+    msg.className = 'save-msg err'; msg.textContent = 'Couldn’t save — try again in a moment.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save';
+  }
+});
+
+loadTeam();
+loadBoard();
+</script>
+</body>
+</html>
