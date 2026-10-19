@@ -180,7 +180,7 @@ async function loadBoard() {
   try {
     const { status, data } = await api('/api/admin/projects');
     if (status !== 200) throw new Error(data.error || 'load_failed');
-    renderBoard(data.projects || data.requests || []);
+    renderBoard(Array.isArray(data) ? data : (data.projects || data.requests || []));
   } catch (e) {
     board.innerHTML = '<p class="board-err">Couldn’t load the project board — try refreshing in a moment.</p>';
   }
@@ -199,7 +199,7 @@ document.getElementById('board-list').addEventListener('click', async (e) => {
   try {
     const { status, data } = await api('/api/admin/projects/' + encodeURIComponent(pid), {
       method: 'PATCH',
-      body: JSON.stringify({ status: st.value, notes: nt.value.trim(), deliverable_url: url.value.trim() }),
+      body: JSON.stringify({ status: st.value, notes: nt.value.trim(), code_url: url.value.trim() }),
     });
     if (status !== 200) throw new Error(data.error || 'save_failed');
     msg.className = 'save-msg ok'; msg.textContent = 'Saved.';
