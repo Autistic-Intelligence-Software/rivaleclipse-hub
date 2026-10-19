@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Self-Hosting Walkthrough — Rival Eclipse</title>
+<meta name="description" content="Step-by-step guided walkthrough: put your Rival Eclipse site on your own hosting, at your own pace.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.wprog{display:flex;gap:6px;margin:18px 0 6px;flex-wrap:wrap}
+.wstep-dot{flex:1;min-width:80px;text-align:center;font-size:.72rem;color:var(--muted);padding-top:8px;
+  border-top:3px solid var(--line);cursor:default;line-height:1.4}
+.wstep-dot.done{border-top-color:var(--accent);color:var(--text);cursor:pointer}
+.wstep-dot.now{border-top-color:var(--accent);color:var(--text);font-weight:bold}
+.wstep{display:none}
+.wstep.active{display:block;animation:fadein .25s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.wplat{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0}
+.plat{display:block;background:#0d0d15;border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;position:relative}
+.plat input{accent-color:var(--accent);width:auto !important;position:absolute;opacity:0}
+.plat:has(input:checked){border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.plat b{display:block;font-size:1rem;margin-bottom:6px}
+.plat span{color:var(--muted);font-size:.85rem;line-height:1.5}
+.plat .rec{display:inline-block;font-size:.7rem;background:var(--accent);color:#0a0a0f;font-weight:bold;
+  border-radius:999px;padding:2px 10px;margin-bottom:8px}
+.wactions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.btn-ghost{background:transparent;border:1px solid var(--line);color:var(--text);border-radius:10px;
+  padding:10px 18px;font-size:.95rem;cursor:pointer}
+.btn-ghost:hover{border-color:var(--accent)}
+.btn-ghost:disabled,.btn:disabled{opacity:.45;cursor:not-allowed}
+.wnote{font-size:.85rem;color:var(--muted);line-height:1.6}
+.wnote a{color:var(--accent)}
+.winput{width:100%;box-sizing:border-box}
+#check-result{margin-top:12px;font-size:.95rem}
+#check-result.ok{color:#7ddf9a}
+#check-result.err{color:#ff9a9a}
+.dopt{display:block;background:#0d0d15;border:1px solid var(--line);border-radius:10px;padding:12px 14px;
+  margin:8px 0;cursor:pointer;font-size:.9rem}
+.dopt input{accent-color:var(--accent);width:auto !important}
+.dopt:has(input:checked){border-color:var(--accent)}
+.dopt small{display:block;color:var(--muted);margin-top:4px;line-height:1.5}
+.live{font-size:2rem;margin:10px 0}
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+  <div class="wrap">
+    <div class="crumb"><a href="/">← Rival Eclipse</a></div>
+    <h1 class="page-title">Self-Hosting Walkthrough</h1>
+    <p class="page-sub">We'll take it one step at a time. Read the instructions, open what you need, and confirm each step before moving on — no rush, no jargon.</p>
+
+    <div class="wprog" id="wprog"></div>
+
+    <!-- STEP 0 : platform -->
+    <section class="wstep block" data-step="0">
+      <h2>Step 1 — Pick your platform</h2>
+      <p class="wnote">This is where your site will live. Any of these work great for a Rival Eclipse site — pick the one you like. (No account needed for this walkthrough.)</p>
+      <div class="wplat" id="plat-pick">
+        <label class="plat"><input type="radio" name="platform" value="cloudflare"><span class="rec">Recommended</span><b>Cloudflare Pages</b><span>Free, fast, and simple. This is what we'd use ourselves.</span></label>
+        <label class="plat"><input type="radio" name="platform" value="netlify"><b>Netlify</b><span>Free tier with easy drag-and-drop publishing.</span></label>
+        <label class="plat"><input type="radio" name="platform" value="vercel"><b>Vercel</b><span>Free tier, very popular, smooth setup.</span></label>
+        <label class="plat"><input type="radio" name="platform" value="github"><b>GitHub Pages</b><span>Free hosting tied to a GitHub account. A touch more technical.</span></label>
+        <label class="plat"><input type="radio" name="platform" value="other"><b>Choose other</b><span>Already have a host in mind? Tell us which one.</span></label>
+      </div>
+      <div id="other-wrap" hidden>
+        <label>Platform name
+          <input type="text" id="other-name" class="winput" maxlength="60" placeholder="e.g. Bluehost, Hostinger, AWS…">
+        </label>
+        <label>Signup page URL <span class="wnote">(optional — we'll find it for you if you skip this)</span>
+          <input type="url" id="other-url" class="winput" maxlength="300" placeholder="https://…">
+        </label>
+      </div>
+      <div class="wactions">
+        <button class="btn" id="s0-go">Continue</button>
+      </div>
+      <p class="wnote" id="s0-err" hidden style="color:#ff9a9a">Pick a platform first — or choose "other" and type its name.</p>
+    </section>
+
+    <!-- STEP 1 : account -->
+    <section class="wstep block" data-step="1">
+      <h2>Step 2 — Create your account</h2>
+      <p class="wnote" id="s1-instructions"></p>
+      <div class="wactions">
+        <button class="btn-ghost" id="s1-back">← Back</button>
+        <button class="btn" id="s1-start">Start this step — open signup</button>
+        <button class="btn" id="s1-done" disabled>I've created my account →</button>
+      </div>
+    </section>
+
+    <!-- STEP 2 : files -->
+    <section class="wstep block" data-step="2">
+      <h2>Step 3 — Get your site files</h2>
+      <p class="wnote">When your project is finished, we'll place a <b>zip file of your complete site</b> in your client dashboard for you to download. This walkthrough shows you the whole process ahead of time, so nothing will be a surprise.</p>
+      <p class="wnote">Keep that zip somewhere safe on your computer — you'll upload it in the next step.</p>
+      <div class="wactions">
+        <button class="btn-ghost" id="s2-back">← Back</button>
+        <button class="btn" id="s2-done">Got it — I know where my files will be →</button>
+      </div>
+    </section>
+
+    <!-- STEP 3 : deploy -->
+    <section class="wstep block" data-step="3">
+      <h2>Step 4 — Deploy your site</h2>
+      <p class="wnote" id="s3-instructions"></p>
+      <div class="wactions">
+        <button class="btn-ghost" id="s3-back">← Back</button>
+        <button class="btn" id="s3-start">Open the deploy guide</button>
+        <button class="btn" id="s3-done" disabled>My site is deployed →</button>
+      </div>
+    </section>
+
+    <!-- STEP 4 : domain -->
+    <section class="wstep block" data-step="4">
+      <h2>Step 5 — Domain <span class="wnote">(optional)</span></h2>
+      <p class="wnote">Your site already has a free address from your platform (something like <i>yoursite.pages.dev</i>). A custom domain like <i>yoursite.com</i> is optional — pick what fits:</p>
+      <label class="dopt"><input type="radio" name="domain" value="keep" checked> Keep my current domain
+        <small>If you already own a domain, your platform's guide shows how to point it at your new site — it's usually one DNS record.</small></label>
+      <label class="dopt"><input type="radio" name="domain" value="new"> Transfer or register a new one
+        <small>Buy it from any registrar (Cloudflare Registrar and Namecheap are solid picks), then follow your platform's "custom domain" guide to connect it.</small></label>
+      <label class="dopt"><input type="radio" name="domain" value="skip"> Skip for now
+        <small>Totally fine — your free platform address works perfectly, and you can add a custom domain any time later.</small></label>
+      <div class="wactions">
+        <button class="btn-ghost" id="s4-back">← Back</button>
+        <button class="btn" id="s4-done">Continue →</button>
+      </div>
+    </section>
+
+    <!-- STEP 5 : go-live -->
+    <section class="wstep block" data-step="5">
+      <h2>Step 6 — Go-live check</h2>
+      <p class="wnote">Let's make sure the world can see it. Paste your site's address below and we'll check it loads.</p>
+      <label>Your site URL
+        <input type="url" id="site-url" class="winput" maxlength="300" placeholder="https://yoursite.pages.dev">
+      </label>
+      <div class="wactions">
+        <button class="btn-ghost" id="s5-back">← Back</button>
+        <button class="btn" id="s5-check">Check my site</button>
+      </div>
+      <div id="check-result"></div>
+      <div id="live-done" hidden>
+        <div class="live">🎉</div>
+        <p class="wnote"><b>You're live!</b> Your site is up on your own hosting. If anything looks off, our team is one message away — just reach out from your client dashboard.</p>
+      </div>
+    </section>
+
+  </div>
+</main>
+<script src="/sky.js"></script>
+<script>
+(function () {
+  var PLATFORMS = {
+    cloudflare: {
+      name: 'Cloudflare Pages',
+      signup: 'https://dash.cloudflare.com/sign-up',
+      guide: 'https://developers.cloudflare.com/pages/get-started/direct-upload/',
+      account: 'Click "Start this step" to open the Cloudflare signup page in a new window. Create your free account with your email — the free plan covers everything a normal site needs. Once you can see the Cloudflare dashboard, come back here and confirm.',
+      deploy: 'In your Cloudflare dashboard, go to Workers & Pages → Create → Pages → Upload assets. Drag in the zip of your site files from your client dashboard and hit Deploy. Your site goes live on a free *.pages.dev address in under a minute.'
+    },
+    netlify: {
+      name: 'Netlify',
+      signup: 'https://app.netlify.com/signup',
+      guide: 'https://docs.netlify.com/site-deploys/create-deploys/',
+      account: 'Click "Start this step" to open the Netlify signup page in a new window. Sign up free with your email (or GitHub/Google). Once you\'re logged in and see your Netlify dashboard, come back here and confirm.',
+      deploy: 'Open your Netlify dashboard and drag your site zip straight onto it — Netlify publishes it instantly on a free *.netlify.app address. (There\'s also a step-by-step guide if you want it — the button below opens it.)'
+    },
+    vercel: {
+      name: 'Vercel',
+      signup: 'https://vercel.com/signup',
+      guide: 'https://vercel.com/docs/deployments',
+      account: 'Click "Start this step" to open the Vercel signup page in a new window. The free "Hobby" plan is all you need — sign up with email, GitHub, or Google. Once you see your Vercel dashboard, come back here and confirm.',
+      deploy: 'In your Vercel dashboard click "Add New → Project", then upload your site files (or drag the zip in). Vercel deploys it and hands you a free *.vercel.app address — usually live in under a minute.'
+    },
+    github: {
+      name: 'GitHub Pages',
+      signup: 'https://github.com/signup',
+      guide: 'https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site',
+      account: 'Click "Start this step" to open the GitHub signup page in a new window and create your free account. Once you\'re logged in, come back here and confirm.',
+      deploy: 'Create a new repository, upload your unzipped site files to it, then go to Settings → Pages and turn Pages on. GitHub publishes your site on a free *.github.io address. The guide button below walks through each click.'
+    }
+  };
+  var STEP_LABELS = ['Platform', 'Account', 'Files', 'Deploy', 'Domain', 'Go-live'];
+
+  var platform = null;   // platform key
+  var otherName = '', otherUrl = '';
+  var step = 0;
+  var sections = Array.prototype.slice.call(document.querySelectorAll('.wstep'));
+  var prog = document.getElementById('wprog');
+
+  function plat() {
+    if (platform === 'other') {
+      return {
+        name: otherName,
+        signup: otherUrl || ('https://www.google.com/search?q=' + encodeURIComponent(otherName + ' hosting signup')),
+        guide: 'https://www.google.com/search?q=' + encodeURIComponent(otherName + ' deploy static website docs'),
+        account: 'Click "Start this step" to open ' + otherName + '\'s signup page in a new window' + (otherUrl ? '' : ' (we opened a search for it — pick their official signup page)') + '. Create your account, then come back here and confirm once you\'re logged in.',
+        deploy: 'Every host has a "Deploy", "New site", or "Upload" section in its dashboard — look for it in ' + otherName + ', then upload the zip of your site files from your client dashboard. Their own guide (button below) walks through the exact clicks.'
+      };
+    }
+    return PLATFORMS[platform];
+  }
+
+  function renderProgress() {
+    prog.innerHTML = '';
+    STEP_LABELS.forEach(function (label, i) {
+      var d = document.createElement('div');
+      d.className = 'wstep-dot' + (i < step ? ' done' : i === step ? ' now' : '');
+      d.textContent = (i + 1) + '. ' + label;
+      if (i < step) d.addEventListener('click', function () { goTo(i); });
+      prog.appendChild(d);
+    });
+  }
+  function goTo(n) {
+    step = n;
+    sections.forEach(function (s) { s.classList.toggle('active', +s.dataset.step === n); });
+    renderProgress();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function openNew(url) {
+    window.open(url, '_blank', 'noopener');
+  }
+
+  // ---- step 0: platform pick ----
+  var otherWrap = document.getElementById('other-wrap');
+  document.querySelectorAll('input[name="platform"]').forEach(function (r) {
+    r.addEventListener('change', function () {
+      platform = document.querySelector('input[name="platform"]:checked').value;
+      otherWrap.hidden = platform !== 'other';
+      document.getElementById('s0-err').hidden = true;
+    });
+  });
+  document.getElementById('s0-go').addEventListener('click', function () {
+    if (!platform) { document.getElementById('s0-err').hidden = false; return; }
+    if (platform === 'other') {
+      otherName = document.getElementById('other-name').value.trim();
+      otherUrl = document.getElementById('other-url').value.trim();
+      if (!otherName) { document.getElementById('s0-err').hidden = false; return; }
+    }
+    var p = plat();
+    document.getElementById('s1-instructions').textContent = p.account;
+    document.getElementById('s3-instructions').textContent = p.deploy;
+    document.getElementById('s1-done').disabled = true;
+    document.getElementById('s3-done').disabled = true;
+    goTo(1);
+  });
+
+  // ---- step 1: account ----
+  document.getElementById('s1-back').addEventListener('click', function () { goTo(0); });
+  document.getElementById('s1-start').addEventListener('click', function () {
+    openNew(plat().signup);
+    document.getElementById('s1-done').disabled = false;
+    this.textContent = 'Re-open signup page';
+  });
+  document.getElementById('s1-done').addEventListener('click', function () { goTo(2); });
+
+  // ---- step 2: files ----
+  document.getElementById('s2-back').addEventListener('click', function () { goTo(1); });
+  document.getElementById('s2-done').addEventListener('click', function () { goTo(3); });
+
+  // ---- step 3: deploy ----
+  document.getElementById('s3-back').addEventListener('click', function () { goTo(2); });
+  document.getElementById('s3-start').addEventListener('click', function () {
+    openNew(plat().guide);
+    document.getElementById('s3-done').disabled = false;
+    this.textContent = 'Re-open the deploy guide';
+  });
+  document.getElementById('s3-done').addEventListener('click', function () { goTo(4); });
+
+  // ---- step 4: domain ----
+  document.getElementById('s4-back').addEventListener('click', function () { goTo(3); });
+  document.getElementById('s4-done').addEventListener('click', function () { goTo(5); });
+
+  // ---- step 5: go-live check ----
+  document.getElementById('s5-back').addEventListener('click', function () { goTo(4); });
+  document.getElementById('s5-check').addEventListener('click', function () {
+    var btn = this, res = document.getElementById('check-result');
+    var url = document.getElementById('site-url').value.trim();
+    if (!/^https?:\/\//i.test(url)) {
+      res.className = 'err'; res.textContent = 'Enter the full address, starting with https://'; return;
+    }
+    btn.disabled = true; btn.textContent = 'Checking…';
+    res.className = ''; res.textContent = '';
+    document.getElementById('live-done').hidden = true;
+    fetch('/api/site-check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url })
+    }).then(function (r) { return r.json(); }).then(function (out) {
+      if (out.ok && out.reachable) {
+        res.className = 'ok';
+        res.textContent = 'Reachable — got an HTTP ' + out.status + ' from your site.';
+        document.getElementById('live-done').hidden = false;
+      } else {
+        res.className = 'err';
+        res.textContent = 'Couldn\'t reach that address yet. Double-check the URL, give a fresh deploy a minute or two to finish, then try again.';
+      }
+    }).catch(function () {
+      res.className = 'err'; res.textContent = 'The check didn\'t go through — try again in a moment.';
+    }).finally(function () {
+      btn.disabled = false; btn.textContent = 'Check my site';
+    });
+  });
+
+  renderProgress();
+  goTo(0);
+})();
+</script>
+<script src="/assistant.js"></script>
+</body>
+</html>
