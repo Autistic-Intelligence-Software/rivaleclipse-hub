@@ -39,9 +39,15 @@ async function roleOf(request) {
     });
     if (r.status !== 200) return 'guest';
     const d = await r.json().catch(() => null);
-    const role = (d?.user?.role || 'user').toLowerCase();
     if (d?.is_owner ?? d?.user?.is_owner) return 'admin'; // owner sees the admin guidance
-    return ['user', 'client', 'tester', 'team', 'admin'].includes(role) ? role : 'user';
+    // Stackable tags (defensive: fall back to the legacy single role).
+    const tags = Array.isArray(d?.user?.tags)
+      ? d.user.tags.map((t) => String(t).toLowerCase())
+      : [String(d?.user?.role || 'user').toLowerCase()];
+    for (const tier of ['admin', 'team', 'tester', 'client', 'user']) {
+      if (tags.includes(tier)) return tier;
+    }
+    return 'user';
   } catch {
     return 'guest';
   }
