@@ -124,7 +124,7 @@
     <div class="tabs">
       <button class="tab-btn active" data-tab="users">User Registry</button>
       <button class="tab-btn" data-tab="team">Team</button>
-      <button class="tab-btn" data-tab="codes">Team Codes</button>
+      <button class="tab-btn" data-tab="codes">Invite Codes</button>
       <button class="tab-btn" data-tab="crq">Change Requests</button>
     </div>
     <div class="block" id="tab-users">
@@ -147,11 +147,25 @@
       <div id="team-list"><p class="dim">Loading…</p></div>
     </div>
     <div class="block" id="tab-codes" style="display:none">
-      <h2>Team Codes</h2>
-      <p class="sub">One-time invite codes that grant the <b>team</b> tag. Share a code with someone you approve — they enter it under “Enter Team code” in their account menu.</p>
-      <div style="margin:14px 0;">
-        <button class="gen-btn" id="gen-team-code">Generate Team code</button>
+      <h2>Invite Codes</h2>
+      <p class="sub">One-time codes — each grants exactly the tag it was made for, then dies. Share a code with someone you approve; they enter it under “Enter code” in their account menu. Codes never expire until used.</p>
+      <div style="margin:14px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <label class="dim">Type
+          <select id="code-type" style="margin-left:6px">
+            <option value="team">Team — grants the team tag</option>
+            <option value="promo">Promo — grants a written benefit (no tag)</option>
+            <option value="admin" id="code-type-admin">Admin — grants the admin tag (owner only)</option>
+            <option value="owner" id="code-type-owner" style="display:none">Owner — grants the owner tag</option>
+          </select>
+        </label>
+        <button class="gen-btn" id="gen-code">Generate code</button>
       </div>
+      <div id="promo-benefit-row" style="display:none;margin:0 0 12px">
+        <label class="dim">Promo benefit (what the person gets — shown when they redeem)
+          <input id="promo-benefit" type="text" maxlength="500" placeholder="e.g. One free custom bot setup" style="display:block;width:100%;max-width:520px;margin-top:6px">
+        </label>
+      </div>
+      <p class="dim" id="code-type-note" style="margin:0 0 6px"></p>
       <div class="code-out" id="admin-code-out"></div>
       <div class="code-row" id="admin-code-row" style="display:none"><button class="copy-btn" id="admin-code-copy">Copy</button></div>
       <p id="codes-msg" style="margin-top:10px;font-size:.95rem;"></p>
@@ -331,7 +345,7 @@ const legacyRoleOf = (tags) => {
   return 'user';
 };
 
-async function saveTags(uid, add, remove) {
+async function saveTags(uid, add = [], remove = []) {
   say('Saving…');
   // The tags endpoint takes an add/remove diff (codes-granted owner tags can't
   // be touched here at all — the API rejects them).
@@ -355,7 +369,9 @@ async function saveTags(uid, add, remove) {
          admin_tag_owner_only: 'Only the owner can grant or remove the admin tag.',
          cannot_change_owner_tags: 'Owner accounts can’t be changed here.' }[r.data.error]
        || 'Couldn’t update the tags.'), r.status === 200);
-  if (r.status === 200) loadUsers(document.getElementById('user-search').value.trim());
+  // Always re-render from server truth — on failure the checkbox used to sit
+  // in its clicked state, showing a tag the account doesn't actually have.
+  loadUsers(document.getElementById('user-search').value.trim());
 }
 
 // Original tags per row, captured at render time for diffing.
@@ -374,16 +390,48 @@ usersBody.addEventListener('change', async (e) => {
   await saveTags(uid, add, remove);
 });
 
-// ---------- team codes ----------
+// ---------- invite codes ----------
+// One generator for every code type (this tab used to mint team codes only,
+// while /owner/ had a second, different generator — same system, two doors).
 const codesMsg = document.getElementById('codes-msg');
 const csay = (t, ok) => { codesMsg.textContent = t; codesMsg.className = ok === true ? 'ok' : ok === false ? 'err' : ''; };
 const codesOnline = (status, data) => !(status === 404 && !data.error);
 const fmtWhen = (v) => { try { return v ? new Date(v).toLocaleString() : '—'; } catch { return '—'; } };
+const CODE_ERR = {
+  owner_mint_restricted: 'Only Shane’s owner account can mint Owner codes.',
+  forbidden: 'You don’t have permission to mint that code type.',
+  unknown_code_type: 'That code type isn’t recognized.',
+};
+const codeTypeSel = document.getElementById('code-type');
+const codeTypeNote = document.getElementById('code-type-note');
+const promoRow = document.getElementById('promo-benefit-row');
+// Owner codes: only the designated minter even sees the option. Admin codes:
+// visible but disabled for non-owners, with the reason spelled out.
+if (s && s.can_mint_owner_codes) document.getElementById('code-type-owner').style.display = '';
+if (!isOwner) {
+  const adm = document.getElementById('code-type-admin');
+  adm.disabled = true; adm.textContent = 'Admin — grants the admin tag (owner only)';
+}
+function syncCodeType() {
+  const t = codeTypeSel.value;
+  promoRow.style.display = t === 'promo' ? '' : 'none';
+  codeTypeNote.textContent = {
+    team: 'Team codes can also be minted by admins.',
+    promo: 'Promo codes grant no tag — just the benefit text, which you fulfill by hand.',
+    admin: 'Admin codes are owner-only to mint.',
+    owner: 'Owner codes are the keys to the kingdom — one person, one code.',
+  }[t] || '';
+}
+codeTypeSel.addEventListener('change', syncCodeType);
+syncCodeType();
 
-document.getElementById('gen-team-code').onclick = async (e) => {
+document.getElementById('gen-code').onclick = async (e) => {
   const btn = e.target;
+  const type = codeTypeSel.value;
+  const benefit = type === 'promo' ? document.getElementById('promo-benefit').value.trim() : undefined;
+  if (type === 'promo' && !benefit) { csay('Write the promo benefit first — the person redeeming sees it.', false); return; }
   btn.disabled = true;
-  const { status, data } = await generateCode('team');
+  const { status, data } = await generateCode(type, benefit);
   btn.disabled = false;
   if (!codesOnline(status, data)) { csay('The code system is coming online — try again in a bit.', false); return; }
   if (status === 200 && data.ok && data.code) {
@@ -391,10 +439,10 @@ document.getElementById('gen-team-code').onclick = async (e) => {
     out.textContent = data.code;
     out.classList.add('show');
     document.getElementById('admin-code-row').style.display = '';
-    csay('Team code ready — copy it and share it with the person you approved.', true);
+    csay(`${type[0].toUpperCase() + type.slice(1)} code ready — copy it and share it with the person you approved.`, true);
     loadCodes();
   } else {
-    csay(data.error || 'Couldn’t generate the code.', false);
+    csay(CODE_ERR[data.error] || data.error || 'Couldn’t generate the code.', false);
   }
 };
 
@@ -410,8 +458,10 @@ async function loadCodes() {
   const { status, data } = await listCodes();
   if (!codesOnline(status, data)) { body.innerHTML = '<tr><td colspan="5" class="dim">Code system coming online…</td></tr>'; return; }
   if (status !== 200) { body.innerHTML = '<tr><td colspan="5" class="dim">Couldn’t load codes.</td></tr>'; return; }
-  const codes = (data.codes || []).filter((c) => c.type === 'team' || c.type === 'promo');
-  if (!codes.length) { body.innerHTML = '<tr><td colspan="5" class="dim">No team codes yet.</td></tr>'; return; }
+  // The API already limits which types each role may see (owners: all;
+  // admins: team/promo) — show everything it returns.
+  const codes = data.codes || [];
+  if (!codes.length) { body.innerHTML = '<tr><td colspan="5" class="dim">No codes yet.</td></tr>'; return; }
   body.innerHTML = codes.map((c) => {
     const used = !!c.used_by;
     return `<tr>
@@ -571,13 +621,18 @@ async function loadTeam() {
     const pills = (m.is_owner ? ['owner'] : mTags.length ? mTags : ['member'])
       .map((t) => `<span class="role-tag">${esc(t)}</span>`).join(' ');
     const uid = m.id ?? m.user_id ?? '';
-    const canToggleAdmin = isOwner && !m.is_owner;
+    // Owners never get the button — their row says why instead. (The team
+    // endpoint used to omit is_owner, so this rendered on owner rows and the
+    // click died against the API's owner lock.)
+    const action = m.is_owner
+      ? '<span class="dim">Owner — locked</span>'
+      : isOwner ? `<button class="promote-btn" data-uid="${esc(uid)}" data-tags="${esc(mTags.join(','))}">${mTags.includes('admin') ? 'Remove admin' : 'Make admin'}</button>` : '';
     return `<div class="team-row">
-      <div><div class="nm">${esc(m.name || m.email || m.discord_username || '—')}</div>
+      <div><div class="nm">${esc(m.display_name || m.name || m.email || m.discord_username || '—')}</div>
       <div class="dim">${esc(m.email || '')}${m.discord_username ? ' · @' + esc(m.discord_username) : ''}</div></div>
       <div style="display:flex;align-items:center;gap:12px">
         ${pills}
-        ${canToggleAdmin ? `<button class="promote-btn" data-uid="${esc(uid)}" data-tags="${esc(mTags.join(','))}">${mTags.includes('admin') ? 'Remove admin' : 'Make admin'}</button>` : ''}
+        ${action}
       </div>
     </div>`;
   }).join('') : '<p class="dim">No team members yet.</p>';
@@ -587,10 +642,16 @@ document.getElementById('team-list').addEventListener('click', async (e) => {
   if (!btn) return;
   const uid = btn.dataset.uid;
   const tags = (btn.dataset.tags || '').split(',').filter(Boolean);
-  const next = tags.includes('admin') ? tags.filter((t) => t !== 'admin') : [...tags, 'admin'];
+  const hasAdmin = tags.includes('admin');
   btn.disabled = true; btn.textContent = 'Saving…';
-  await saveTags(uid, next);
-  loadTeam();
+  try {
+    // saveTags takes an add/remove DIFF — this handler used to pass the whole
+    // target tag list as `add`, so Remove admin never removed anything and
+    // the follow-up render code threw, wedging the button on "Saving…".
+    await saveTags(uid, hasAdmin ? [] : ['admin'], hasAdmin ? ['admin'] : []);
+  } finally {
+    loadTeam();
+  }
 });
 
 // ---------- escalated change requests ----------
