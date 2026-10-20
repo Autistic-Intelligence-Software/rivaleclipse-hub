@@ -37,12 +37,16 @@
   btn.type = 'button';
   btn.setAttribute('aria-label', 'Chat with the Rival Eclipse assistant');
   btn.textContent = '💬';
-  btn.hidden = true;
+  // NOTE: visibility is driven by inline style.display, NOT the `hidden`
+  // property — the CSS sets display:flex on both elements, and an author
+  // display rule overrides the UA's [hidden] styling, so `hidden` alone
+  // never actually hid anything (the panel's close button appeared dead).
+  btn.style.display = 'none';
   document.body.appendChild(btn);
 
   const panel = document.createElement('div');
   panel.className = 're-assist-panel';
-  panel.hidden = true;
+  panel.style.display = 'none';
   panel.innerHTML = `
     <div class="re-assist-head"><span>Rival Eclipse assistant</span><button class="x" aria-label="Close">&times;</button></div>
     <div class="re-assist-log"></div>
@@ -70,8 +74,9 @@
   };
 
   let opened = false;
+  const isOpen = () => panel.style.display !== 'none';
   const open = () => {
-    panel.hidden = false;
+    panel.style.display = 'flex';
     btn.style.display = 'none';
     if (!opened) {
       opened = true;
@@ -79,11 +84,11 @@
     }
     input.focus();
   };
-  const close = () => { panel.hidden = true; btn.style.display = ''; };
+  const close = () => { panel.style.display = 'none'; btn.style.display = ''; };
 
   btn.addEventListener('click', open);
   panel.querySelector('.x').addEventListener('click', close);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen()) close(); });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -115,5 +120,5 @@
   });
 
   // Reveal after DOM settles (keeps it from blocking first paint).
-  requestAnimationFrame(() => { btn.hidden = false; });
+  requestAnimationFrame(() => { btn.style.display = ''; });
 })();
