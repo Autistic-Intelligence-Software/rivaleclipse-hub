@@ -66,6 +66,14 @@
 .act-btn { border: 1px solid var(--line); background: none; color: var(--text); border-radius: 8px;
   padding: 8px 14px; cursor: pointer; font-size: .85rem; font-weight: 600; font-family: inherit; }
 .act-btn:hover { border-color: var(--accent); }
+a.act-btn { text-decoration: none; display: inline-block; }
+.wf-h { margin: 22px 0 6px; font-size: 1.05rem; }
+.wf-h:first-child { margin-top: 4px; }
+.pill { font-size: .78rem; font-weight: 700; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.pill.ok { color: #7ee2a0; border-color: #2c5a3a; }
+.pill.bad { color: #ff9a9a; border-color: #6e2f2f; }
+.pill.wait { color: #f3d27a; border-color: #5a4a1c; }
+.link-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .act-btn:disabled { opacity: .5; cursor: default; }
 .chat-wrap { border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-top: 12px;
   background: rgba(13,13,21,.6); }
@@ -147,7 +155,7 @@
 
     <div class="block" id="board-block">
       <h2>Project Workflow</h2>
-      <p class="sub">Dev requests filed by users and clients. Set the status, add notes, attach the code or deliverable URL — then save.</p>
+      <p class="sub">Everything the team is working on — the demo pipeline awaiting pre-approval, plus dev requests filed by users and clients. Open any item’s page to inspect it before approval; admins set status, notes, and the code or deliverable URL on dev requests, then save.</p>
       <div id="board-list"><p class="dim">Loading…</p></div>
     </div>
   </div>
@@ -209,18 +217,52 @@ async function loadTeam() {
 }
 
 // ---------- project workflow board ----------
+// Shane 2026-10-20: EVERYTHING the team is working on lives here — the demo
+// pipeline (each demo with a View page link for pre-approval inspection and
+// its current review status) plus dev requests filed by users and clients.
+// One endpoint: GET /api/team/workflow (team-and-up).
 const STATUSES = ['new', 'accepted', 'in_progress', 'delivered'];
 const projIdOf = (p) => String(p.id ?? p.project_id ?? '');
 const notesOf = (p) => p.notes ?? p.note ?? '';
 const urlOf = (p) => p.deliverable_url ?? p.code_url ?? p.deliverable ?? '';
+const canAdmin = hasTag(s, 'admin') || !!user.is_owner;
+const DEMO_PILL = {
+  approved: ['ok', '✓ Approved'],
+  'needs-work': ['bad', 'Needs work'],
+  pending: ['wait', 'Pending review'],
+};
+
+function renderDemos(demos) {
+  if (!demos.length) return '';
+  const counts = { approved: 0, 'needs-work': 0, pending: 0 };
+  demos.forEach((d) => { counts[d.status] = (counts[d.status] || 0) + 1; });
+  const cards = demos.map((d) => {
+    const [cls, label] = DEMO_PILL[d.status] || DEMO_PILL.pending;
+    return `<div class="proj-card">
+      <div class="proj-head">
+        <span class="nm">${esc(d.business || d.slug || '—')}</span>
+        <span class="badge cat">${esc(d.wave || '')}</span>
+        <span class="pill ${cls}">${label}</span>
+      </div>
+      ${d.note ? `<p class="dim" style="margin:0">Review note: ${esc(d.note)}${d.decided_by_email ? ' — ' + esc(d.decided_by_email) : ''}</p>` : ''}
+      <div class="link-row">
+        <a class="act-btn" href="${esc(d.demo_url || '#')}" target="_blank" rel="noopener">View page →</a>
+        ${canAdmin ? '<a class="act-btn" href="/briefing/">Review in Briefing →</a>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+  return `<h3 class="wf-h">Demo pipeline — pre-approval (${demos.length})</h3>
+    <p class="dim" style="margin:0 0 14px">${counts.approved} approved · ${counts['needs-work']} needs work · ${counts.pending} still pending. Open a demo’s page to inspect it; approvals happen in the Briefing portal.</p>
+    ${cards}`;
+}
 
 function renderBoard(projects) {
-  const board = document.getElementById('board-list');
-  if (!projects.length) { board.innerHTML = '<p class="dim">No projects yet.</p>'; return; }
-  board.innerHTML = projects.map((p) => {
+  if (!projects.length) return `<h3 class="wf-h">Dev requests (0)</h3><p class="dim">No dev requests filed yet.</p>`;
+  const cards = projects.map((p) => {
     const pid = projIdOf(p);
     const status = (p.status || 'new').toLowerCase();
     const features = fmtFeatures(p.features);
+    const dis = canAdmin ? '' : ' disabled';
     return `<div class="proj-card" data-pid="${esc(pid)}">
       <div class="proj-head">
         <span class="nm">${esc(p.user_email || p.email || '—')}</span>
@@ -228,34 +270,36 @@ function renderBoard(projects) {
         <span class="dim">${esc(fmtDate(p.created_at || p.created))}</span>
       </div>
       ${features ? `<p class="dim" style="margin:0">Features: ${esc(features)}</p>` : ''}
+      ${urlOf(p) ? `<div class="link-row"><a class="act-btn" href="${esc(urlOf(p))}" target="_blank" rel="noopener">View page →</a></div>` : ''}
       <div class="proj-grid">
         <div class="field">
           <label for="st-${esc(pid)}">Status</label>
-          <select id="st-${esc(pid)}">${STATUSES.map((st) =>
+          <select id="st-${esc(pid)}"${dis}>${STATUSES.map((st) =>
             `<option value="${st}"${st === status ? ' selected' : ''}>${st.replace('_', ' ')}</option>`).join('')}
           </select>
         </div>
         <div class="field">
           <label for="url-${esc(pid)}">Code / deliverable URL</label>
-          <input id="url-${esc(pid)}" type="url" placeholder="https://…" value="${esc(urlOf(p))}">
+          <input id="url-${esc(pid)}" type="url" placeholder="https://…" value="${esc(urlOf(p))}"${dis}>
         </div>
         <div class="field full">
           <label for="nt-${esc(pid)}">Notes</label>
-          <textarea id="nt-${esc(pid)}" maxlength="4000" placeholder="Workflow notes, handoff details, client feedback…">${esc(notesOf(p))}</textarea>
+          <textarea id="nt-${esc(pid)}" maxlength="4000" placeholder="Workflow notes, handoff details, client feedback…"${dis}>${esc(notesOf(p))}</textarea>
         </div>
       </div>
-      <button class="save-btn" data-save="${esc(pid)}" type="button">Save</button>
-      <p class="save-msg" id="msg-${esc(pid)}"></p>
+      ${canAdmin ? `<button class="save-btn" data-save="${esc(pid)}" type="button">Save</button>
+      <p class="save-msg" id="msg-${esc(pid)}"></p>` : '<p class="dim" style="margin-top:10px">Admins update status and notes.</p>'}
     </div>`;
   }).join('');
+  return `<h3 class="wf-h">Dev requests (${projects.length})</h3>${cards}`;
 }
 
 async function loadBoard() {
   const board = document.getElementById('board-list');
   try {
-    const { status, data } = await api('/api/admin/projects');
+    const { status, data } = await api('/api/team/workflow');
     if (status !== 200) throw new Error(data.error || 'load_failed');
-    renderBoard(Array.isArray(data) ? data : (data.projects || data.requests || []));
+    board.innerHTML = renderDemos(data.demos || []) + renderBoard(data.projects || []);
   } catch (e) {
     board.innerHTML = '<p class="board-err">Couldn’t load the project board — try refreshing in a moment.</p>';
   }
