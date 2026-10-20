@@ -126,6 +126,7 @@
       <button class="tab-btn" data-tab="team">Team</button>
       <button class="tab-btn" data-tab="codes">Invite Codes</button>
       <button class="tab-btn" data-tab="crq">Change Requests</button>
+      <a class="tab-btn" href="/briefing/" style="text-decoration:none">Briefing →</a>
     </div>
     <div class="block" id="tab-users">
       <h2>User Registry</h2>
@@ -254,9 +255,11 @@ document.getElementById('who').textContent = s.discord?.username ? '@' + s.disco
 document.getElementById('logout').onclick = logout;
 
 // ---------- tabs ----------
-document.querySelectorAll('.tab-btn').forEach((b) => {
+// Only [data-tab] buttons switch tabs — the Briefing tab is a plain link
+// to /briefing/ and must keep its normal navigation.
+document.querySelectorAll('.tab-btn[data-tab]').forEach((b) => {
   b.onclick = () => {
-    document.querySelectorAll('.tab-btn').forEach((x) => x.classList.remove('active'));
+    document.querySelectorAll('.tab-btn[data-tab]').forEach((x) => x.classList.remove('active'));
     b.classList.add('active');
     const t = b.dataset.tab;
     document.querySelectorAll('[id^="tab-"]').forEach((el) => {
