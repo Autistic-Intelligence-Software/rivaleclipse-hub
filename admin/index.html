@@ -312,7 +312,7 @@ function renderUsers(users) {
       <td><div class="tag-checks">${tagCheckboxes(u)}</div></td>
       <td class="dim">${esc(flagsOf(u))}</td>
       <td class="dim">${esc(fmtDate(u.created_at || u.created))}</td>
-      <td><button class="msg-toggle" data-uid="${esc(uid)}" data-email="${esc(u.email || '')}">Messages</button>${isOwner ? `<button class="merge-btn" data-uid="${esc(uid)}" data-email="${esc(u.email || '')}">Merge</button>` : ''}</td>
+      <td><button class="msg-toggle" data-uid="${esc(uid)}" data-email="${esc(u.email || '')}">Messages</button>${(isOwner || !u.is_owner) ? `<button class="signout-btn" data-uid="${esc(uid)}" data-email="${esc(u.email || '')}">Sign out</button>` : ''}${isOwner ? `<button class="merge-btn" data-uid="${esc(uid)}" data-email="${esc(u.email || '')}">Merge</button>` : ''}</td>
     </tr>
     <tr class="msg-row" data-uid="${esc(uid)}" style="display:none"><td colspan="6"><div class="thread-box">
       <div class="thread" id="thread-${esc(uid)}"><p class="dim">Loading…</p></div>
@@ -507,6 +507,16 @@ async function loadThread(uid) {
 }
 
 usersBody.addEventListener('click', async (e) => {
+  const so = e.target.closest('.signout-btn');
+  if (so) {
+    const label = so.dataset.email || 'this user';
+    if (!confirm(`Sign ${label} out everywhere? All of their open sessions end right away.`)) return;
+    so.disabled = true; so.textContent = 'Signing out…';
+    const { status } = await api('/api/admin/users/' + encodeURIComponent(so.dataset.uid) + '/revoke-sessions', { method: 'POST' });
+    so.textContent = status === 200 ? 'Signed out ✓' : 'Could not sign out';
+    if (status !== 200) so.disabled = false;
+    return;
+  }
   const mrg = e.target.closest('.merge-btn');
   if (mrg) { openMerge(mrg.dataset.uid, mrg.dataset.email); return; }
   const tgl = e.target.closest('.msg-toggle');
