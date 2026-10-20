@@ -80,8 +80,22 @@ document.getElementById('card').innerHTML = `
   <div class="row-btns">
     <a class="btn-ghost" href="/dashboards/">Dashboards</a>
     <button class="btn-ghost" id="signout">Sign out</button>
-  </div>`;
+    <button class="btn-ghost" id="signout-all" title="Ends every signed-in session for this account, on every device">Sign out everywhere</button>
+  </div>
+  <p class="sub" id="signout-all-msg" style="font-size:.85rem;margin-top:8px;"></p>`;
 document.getElementById('signout').onclick = logout;
+document.getElementById('signout-all').onclick = async () => {
+  const msg = document.getElementById('signout-all-msg');
+  if (!confirm('Sign out on ALL devices? Every open Rival Eclipse session for this account ends, including this one.')) return;
+  msg.textContent = 'Signing out everywhere…';
+  try {
+    const r = await fetch('https://auth.rivaleclipse.dev/api/sessions/revoke-all', { method: 'POST', credentials: 'include' });
+    if (!r.ok) throw new Error('failed');
+    location.href = '/';
+  } catch {
+    msg.textContent = 'Could not complete sign-out everywhere — please try again.';
+  }
+};
 </script>
 <script src="/_lib/menu.js"></script>
 <script src="/assistant.js"></script>
