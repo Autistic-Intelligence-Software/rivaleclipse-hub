@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Briefing — Demo Approvals · Rival Eclipse</title>
+<meta name="description" content="Rival Eclipse briefing portal — inspect demo packets and approve them or send them back for work.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.dash-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.user-chip { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .92rem; }
+.user-chip button { background: none; border: 1px solid var(--line); color: var(--muted);
+  border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: .85rem; }
+.user-chip button:hover { color: var(--text); border-color: var(--accent); }
+.dim { color: var(--muted); font-size: .85rem; }
+.wave-title { margin: 26px 0 4px; font-size: 1.05rem; }
+.demo-card { border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin: 14px 0; background: #0d0d15; }
+.demo-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.demo-name { font-size: 1.15rem; font-weight: 700; }
+.pill { display: inline-block; border-radius: 999px; padding: 3px 11px; font-size: .78rem; font-weight: 700; letter-spacing: .03em; }
+.pill-wave { border: 1px solid var(--line); color: var(--muted); }
+.pill-pending { background: #23232e; color: #c9c9d6; border: 1px solid #3a3a48; }
+.pill-approved { background: #12351f; color: #5fd68a; border: 1px solid #1f5c36; }
+.pill-needs-work { background: #3d1712; color: #ff8a70; border: 1px solid #6e2a1e; }
+.demo-meta { color: var(--muted); font-size: .85rem; margin-top: 6px; }
+.demo-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+.act-btn { background: none; border: 1px solid var(--line); color: var(--text); border-radius: 10px;
+  padding: 9px 16px; cursor: pointer; font-size: .9rem; font-weight: 600; font-family: inherit; text-decoration: none; }
+.act-btn:hover { border-color: var(--accent); }
+.act-btn.gold { background: linear-gradient(135deg,#d4af37,#8a6d1c); color: #0a0a12; border: none; }
+.act-btn.danger { color: #ff8a70; border-color: #6e2a1e; }
+.act-btn.danger:hover { border-color: #ff8a70; }
+.act-btn:disabled { opacity: .5; cursor: default; }
+.note-input { flex: 1 1 220px; background: #08080d; border: 1px solid var(--line); border-radius: 10px;
+  color: var(--text); padding: 10px 12px; font-size: .9rem; font-family: inherit; min-width: 0; }
+.note-input:focus { outline: none; border-color: var(--accent); }
+.pitch-box { display: none; margin-top: 14px; background: #08080d; border: 1px solid var(--line);
+  border-radius: 12px; padding: 16px; white-space: pre-wrap; font-size: .88rem; line-height: 1.6; max-height: 420px; overflow-y: auto; }
+.reset-link { background: none; border: none; color: var(--muted); font-size: .8rem; cursor: pointer; text-decoration: underline; font-family: inherit; }
+#brief-msg { margin-top: 14px; font-size: .95rem; }
+#brief-msg.ok { color: var(--ok); }
+#brief-msg.err { color: #ff7070; }
+.summary { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+<div class="wrap">
+  <div class="crumb"><a href="/dashboards/">← Dashboards</a> · <a href="/admin/">Admin</a></div>
+  <div id="gate"><p class="sub">Loading…</p></div>
+  <div id="brief-ui" style="display:none">
+    <div class="dash-head">
+      <div><h1 class="page-title">Briefing</h1>
+      <p class="page-sub">Demo approval portal. Open each packet, inspect the demo and its pitch, then approve it or send it back with a note. Every decision posts to <strong>#team-workflow-feed</strong> so the team can pick it up.</p></div>
+      <div class="user-chip"><span id="who"></span><button id="logout">Sign out</button></div>
+    </div>
+    <div class="summary" id="summary"></div>
+    <p id="brief-msg"></p>
+    <div id="demo-list"><p class="dim">Loading demos…</p></div>
+  </div>
+</div>
+</main>
+<script src="/sky.js"></script>
+<script type="module">
+const failGate = (msg, btnLabel, btnHref) => {
+  document.getElementById('gate').innerHTML =
+    '<p class="sub">' + msg + '</p>' +
+    '<p><button class="act-btn" id="gate-btn">' + btnLabel + '</button></p>';
+  document.getElementById('gate-btn').onclick = () => { location.href = btnHref; };
+  throw new Error('gate-failed');
+};
+
+let session, logout;
+let tagsOf, hasTag, isOwnerOf, goBlocked;
+try {
+  ({ session, logout } = await import('/auth.js'));
+  ({ tagsOf, hasTag, isOwnerOf, goBlocked } = await import('/_lib/gates.js'));
+} catch (e) {
+  failGate('The page didn’t load cleanly — this is usually a stale cache.',
+    'Reload fresh', '/briefing/?fresh=' + Date.now());
+}
+const AUTH = 'https://auth.rivaleclipse.dev';
+
+async function api(path, opts = {}) {
+  const r = await fetch(AUTH + path, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  const data = await r.json().catch(() => ({}));
+  return { status: r.status, data };
+}
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// ---------- gate ----------
+let s = null;
+try {
+  s = await Promise.race([
+    session(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('session-timeout')), 15000)),
+  ]);
+} catch (e) {
+  failGate('Couldn’t reach the sign-in service. Check your connection.', 'Retry', '/briefing/');
+}
+if (!s) { location.href = '/sign-in/?next=' + encodeURIComponent('/briefing/'); throw new Error('redirect'); }
+// Owner + admin accounts only — the same tag that opens /admin/.
+if (!hasTag(s, 'admin')) goBlocked('admin');
+const user = (s && s.user) || {};
+document.getElementById('gate').style.display = 'none';
+document.getElementById('brief-ui').style.display = '';
+document.getElementById('who').textContent = s.discord?.username ? '@' + s.discord.username : user.email;
+document.getElementById('logout').onclick = logout;
+
+// ---------- demo list ----------
+const listEl = document.getElementById('demo-list');
+const summaryEl = document.getElementById('summary');
+const msgEl = document.getElementById('brief-msg');
+const say = (t, ok) => { msgEl.textContent = t; msgEl.className = ok === true ? 'ok' : ok === false ? 'err' : ''; };
+
+const STATUS_LABEL = { pending: 'Pending', approved: 'Approved', 'needs-work': 'Needs work' };
+
+function cardHtml(d) {
+  const decided = d.status !== 'pending' && d.decided_at
+    ? `<div class="demo-meta">${STATUS_LABEL[d.status]} by ${esc(d.decided_by_email || '—')} · ${new Date(d.decided_at).toLocaleString()}${d.note ? ' · Note: ' + esc(d.note) : ''}</div>`
+    : '';
+  return `<div class="demo-card" data-slug="${esc(d.slug)}">
+    <div class="demo-top">
+      <span class="demo-name">${esc(d.business)}</span>
+      <span><span class="pill pill-wave">${esc(d.wave)}</span> <span class="pill pill-${esc(d.status)}">${STATUS_LABEL[d.status] || esc(d.status)}</span></span>
+    </div>
+    ${decided}
+    <div class="demo-actions">
+      <a class="act-btn" href="${esc(d.demo_url)}" target="_blank" rel="noopener">Open demo ↗</a>
+      <button class="act-btn" data-act="pitch">View pitch</button>
+      <input class="note-input" type="text" maxlength="1000" placeholder="Note (optional) — required reading if it needs work">
+      <button class="act-btn gold" data-act="approved">Approve</button>
+      <button class="act-btn danger" data-act="needs-work">Needs work</button>
+      ${d.status !== 'pending' ? '<button class="reset-link" data-act="pending">reset to pending</button>' : ''}
+    </div>
+    <div class="pitch-box">${esc(d.pitch)}</div>
+  </div>`;
+}
+
+async function load() {
+  const { status, data } = await api('/api/admin/demos');
+  if (status !== 200 || !data.ok) {
+    listEl.innerHTML = '<p class="dim">Couldn’t load the demo list. <button class="reset-link" id="retry">Retry</button></p>';
+    document.getElementById('retry').onclick = load;
+    return;
+  }
+  const demos = data.demos;
+  const counts = { pending: 0, approved: 0, 'needs-work': 0 };
+  demos.forEach((d) => { counts[d.status] = (counts[d.status] || 0) + 1; });
+  summaryEl.innerHTML =
+    `<span class="pill pill-pending">${counts.pending} pending</span>` +
+    `<span class="pill pill-approved">${counts.approved} approved</span>` +
+    `<span class="pill pill-needs-work">${counts['needs-work']} needs work</span>`;
+  const waves = [...new Set(demos.map((d) => d.wave))];
+  listEl.innerHTML = waves.map((w) =>
+    `<h2 class="wave-title">${esc(w)}</h2>` + demos.filter((d) => d.wave === w).map(cardHtml).join('')
+  ).join('');
+}
+
+listEl.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const card = e.target.closest('.demo-card');
+  const slug = card?.dataset.slug;
+  if (!slug) return;
+  const act = btn.dataset.act;
+  if (act === 'pitch') {
+    const box = card.querySelector('.pitch-box');
+    const open = box.style.display === 'block';
+    box.style.display = open ? 'none' : 'block';
+    btn.textContent = open ? 'View pitch' : 'Hide pitch';
+    return;
+  }
+  const note = card.querySelector('.note-input').value.trim();
+  card.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+  say('Saving…');
+  const { status, data } = await api('/api/admin/demos/' + encodeURIComponent(slug) + '/review', {
+    method: 'POST', body: JSON.stringify({ status: act, ...(note ? { note } : {}) }),
+  });
+  if (status === 200 && data.ok) {
+    say('Saved — posted to #team-workflow-feed.', true);
+    await load();
+  } else {
+    say(data.error || 'Couldn’t save that decision — try again.', false);
+    card.querySelectorAll('button').forEach((b) => { b.disabled = false; });
+  }
+});
+
+load();
+</script>
+<script src="/assistant.js"></script>
+<script src="/_lib/menu.js"></script>
+</body>
+</html>
