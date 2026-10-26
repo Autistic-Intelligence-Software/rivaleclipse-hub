@@ -129,6 +129,18 @@
         </ul>
         <div class="hint">Click for details, ToS, privacy &amp; FAQ →</div>
       </button>
+      <button class="card prod-card" data-product="navibot">
+        <div class="icon"><img src="/navi-bot.webp" alt="Navi-Bot icon"></div>
+        <h2><span class="beta-pill">BETA</span>Navi-Bot (beta)</h2>
+        <p>Pings people actually asked for.</p>
+        <ul>
+          <li>A panel in chat where members pick their own pings</li>
+          <li>Alerts when someone starts a VC or goes live</li>
+          <li>Mods create custom ping types — roles are made automatically</li>
+          <li>Free while in beta</li>
+        </ul>
+        <div class="hint">Click for details, ToS, privacy &amp; FAQ →</div>
+      </button>
       <button class="card prod-card" data-product="forge">
         <div class="icon"><img src="/forge.webp" alt="Bot Forge icon"></div>
         <h2>Bot Forge</h2>
@@ -304,6 +316,25 @@ voicecord: {
     ["Who controls a room?", "The room's host and the host server's admins. Rooms can be Closed, Server-only, Open, or Timed, and server admins set things like the maximum number of rooms with /roomsetup."],
     ["Is my voice recorded?", "Never. Voice-Cord does not record, store, or monitor audio — it only manages room membership."],
     ["Is it free?", "Yes — Voice-Cord is in beta and free while in beta."]
+  ]
+},
+navibot: {
+  name: "Navi-Bot (beta)",
+  kind: "bot",
+  dashboard: "https://navibot.rivaleclipse.dev/",
+  needs: "Nothing — the panel lives in Discord",
+  tag: "Opt-in ping panels for your server. Free while in beta.",
+  visit: "https://navibot.rivaleclipse.dev",
+  visitLabel: "Open Navi-Bot page",
+  overview: "<p>Navi-Bot lets a server offer pings that members actually asked for. An admin runs <strong>/pingsetup</strong> to choose a panel channel, an alert channel, and how often the reminder panel reposts — and Navi-Bot posts a panel with a button for every ping type. Clicking a button subscribes you; clicking again unsubscribes. Nobody is ever pinged for something they didn't pick.</p><p>Two ping types are built in: <strong>VC Started</strong> (someone opens an empty voice channel) and <strong>Stream Started</strong> (someone goes live). Mods can create <strong>custom ping types</strong> — Movie Night, Game Night, anything — and fire them with /fire. Every ping type gets its own Discord role, created automatically by the bot, and alerts ping that role.</p>",
+  tos: "<p>In short: Navi-Bot is in beta and <strong>free while in beta</strong>, provided as-is. Pings are strictly opt-in: the bot only ever mentions roles it created for members who subscribed themselves from the panel. Don't use custom ping types to harass or spam — server admins control the ping types in their server and can delete them at any time.</p><p class=\\\"fineprint\\\">Full text: <a href=\\\"https://navibot.rivaleclipse.dev/terms\\\" target=\\\"_blank\\\" rel=\\\"noopener\\\">navibot.rivaleclipse.dev/terms</a></p>",
+  privacy: "<p>In short: Navi-Bot stores only what it needs to run: server and channel IDs, ping-type definitions, the IDs of the roles it creates, and panel message IDs. It does not store message content, and it never records or listens to audio. Role membership is managed by Discord itself. Nothing is sold or shared with third parties.</p><p class=\\\"fineprint\\\">Full text: <a href=\\\"https://navibot.rivaleclipse.dev/privacy\\\" target=\\\"_blank\\\" rel=\\\"noopener\\\">navibot.rivaleclipse.dev/privacy</a></p>",
+  faqs: [
+    ["How do members subscribe to a ping?", "From the panel in the channel an admin picked with /pingsetup — one click on a ping type's button subscribes you, another click unsubscribes. /mypings shows what you're subscribed to."],
+    ["What triggers a ping?", "VC Started fires when someone opens an empty voice channel, Stream Started fires when someone goes live in a voice channel (both with cooldowns so they can't spam), and custom ping types fire when a mod runs /fire."],
+    ["Who creates the roles?", "Navi-Bot creates one role per ping type automatically and keeps it in sync — mods never have to make or assign roles by hand."],
+    ["Can the reminder panel stop reposting?", "Yes — the repost frequency is chosen at setup (from every hour to weekly) and can be set to Off, leaving a single permanent panel."],
+    ["Is it free?", "Yes — Navi-Bot is in beta and free while in beta."]
   ]
 },
 forge: {
