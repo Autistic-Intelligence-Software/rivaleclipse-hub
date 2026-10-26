@@ -141,18 +141,6 @@
         </ul>
         <div class="hint">Click for details, ToS, privacy &amp; FAQ →</div>
       </button>
-      <button class="card prod-card" data-product="forge">
-        <div class="icon"><img src="/forge.webp" alt="Bot Forge icon"></div>
-        <h2>Bot Forge</h2>
-        <p>Describe a bot in plain words — get working code.</p>
-        <ul>
-          <li>Freeform AI code generation, no coding needed</li>
-          <li>Step-by-step self-hosting guide included</li>
-          <li>You bring your own AI keys</li>
-          <li>Honest limits stated up front</li>
-        </ul>
-        <div class="hint">Click for details, ToS, privacy &amp; FAQ →</div>
-      </button>
       <button class="card prod-card" data-product="qr">
         <div class="icon"><img src="/qr-converter.webp" alt="QR Converter icon"></div>
         <h2>GIF to QR Converter</h2>
@@ -335,24 +323,6 @@ navibot: {
     ["Who creates the roles?", "Navi-Bot creates one role per ping type automatically and keeps it in sync — mods never have to make or assign roles by hand."],
     ["Can the reminder panel stop reposting?", "Yes — the repost frequency is chosen at setup (from every hour to weekly) and can be set to Off, leaving a single permanent panel."],
     ["Is it free?", "Yes — Navi-Bot is in beta and free while in beta."]
-  ]
-},
-forge: {
-  name: "Bot Forge",
-  kind: "account",
-  needs: "Free account sign-in",
-  tag: "Describe a bot in plain words — get working code. Web-only.",
-  visit: "https://botforge.rivaleclipse.dev",
-  visitLabel: "Open Bot Forge",
-  overview: "<p>Bot Forge is a web-only bot builder: describe the Discord bot you want in plain words, confirm the details, and get ready-to-run code with a step-by-step hosting guide. There's no invitable bot instance — the bots you make are yours to host.</p><p>You bring your own AI keys (the builder runs on your provider account), your projects are saved to your signed-in account, and every generation carries an honest note about what AI codegen can get wrong, so you know the limits up front.</p>",
-  tos: "<p>In short: Bot Forge is a web tool, not a hosted bot — generated bots are self-hosted by you under your own responsibility. You supply the AI provider keys it runs on. Generated code is provided as-is; review it before running, especially anything handling tokens or user data. Sign-in is required so your projects are saved to your account.</p><p class=\"fineprint\">Full terms live on the Bot Forge site: <a href=\"https://botforge.rivaleclipse.dev\" target=\"_blank\" rel=\"noopener\">botforge.rivaleclipse.dev</a></p>",
-  privacy: "<p>In short: your Bot Forge projects are tied to your signed-in account so you can revisit them. Your AI provider keys stay yours and are used only to generate your bots. We don't sell data or use your projects for anything besides operating the builder for you.</p><p class=\"fineprint\">Full policy lives on the Bot Forge site: <a href=\"https://botforge.rivaleclipse.dev\" target=\"_blank\" rel=\"noopener\">botforge.rivaleclipse.dev</a></p>",
-  faqs: [
-    ["Do I need to know how to code?", "No — describe what you want in plain words. You get working code plus a hosting guide that walks through setup step by step."],
-    ["Where does my bot run?", "Anywhere you host it — the guide covers options. Bot Forge itself doesn't host your bot."],
-    ["Do I need AI keys?", "Yes — you bring your own AI provider keys, and usage bills to your provider account."],
-    ["Can the AI make mistakes?", "Yes. Every generation includes an honest note about AI codegen limits — always review generated code before running it, especially around tokens and user data."],
-    ["Is it free to use?", "Yes — Bot Forge is a free web tool; you only ever pay your own AI provider for generation usage."]
   ]
 },
 qr: {
