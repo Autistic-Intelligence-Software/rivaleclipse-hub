@@ -56,7 +56,6 @@ async function roleOf(request) {
 const BASE_KB = `Rival Eclipse (www.rivaleclipse.dev) knowledge:
 - 5 Discord bots, all FREE while in beta: Bouncer (anti-scam moderation, quarantine), Chat-Mate (channel content enforcement, pattern learning, Ask-to-DM), Tim (AI chatbot; owners bring their own OpenAI/Gemini/Anthropic key), VibeCheck (pulse surveys, vibe ratings, rep system), FreeMium JayRain (music bot; host your own node = free forever, $1.49/mo Mobile tier free during beta).
 - GIF-to-QR Converter: 5 free generations, $0.99 for unlimited.
-- Bot Forge: free web-only Discord bot builder; users bring their own AI keys; "least difficult" never "easiest".
 - Custom dev services: quote via /dev-request/ (basic users limited to 1 request/week); business owners and brand ambassadors apply at /apply/.
 - Sign-in: one account for everything — magic link email (check spam), passkeys/biometrics, one-time Discord pairing. Every *.rivaleclipse.dev dashboard then opens without another login.
 - Roles: user, client, tester, team, admin (promotions handled by the team).
