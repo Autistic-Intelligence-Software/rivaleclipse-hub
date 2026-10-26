@@ -63,7 +63,12 @@
     const d = (s && s.discord) || {};
     const u = (s && s.user) || {};
     if (d.id && d.avatar) {
-      return `<img src="https://cdn.discordapp.com/avatars/${esc(d.id)}/${esc(d.avatar)}.png?size=96" alt="profile">`;
+      // The stored avatar hash goes stale when the user changes their
+      // Discord pfp (magic-link sign-ins never refresh it) → the CDN URL
+      // 404s and the chip shows a broken image. Fall back to Discord's
+      // default avatar for this user ID, which always resolves.
+      const defIdx = Number((BigInt(d.id) >> 22n) % 6n);
+      return `<img src="https://cdn.discordapp.com/avatars/${esc(d.id)}/${esc(d.avatar)}.png?size=96" alt="profile" onerror="this.onerror=null;this.src='https://cdn.discordapp.com/embed/avatars/${defIdx}.png'">`;
     }
     const initial = ((d.username || u.email || '?') + '?').trim().charAt(0).toUpperCase();
     return esc(initial);
