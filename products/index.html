@@ -117,6 +117,18 @@
         </ul>
         <div class="hint">Click for details, ToS, privacy &amp; FAQ →</div>
       </button>
+      <button class="card prod-card" data-product="voicecord">
+        <div class="icon"><img src="/voice-cord.webp" alt="Voice-Cord icon"></div>
+        <h2><span class="beta-pill">BETA</span>Voice-Cord (beta)</h2>
+        <p>Voice chat that travels between servers.</p>
+        <ul>
+          <li>Queue solo or with up to 3 friends — get matched into a voice room</li>
+          <li>Visit other servers' voice chats as a guest</li>
+          <li>Room modes: Closed, Server, Open &amp; Timed visits</li>
+          <li>Free while in beta</li>
+        </ul>
+        <div class="hint">Click for details, ToS, privacy &amp; FAQ →</div>
+      </button>
       <button class="card prod-card" data-product="forge">
         <div class="icon"><img src="/forge.webp" alt="Bot Forge icon"></div>
         <h2>Bot Forge</h2>
@@ -273,6 +285,25 @@ jayrain: {
     ["Can I host a node from my phone?", "No — node hosting requires a PC (Windows, Mac, or Linux). Phones can listen, just not host."],
     ["What if no node is online?", "The bot says so plainly and points you at the setup guide instead of playing anything."],
     ["Is it free?", "Yes — FreeMium JayRain is in beta and free while in beta."]
+  ]
+},
+voicecord: {
+  name: "Voice-Cord (beta)",
+  kind: "bot",
+  dashboard: "https://voicecord.rivaleclipse.dev/dashboard/",
+  needs: "Linked Discord for the dashboard",
+  tag: "Voice chat that travels between servers. Free while in beta.",
+  visit: "https://voicecord.rivaleclipse.dev",
+  visitLabel: "Open Voice-Cord portal",
+  overview: "<p>Voice-Cord connects Discord servers through voice rooms. Join the queue on your own or with up to 3 friends, get matched into a room, and visit another server's voice chat as a guest — no server-hopping, no alt accounts, no awkward invite begging.</p><p>Rooms run in four modes: <strong>Closed</strong> (invite-only), <strong>Server</strong> (your server only), <strong>Open</strong> (anyone matched can join), and <strong>Timed</strong> (visits last 1, 3, 5, or 10 minutes). Open and Timed rooms appear in a public directory organized by topic tags — Gaming, Chill, Debates, Music, Study / Homework, and more. Groups are never split: your whole party lands in the same room or keeps waiting together. Visitors join under a Visitor role and are removed when the visit ends, and Voice-Cord kicks and blocks are internal to Voice-Cord only — they are never server bans. <strong>No audio is ever recorded or stored.</strong></p>",
+  tos: "<p>In short: Voice-Cord is in beta and <strong>free while in beta</strong>, provided as-is. Don't use it to harass, raid, spam, or break Discord's rules or a host server's rules — hosts and server admins control their rooms, and Voice-Cord's own kick/block tools never ban anyone from a server or affect their Discord account. Visitors are added to the host server for the visit and removed when it ends; joining a room means accepting that server's rules while you're there.</p><p class=\"fineprint\">Full text: <a href=\"https://voicecord.rivaleclipse.dev/terms\" target=\"_blank\" rel=\"noopener\">voicecord.rivaleclipse.dev/terms</a></p>",
+  privacy: "<p>In short: <strong>no audio is ever recorded, stored, or listened to</strong> — Voice-Cord only arranges who is in which voice channel. It stores the minimum needed to run matching: queue entries, room settings and modes, topic tags, internal kick/block lists, and visit records (which server and room, and when a visit started and ended). Visitors are added with Discord's standard server-join and a Visitor role, and removed when the visit ends. Nothing is sold or shared with third parties.</p><p class=\"fineprint\">Full text: <a href=\"https://voicecord.rivaleclipse.dev/privacy\" target=\"_blank\" rel=\"noopener\">voicecord.rivaleclipse.dev/privacy</a></p>",
+  faqs: [
+    ["How does visiting another server work?", "Join the queue with /queue, get matched into an open room, and Voice-Cord adds you to the host server with a Visitor role and drops you into the room's voice channel. When the visit ends, you're removed from that server — you can rejoin it normally anytime."],
+    ["Can I queue with friends?", "Yes — Group Queue takes a leader plus up to 3 friends (4 total). Everyone has to accept, the group is never split, and if no room fits the whole group you're offered Keep Waiting or Leave Queue."],
+    ["Who controls a room?", "The room's host and the host server's admins. Rooms can be Closed, Server-only, Open, or Timed, and server admins set things like the maximum number of rooms with /roomsetup."],
+    ["Is my voice recorded?", "Never. Voice-Cord does not record, store, or monitor audio — it only manages room membership."],
+    ["Is it free?", "Yes — Voice-Cord is in beta and free while in beta."]
   ]
 },
 forge: {
