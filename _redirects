@@ -4,3 +4,7 @@
 /custom-services /dev-request/business/ 301
 /account/ /dashboards/ 302
 /account /dashboards/ 302
+/market-tracker https://app.rivaleclipse.dev/Market-Tracker 301
+/market-tracker/ https://app.rivaleclipse.dev/Market-Tracker 301
+/gif-2-qr https://app.rivaleclipse.dev/GIF-2-QR 301
+/gif-2-qr/ https://app.rivaleclipse.dev/GIF-2-QR 301
