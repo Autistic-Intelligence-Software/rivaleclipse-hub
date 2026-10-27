@@ -38,6 +38,16 @@
 <div class="wrap">
   <div class="crumb"><a href="/dashboards/">← Dashboards</a></div>
   <div class="prof-card"><div class="block" id="card"><p class="sub">Loading…</p></div></div>
+  <div class="prof-card"><div class="block">
+    <h2 style="margin-top:0">My requests</h2>
+    <p class="sub">Everything you've sent us — dev requests, feedback, support, contact, live chats — with the team's replies. Click a request to open the conversation.</p>
+    <div id="my-requests"><p class="sub">Loading…</p></div>
+  </div></div>
+  <div class="prof-card"><div class="block">
+    <h2 style="margin-top:0">Support notifications</h2>
+    <p class="sub">For team members: how new tickets in your categories reach you beyond the dashboard.</p>
+    <div id="my-notify-prefs"><p class="sub">Loading…</p></div>
+  </div></div>
 </div>
 </main>
 <script src="/sky.js"></script>
@@ -96,6 +106,11 @@ document.getElementById('signout-all').onclick = async () => {
     msg.textContent = 'Could not complete sign-out everywhere — please try again.';
   }
 };
+</script>
+<script type="module">
+import { mountMyRequests, mountNotifyPrefs } from '/_lib/support.js';
+mountMyRequests(document.getElementById('my-requests'));
+mountNotifyPrefs(document.getElementById('my-notify-prefs'));
 </script>
 <script src="/_lib/menu.js"></script>
 <script src="/assistant.js"></script>
