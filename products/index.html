@@ -141,6 +141,18 @@
         </ul>
         <div class="hint">Click for details, ToS, privacy &amp; FAQ →</div>
       </button>
+      <button class="card prod-card" data-product="boardcord">
+        <div class="icon"><img src="/board-cord.webp" alt="Board-Cord icon"></div>
+        <h2><span class="beta-pill">BETA</span>Board-Cord (beta)</h2>
+        <p>Multiplayer board games, right in chat.</p>
+        <ul>
+          <li>Battleships with private placement and firing boards</li>
+          <li>Spectators see blank boards — just the live hit/miss feed</li>
+          <li>Many games at once, one-tap rematches</li>
+          <li>Free while in beta — Chess is next</li>
+        </ul>
+        <div class="hint">Click for details, ToS, privacy &amp; FAQ →</div>
+      </button>
       <button class="card prod-card" data-product="qr">
         <div class="icon"><img src="/qr-converter.webp" alt="QR Converter icon"></div>
         <h2>GIF to QR Converter</h2>
@@ -150,6 +162,18 @@
           <li>5 free generations, then $0.99 for unlimited</li>
           <li>Your images are processed in-page, never uploaded</li>
           <li>QRs never expire — yours to keep</li>
+        </ul>
+        <div class="hint">Click for details, ToS, privacy &amp; FAQ →</div>
+      </button>
+      <button class="card prod-card" data-product="perp">
+        <div class="icon"><img src="/perp-helper.webp" alt="Perpetual Helper icon"></div>
+        <h2>Perpetual Helper</h2>
+        <p>Live crypto perpetual predictions, refreshed every 3 seconds.</p>
+        <ul>
+          <li>Watch up to 6 coins; predictions for over/under at cycle close</li>
+          <li>Snipe alerts for sudden jumps and drops</li>
+          <li>Estimate graph beside the live feed — it grades and retunes itself</li>
+          <li>Free in your browser, plus a floating Android app</li>
         </ul>
         <div class="hint">Click for details, ToS, privacy &amp; FAQ →</div>
       </button>
@@ -325,6 +349,24 @@ navibot: {
     ["Is it free?", "Yes — Navi-Bot is in beta and free while in beta."]
   ]
 },
+boardcord: {
+  name: "Board-Cord (beta)",
+  kind: "bot",
+  dashboard: "https://gamecord.rivaleclipse.dev/dashboard/",
+  needs: "Linked Discord for the dashboard",
+  tag: "Multiplayer board games in Discord chat. Free while in beta.",
+  visit: "https://gamecord.rivaleclipse.dev",
+  visitLabel: "Open Board-Cord page",
+  overview: "<p>Board-Cord brings real multiplayer board games into Discord chat. First up is <strong>Battleships</strong>: challenge someone with /battleships and the challenge message becomes the game's living panel — whose turn it is, the shot feed, and ships still afloat, updated in place.</p><p>Placement and firing happen in private views only you can see: your shots land on the target board (miss = ⭕, hit = ❎) with your own fleet below. Spectators see both boards as blank water on purpose — the show is the turn order and the hit/miss feed, not your ship positions. Many games can run at once, and a one-tap rematch starts the next round when a fleet sinks. <strong>Chess is next.</strong></p>",
+  tos: "<p>In short: Board-Cord is in beta and <strong>free while in beta</strong>, provided as-is. Play fair — don't use alt accounts to scout an opponent's board or otherwise cheat a live game. Game state is kept so matches can run; abandoned games may be cleared. No warranty.</p><p class=\"fineprint\">Full text: <a href=\"https://gamecord.rivaleclipse.dev/terms\" target=\"_blank\" rel=\"noopener\">gamecord.rivaleclipse.dev/terms</a></p>",
+  privacy: "<p>In short: Board-Cord stores game state (boards, shots, turns) tied to the players' Discord IDs so games can be played and resumed, plus per-server settings. Private boards are only ever shown to their owner — spectator views are blank by design. Nothing is sold or shared with third parties.</p><p class=\"fineprint\">Full text: <a href=\"https://gamecord.rivaleclipse.dev/privacy\" target=\"_blank\" rel=\"noopener\">gamecord.rivaleclipse.dev/privacy</a></p>",
+  faqs: [
+    ["Can other people see my ships?", "No. Your placement and your fleet are shown only in your private view. Spectators see blank boards, the turn order, and a hit/miss feed with no coordinates."],
+    ["How many games can run at once?", "As many as you like — every match gets its own board state and its own panel message."],
+    ["What games are available?", "Battleships today. Chess is the next build."],
+    ["Is it free?", "Yes — Board-Cord is in beta and free while in beta."]
+  ]
+},
 qr: {
   name: "GIF to QR Converter",
   kind: "open",
@@ -341,6 +383,24 @@ qr: {
     ["Do my QR codes expire?", "Never. The destination is embedded in the QR itself, so anything you make — even on the free trial — is yours to keep."],
     ["Will it fix my image's brightness automatically?", "Never. It shows a red-text warning naming the image and the issue instead, and you adjust it yourself."],
     ["Do I need an account?", "A magic-link email login tracks your free generations and unlocks — no password needed."]
+  ]
+},
+perp: {
+  name: "Perpetual Helper",
+  kind: "open",
+  needs: "Nothing — runs in your browser; Android app optional",
+  tag: "Live crypto perpetual predictions every 3 seconds. Free.",
+  visit: "https://demos.rivaleclipse.dev/perp-helper/",
+  visitLabel: "Open the tracker",
+  overview: "<p>Perpetual Helper watches the crypto perpetuals you're playing and tells you, every 3 seconds, whether the price is likelier to close <strong>over or under your line</strong> when the cycle ends. Pick up to 6 coins, set the cycle length and your line (slider or exact entry), and start the timer — it aligns to the market clock so its call is always about the close, never about right now.</p><p>Each coin runs its own model, built from 6 months of price history plus the last 24 hours and week of movement: trend state (jumping, dropping, leveling, riding the line), average rise vs fall, an estimate graph beside the live feed, and <strong>snipe alerts</strong> when a sudden jump or drop looks likely. After every close it grades itself — right or wrong — shows its running record, and adjusts its own per-coin weights from what it got wrong.</p><p><strong>Honest note:</strong> short-cycle crypto direction is close to a coin flip in backtests (about 50% at an hour, ~54% at 15 minutes on the strongest setups) — the Helper shows its real record instead of promising certainty. Predictions are probabilities, not financial advice.</p>",
+  tos: "<p>In short: Perpetual Helper is free. It provides probability estimates from historical patterns — <strong>not financial advice</strong>, and not a guarantee of any outcome. You are responsible for your own trades and any losses. Provided as-is, no warranty.</p><p class=\"fineprint\">Site-wide fine print: <a href=\"/ToS-Privacy-legal/\">ToS &amp; Privacy</a></p>",
+  privacy: "<p>In short: the tracker runs in your browser against public market data. Your coin picks, lines, settings, scoreboard, and the model's self-adjustments are stored <strong>on your device</strong> (browser storage / the app itself) — not on our servers. No account, no tracking of your usage.</p><p class=\"fineprint\">Site-wide fine print: <a href=\"/ToS-Privacy-legal/\">ToS &amp; Privacy</a></p>",
+  faqs: [
+    ["How accurate is it?", "Honest backtests on data the models never trained on: about 50% for 1-hour direction (a coin flip), ~54% for 15-minute direction, and ~64% when your line sits away from the current price. The app shows its own live record per coin so you can judge it yourself."],
+    ["What is a snipe alert?", "A setup where a sudden jump or drop looks unusually likely — in backtests the hourly setup preceded a big move about 1.6x more often than normal. The card says which coin and which direction."],
+    ["Does it place trades?", "No. It only predicts and keeps score. Any trading happens on your own platform, at your own risk."],
+    ["Is my data uploaded?", "No — your settings and its learning live on your device. Market data comes from public exchange feeds."],
+    ["What does the Android app add?", "The same tracker as a floating panel that stays on top of your other apps — your trading app included — so you never have to switch back and forth."]
   ]
 },
 customdev: {
