@@ -192,6 +192,7 @@ input[type=file]{padding:10px}
   </div>
 </footer>
 <script src="/sky.js"></script>
+<script src="/_lib/ticket-form.js"></script>
 <script>
 const imgInput = document.getElementById('q-images');
 const imgPreview = document.getElementById('img-preview');
@@ -259,6 +260,7 @@ document.getElementById('quote-form').addEventListener('submit', async (e) => {
     if (f.size > 4 * 1024 * 1024) { msg.className = 'err'; msg.textContent = f.name + ' is still over 4 MB after resizing — please use a smaller image.'; btn.disabled = false; btn.textContent = 'Submit'; return; }
   }
   btn.textContent = 'Sending…';
+  const ticketP = window.fileTicket ? window.fileTicket(e.target, 'dev-request-business') : Promise.resolve(null);
   const fd = new FormData(e.target);
   fd.delete('images');
   files.forEach((f) => fd.append('images', f, f.name));
@@ -276,8 +278,9 @@ document.getElementById('quote-form').addEventListener('submit', async (e) => {
     const res = await fetch('/quote', { method: 'POST', body: fd });
     const out = await res.json();
     if (out.ok) {
+      const tref = await ticketP;
       msg.className = 'ok';
-      msg.textContent = 'Brief received — we\'ll reply personally, usually within a day.';
+      msg.textContent = 'Brief received — we\'ll reply personally, usually within a day.' + (tref ? ' Your ticket reference is ' + tref + ' — follow it under My requests on your profile.' : '');
       e.target.reset(); imgPreview.innerHTML = '';
     } else if (out.blocked || out.error === 'not_signed_in') {
       const _bn = (out.blocked && out.blocked.next) || out.next || location.pathname;
