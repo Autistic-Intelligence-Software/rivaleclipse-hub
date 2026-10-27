@@ -87,6 +87,18 @@
       <p id="owner-msg"></p>
     </div>
     <div class="block">
+      <h2>Support alert routing</h2>
+      <p class="sub">Choose who gets pinged in the private Discord team channel when a form of each type comes in. The post names the category; the people you pick here are @-mentioned so the right person sees it first. Everyone authorized for a category still gets the dashboard notification — this only controls the Discord ping. (Requires the team-channel webhook to be connected on the server side.)</p>
+      <div id="routing-list"><p class="dim">Loading…</p></div>
+      <p id="routing-msg"></p>
+    </div>
+    <div class="block">
+      <h2>Category access</h2>
+      <p class="sub">Which access tags can view and claim each type of ticket. You (owner) always can. Changes apply immediately.</p>
+      <div id="catstaff-list"><p class="dim">Loading…</p></div>
+      <p id="catstaff-msg"></p>
+    </div>
+    <div class="block">
       <h2>All codes</h2>
       <p class="sub">Unused codes can be revoked. Used codes show who redeemed them.</p>
       <div style="overflow-x:auto"><table class="ctable">
@@ -246,6 +258,85 @@ document.getElementById('codes-body').addEventListener('click', async (e) => {
 });
 
 loadCodes();
+
+// ---------- support routing + category access (owner-only APIs) ----------
+const AUTH_BASE = 'https://auth.rivaleclipse.dev';
+async function oapi(path, opts = {}) {
+  const r = await fetch(AUTH_BASE + path, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  const data = await r.json().catch(() => ({}));
+  return { status: r.status, data };
+}
+const rmsg = document.getElementById('routing-msg');
+const rsay = (t, ok) => { rmsg.textContent = t; rmsg.style.color = ok ? 'var(--ok)' : '#ff7070'; };
+
+async function loadRouting() {
+  const el = document.getElementById('routing-list');
+  const { status, data } = await oapi('/api/routing');
+  if (status !== 200) { el.innerHTML = '<p class="dim">Couldn’t load routing.</p>'; return; }
+  const members = data.members || [];
+  el.innerHTML = (data.categories || []).map((c) => `
+    <div style="border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px" data-rcat="${esc(c.category)}">
+      <div style="font-weight:700;margin-bottom:8px">${esc(c.label)}</div>
+      ${members.length ? members.map((m) => `
+        <label style="display:inline-flex;gap:6px;align-items:center;margin:0 14px 8px 0;font-size:.9rem">
+          <input type="checkbox" data-rmember="${esc(m.id)}" ${c.user_ids.includes(m.id) ? 'checked' : ''}>
+          ${esc(m.name || m.email)} <span class="dim">${esc((m.tags || []).join(', ') || 'owner')}${m.discord_id ? '' : ' · no Discord linked (can’t be pinged)'}</span>
+        </label>`).join('') : '<p class="dim">No team/admin members yet.</p>'}
+      <div><button class="gen-btn" type="button" data-rsave="${esc(c.category)}">Save routing</button></div>
+    </div>`).join('');
+}
+document.getElementById('routing-list').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-rsave]');
+  if (!b) return;
+  const box = b.closest('[data-rcat]');
+  const ids = [...box.querySelectorAll('[data-rmember]:checked')].map((x) => x.dataset.rmember);
+  b.disabled = true;
+  const { status, data } = await oapi('/api/routing', {
+    method: 'PUT', body: JSON.stringify({ category: b.dataset.rsave, user_ids: ids }),
+  });
+  b.disabled = false;
+  if (status === 200) { rsay('Routing saved.', true); loadRouting(); }
+  else rsay(data.error || 'Couldn’t save routing.', false);
+});
+
+async function loadCatStaff() {
+  const el = document.getElementById('catstaff-list');
+  const { status, data } = await oapi('/api/category-staff');
+  if (status !== 200) { el.innerHTML = '<p class="dim">Couldn’t load category access.</p>'; return; }
+  const tags = data.assignable_tags || ['team', 'admin'];
+  el.innerHTML = Object.entries(data.categories || {}).map(([cat, allowed]) => `
+    <div style="border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px" data-ccat="${esc(cat)}">
+      <div style="font-weight:700;margin-bottom:8px">${esc((data.labels || {})[cat] || cat)}</div>
+      ${tags.map((t) => `
+        <label style="display:inline-flex;gap:6px;align-items:center;margin:0 14px 8px 0;font-size:.9rem">
+          <input type="checkbox" data-ctag="${esc(t)}" ${allowed.includes(t) ? 'checked' : ''}> ${esc(t)}
+        </label>`).join('')}
+      <div><button class="gen-btn" type="button" data-csave="${esc(cat)}">Save access</button></div>
+    </div>`).join('');
+}
+document.getElementById('catstaff-list').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-csave]');
+  if (!b) return;
+  const box = b.closest('[data-ccat]');
+  const tags = [...box.querySelectorAll('[data-ctag]:checked')].map((x) => x.dataset.ctag);
+  const m = document.getElementById('catstaff-msg');
+  if (!tags.length) { m.textContent = 'Pick at least one tag — a category nobody can claim would strand tickets.'; m.style.color = '#ff7070'; return; }
+  b.disabled = true;
+  const { status, data } = await oapi('/api/category-staff', {
+    method: 'PUT', body: JSON.stringify({ category: b.dataset.csave, tags }),
+  });
+  b.disabled = false;
+  m.textContent = status === 200 ? 'Access saved.' : (data.error || 'Couldn’t save access.');
+  m.style.color = status === 200 ? 'var(--ok)' : '#ff7070';
+  if (status === 200) loadCatStaff();
+});
+
+loadRouting();
+loadCatStaff();
 </script>
 <script src="/_lib/menu.js"></script>
 <script src="/assistant.js"></script>
