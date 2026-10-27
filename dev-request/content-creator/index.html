@@ -46,15 +46,17 @@
 </main>
 <footer><div class="wrap"><span>© 2026 Rival Eclipse</span><nav><a href="/help/">Help</a><a href="/ToS-Privacy-legal/">ToS &amp; Privacy</a><a href="/sign-in/">Sign in</a><a href="/client/">Client Portal</a></nav></div></footer>
 <script src="/sky.js"></script>
+<script src="/_lib/ticket-form.js"></script>
 <script>
 document.getElementById('quote-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const msg = document.getElementById('form-msg');
   msg.className = ''; msg.textContent = 'Sending…';
+  const ticketP = window.fileTicket ? window.fileTicket(e.target, 'dev-request-creator') : Promise.resolve(null);
   try {
     const r = await fetch('/quote', { method: 'POST', body: new FormData(e.target) });
     const d = await r.json();
-    if (d.ok) { msg.className = 'ok'; msg.textContent = 'Request received — we reply with a fixed quote, usually within a day.'; e.target.reset(); }
+    if (d.ok) { const tref = await ticketP; msg.className = 'ok'; msg.textContent = 'Request received — we reply with a fixed quote, usually within a day.' + (tref ? ' Your ticket reference is ' + tref + ' — follow it under My requests on your profile.' : ''); e.target.reset(); }
     else if (d.blocked || d.error === 'not_signed_in') { const _bn = (d.blocked && d.blocked.next) || d.next || location.pathname; location.href = '/blocked/?reason=signin&next=' + encodeURIComponent(_bn); return; }
     else { msg.className = 'err'; msg.textContent = d.error === 'rate_limited' ? 'You\u2019ve already sent a dev request this week — one request per week per account. We\u2019ll reply to your original request soon.' : 'Something was off with the form — check the fields and try again.'; }
   } catch { msg.className = 'err'; msg.textContent = 'Network error — try again in a moment.'; }
