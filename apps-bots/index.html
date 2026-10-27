@@ -3,19 +3,126 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bots / Apps — Your Dashboards — Rival Eclipse</title>
-<meta name="description" content="Your Rival Eclipse bot dashboards — manage Bouncer, Chat-Mate, Tim, VibeCheck, JayRain, Voice-Cord, Navi-Bot, and Board-Cord. Needs a linked Discord account.">
+<title>Discord Bots — Rival Eclipse</title>
+<meta name="description" content="The live Discord bots by Rival Eclipse — Bouncer, Chat-Mate, Tim, VibeCheck, JayRain, Voice-Cord, Navi-Bot, and Board-Cord. Add one to your server or open its dashboard.">
 <link rel="stylesheet" href="/style.css">
-<style>.beta-pill{display:inline-block;font-size:.68rem;font-weight:800;letter-spacing:.08em;color:#0a0a0f;background:#ffd54a;border-radius:999px;padding:2px 9px;margin-right:8px;vertical-align:2px}</style></head>
+<style>
+.beta-pill{display:inline-block;font-size:.68rem;font-weight:800;letter-spacing:.08em;color:#0a0a0f;background:#ffd54a;border-radius:999px;padding:2px 9px;margin-right:8px;vertical-align:2px}
+.card .actions{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.btn.sm{padding:11px 18px;font-size:.95rem;text-align:center;border-radius:10px}
+.btn.ghosty{background:none;border:1px solid var(--accent);color:var(--accent)}
+.btn.ghosty:hover{transform:translateY(-2px)}
+.card .needs-line{font-size:.82rem;color:var(--muted);margin-top:2px}
+</style>
+</head>
 <body>
 <canvas id="sky" aria-hidden="true"></canvas>
 <main>
   <div class="wrap">
     <div class="crumb"><a href="/">← Rival Eclipse</a></div>
-    <h1 class="page-title">Bots / Apps — Your Dashboards</h1>
-    <p class="page-sub" id="gate-sub">Checking your account…</p>
-    <div class="grid" id="dash-grid" style="display:none"></div>
-    <p class="page-sub" style="margin-top:18px">Just browsing? <a href="/products/">See everything we offer</a> — no account needed.</p>
+    <h1 class="page-title">Discord Bots</h1>
+    <p class="page-sub">Every live bot we've built — all free while in beta. Add one to your server with the button on its card, and manage it from its dashboard (dashboards need a Rival Eclipse account with a linked Discord).</p>
+
+    <div class="grid">
+      <div class="card">
+        <div class="icon"><img src="/bouncer-bot.webp" alt="Bouncer Bot icon"></div>
+        <span class="badge dash">🔗 dashboard needs linked Discord</span>
+        <h2><span class="beta-pill">BETA</span>Bouncer Bot — Anti-Scam Network</h2>
+        <p>Anti-scam bouncer for your server — quarantine-not-ban, verification, and cross-server scam intel.</p>
+        <div class="actions">
+          <a class="btn sm" href="https://discord.com/oauth2/authorize?client_id=1560000586123051008&amp;permissions=1099780131847&amp;scope=bot+applications.commands">Add to Server</a>
+          <a class="btn sm ghosty" href="https://bouncer.rivaleclipse.dev/dashboard/">Open dashboard</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="icon"><img src="/chat-mate.webp" alt="Chat-Mate icon"></div>
+        <span class="badge dash">🔗 dashboard needs linked Discord</span>
+        <h2><span class="beta-pill">BETA</span>Chat-Mate — Server Housekeeping</h2>
+        <p>Channel content enforcement and pattern learning — keeps every channel on-topic, learns your rules.</p>
+        <div class="actions">
+          <a class="btn sm" href="https://discord.com/oauth2/authorize?client_id=1559542225849811104&amp;permissions=125952&amp;scope=bot+applications.commands">Add to Server</a>
+          <a class="btn sm ghosty" href="https://chatmate.rivaleclipse.dev/dashboard/">Open dashboard</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="icon"><img src="/tim.webp" alt="Tim icon"></div>
+        <span class="badge dash">🔗 dashboard needs linked Discord</span>
+        <h2><span class="beta-pill">BETA</span>Tim — AI Chatbot</h2>
+        <p>AI chatbot for your server — bring your own AI key (OpenAI, Gemini, Anthropic, or a local model).</p>
+        <div class="actions">
+          <a class="btn sm" href="https://discord.com/oauth2/authorize?client_id=1560198746984288359&amp;permissions=84992&amp;scope=bot+applications.commands">Add to Server</a>
+          <a class="btn sm ghosty" href="https://tim.rivaleclipse.dev/dashboard/">Open dashboard</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="icon"><img src="/vibecheck.webp" alt="VibeCheck icon"></div>
+        <span class="badge dash">🔗 dashboard needs linked Discord</span>
+        <h2><span class="beta-pill">BETA</span>VibeCheck — Community &amp; Reputation</h2>
+        <p>Community pulse surveys, rep and trait voting, and vibe ratings — know how your server actually feels.</p>
+        <div class="actions">
+          <a class="btn sm" href="https://discord.com/oauth2/authorize?client_id=1559543786500005918&amp;permissions=2416004096&amp;scope=bot+applications.commands">Add to Server</a>
+          <a class="btn sm ghosty" href="https://vibecheck.rivaleclipse.dev/dashboard/">Open dashboard</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="icon"><img src="/jayrain.webp" alt="FreeMium JayRain icon"></div>
+        <span class="badge dash">🔗 dashboard needs linked Discord</span>
+        <h2><span class="beta-pill">BETA</span>FreeMium JayRain — Music Bot</h2>
+        <p>Music bot powered by community-hosted nodes — host your own node and it's free forever. Mobile tier available.</p>
+        <div class="actions">
+          <a class="btn sm" href="https://discord.com/oauth2/authorize?client_id=1560598826195230871&amp;permissions=2151009344&amp;scope=bot+applications.commands">Add to Server</a>
+          <a class="btn sm ghosty" href="https://freemiumjayrain.rivaleclipse.dev/dashboard/">Open dashboard</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="icon"><img src="/voice-cord.webp" alt="Voice-Cord icon"></div>
+        <span class="badge dash">🔗 dashboard needs linked Discord</span>
+        <h2><span class="beta-pill">BETA</span>Voice-Cord — Cross-Server Voice Rooms</h2>
+        <p>Cross-server voice rooms — queue solo or with friends, match, and visit other servers' voice chats as a guest.</p>
+        <div class="actions">
+          <a class="btn sm" href="https://discord.com/oauth2/authorize?client_id=1563831546740346943&amp;permissions=285338642&amp;scope=bot+applications.commands">Add to Server</a>
+          <a class="btn sm ghosty" href="https://voicecord.rivaleclipse.dev/dashboard/">Open dashboard</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="icon"><img src="/navi-bot.webp" alt="Navi-Bot icon"></div>
+        <span class="badge open">Panel lives in Discord</span>
+        <h2><span class="beta-pill">BETA</span>Navi-Bot — Opt-In Ping Panels</h2>
+        <p>Opt-in ping panels — VC-start and stream alerts plus custom mod pings, with roles created automatically.</p>
+        <div class="actions">
+          <a class="btn sm" href="https://discord.com/oauth2/authorize?client_id=1564127307223007353&amp;permissions=268561408&amp;scope=bot+applications.commands">Add to Server</a>
+          <a class="btn sm ghosty" href="https://navibot.rivaleclipse.dev/">Open Navi-Bot page</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="icon"><img src="/board-cord.webp" alt="Board-Cord icon"></div>
+        <span class="badge dash">🔗 dashboard needs linked Discord</span>
+        <h2><span class="beta-pill">BETA</span>Board-Cord — Multiplayer Chat Games</h2>
+        <p>Multiplayer chat games — Battleships with private boards and blank-slate spectator panels. Chess next.</p>
+        <div class="actions">
+          <a class="btn sm" href="https://discord.com/oauth2/authorize?client_id=1564239910280626176&amp;permissions=117760&amp;scope=bot+applications.commands">Add to Server</a>
+          <a class="btn sm ghosty" href="https://gamecord.rivaleclipse.dev/dashboard/">Open dashboard</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>Want a bot of your own?</h2>
+      <p class="sub">None of these quite fit? We build custom Discord bots to order — moderation, AI chat, music, automation, whatever your server needs. Fixed-price quote in writing, and you own the finished bot.</p>
+      <div class="cta-row" style="text-align:left;margin-top:6px">
+        <a class="btn" href="/dev-request/bots-apps/">Request a custom bot</a>
+      </div>
+      <p class="needs-line" style="margin-top:14px">Filing a request needs a free Rival Eclipse account — the form walks you through it.</p>
+    </div>
+
+    <p class="page-sub" style="margin-top:18px">Managing bots already in your servers? <a href="/dashboards/">Open your dashboards</a>. Or <a href="/products/">browse everything as a guest</a> — no account needed.</p>
   </div>
 </main>
 <footer>
@@ -23,58 +130,14 @@
     <div>© 2026 Rival Eclipse. All things under rivaleclipse.dev.</div>
     <nav>
       <a href="/">Home</a>
+      <a href="/web-apps/">Web Apps</a>
+      <a href="/dashboards/">Dashboards</a>
       <a href="/sign-in/">Sign in</a>
-      <a href="/client/">Client Portal</a>
-      <a href="https://bouncer.rivaleclipse.dev/terms">Terms of Service</a>
-      <a href="https://bouncer.rivaleclipse.dev/privacy">Privacy Policy</a>
+      <a href="/ToS-Privacy-legal/">ToS &amp; Privacy</a>
     </nav>
   </div>
 </footer>
 <script src="/sky.js"></script>
-<script type="module">
-import { session, packages } from '/auth.js';
-import { hasDiscord, goBlocked } from '/_lib/gates.js';
-
-// Gateway: bot dashboards need a signed-in account WITH a linked Discord.
-// Anything missing routes through the friendly /blocked/ interstitial,
-// which returns here once the requirement is met.
-const s = await session().catch(() => null);
-if (!s) goBlocked('signin', '/apps-bots/');
-if (!hasDiscord(s)) goBlocked('discord', '/apps-bots/');
-
-const BOTS = [
-  { name: 'Bouncer', dashboard_url: 'https://bouncer.rivaleclipse.dev/dashboard/', description: 'Anti-scam bouncer for your server — quarantine, verification, scam intel.', icon: '/bouncer-bot.webp', tag: 'Bouncer Bot (beta) — Anti-Scam Network' },
-  { name: 'Chat-Mate', dashboard_url: 'https://chatmate.rivaleclipse.dev/dashboard/', description: 'Channel content enforcement and pattern learning.', icon: '/chat-mate.webp', tag: 'Chat-Mate (beta) — Server Housekeeping' },
-  { name: 'Tim', dashboard_url: 'https://tim.rivaleclipse.dev/dashboard/', description: 'AI chatbot for your server — bring your own AI key.', icon: '/tim.webp', tag: 'Tim (beta) — AI Chatbot' },
-  { name: 'VibeCheck', dashboard_url: 'https://vibecheck.rivaleclipse.dev/dashboard/', description: 'Community pulse surveys, rep, and vibe ratings.', icon: '/vibecheck.webp', tag: 'VibeCheck (beta) — Community & Reputation' },
-  { name: 'FreeMium JayRain', dashboard_url: 'https://freemiumjayrain.rivaleclipse.dev/dashboard/', description: 'Music bot — nodes, sharing, Mobile tier.', icon: '/jayrain.webp', tag: 'FreeMium JayRain (beta) — Music Bot' },
-  { name: 'Voice-Cord', dashboard_url: 'https://voicecord.rivaleclipse.dev/dashboard/', description: 'Cross-server voice rooms — queue, match, and visit other servers.', icon: '/voice-cord.webp', tag: 'Voice-Cord (beta) — Cross-Server Voice Rooms' },
-  { name: 'Navi-Bot', dashboard_url: 'https://navibot.rivaleclipse.dev/', description: 'Opt-in ping panels — VC-start and stream alerts plus custom mod pings, with auto-created roles.', icon: '/navi-bot.webp', tag: 'Navi-Bot (beta) — Opt-In Ping Panels' },
-  { name: 'Board-Cord', dashboard_url: 'https://gamecord.rivaleclipse.dev/dashboard/', description: 'Multiplayer chat games — Battleships with private boards and blank-slate spectator panels. Chess next.', icon: '/board-cord.webp', tag: 'Board-Cord (beta) — Multiplayer Chat Games' },
-];
-
-let pkgs = [];
-try { pkgs = await packages(); } catch { /* fall back to the static list */ }
-const list = (pkgs && pkgs.length ? pkgs : BOTS).map((p) => {
-  const known = BOTS.find((b) => b.dashboard_url === p.dashboard_url) || {};
-  return {
-    name: p.name, dashboard_url: p.dashboard_url,
-    description: p.description || known.description || '',
-    icon: known.icon || '', tag: known.tag || p.name,
-  };
-});
-
-document.getElementById('gate-sub').textContent = 'Manage your Discord servers on each bot — signed in, Discord linked.';
-const grid = document.getElementById('dash-grid');
-grid.style.display = '';
-grid.innerHTML = list.map((p) => `
-  <a class="card" href="${p.dashboard_url}">
-    ${p.icon ? `<div class="icon"><img src="${p.icon}" alt="${p.name} icon"></div>` : ''}
-    <span class="badge dash">🔗 discord linked</span>
-    <h2>${p.tag}</h2><p>${p.description}</p>
-    <div class="go">Open dashboard <span>→</span></div>
-  </a>`).join('');
-</script>
 <script src="/assistant.js"></script>
 <script src="/_lib/menu.js"></script>
 </body>
