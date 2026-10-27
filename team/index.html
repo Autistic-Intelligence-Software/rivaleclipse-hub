@@ -122,6 +122,24 @@ a.act-btn { text-decoration: none; display: inline-block; }
       </div>
     </div>
 
+    <div class="block" id="support-block">
+      <h2>Support inbox</h2>
+      <p class="sub">Every form on the site files a ticket here — dev requests, feedback, support, contact, and live chat requests. Claim a ticket to own it; the claim is logged for the whole team. Live chat requests need a claim fast (the visitor is waiting) or a “Not available”.</p>
+      <div id="support-inbox"><p class="dim">Loading…</p></div>
+    </div>
+
+    <div class="block" id="teamlog-block">
+      <h2>Team log</h2>
+      <p class="sub">The latest ticket activity across the team — claims, replies, and status changes, mirrored on the Admin dashboard.</p>
+      <div id="team-log"><p class="dim">Loading…</p></div>
+    </div>
+
+    <div class="block" id="support-prefs-block">
+      <h2>Support alert forwarding</h2>
+      <p class="sub">On top of the dashboard notifications and the Discord team-channel alerts, you can forward new tickets in your categories to your own email and phone.</p>
+      <div id="support-prefs"><p class="dim">Loading…</p></div>
+    </div>
+
     <div class="block" id="crq-block">
       <h2>Change request queue</h2>
       <p class="sub">Pending client change requests — accept, decline, or send one to an admin for review.</p>
@@ -166,6 +184,7 @@ a.act-btn { text-decoration: none; display: inline-block; }
 <script type="module">
 import { session, logout } from '/auth.js';
 import { tagsOf, hasTag, goBlocked } from '/_lib/gates.js';
+import { mountSupportInbox, mountTeamLog, mountNotifyPrefs } from '/_lib/support.js';
 const AUTH = 'https://auth.rivaleclipse.dev';
 
 async function api(path, opts = {}) {
@@ -496,6 +515,9 @@ loadTeam();
 loadBoard();
 loadClients();
 loadCRQ();
+mountSupportInbox(document.getElementById('support-inbox'));
+mountTeamLog(document.getElementById('team-log'));
+mountNotifyPrefs(document.getElementById('support-prefs'));
 </script>
 <script src="/assistant.js"></script>
 <script src="/_lib/menu.js"></script>
