@@ -54,12 +54,12 @@ async function roleOf(request) {
 }
 
 const BASE_KB = `Rival Eclipse (www.rivaleclipse.dev) knowledge:
-- 5 Discord bots, all FREE while in beta: Bouncer (anti-scam moderation, quarantine), Chat-Mate (channel content enforcement, pattern learning, Ask-to-DM), Tim (AI chatbot; owners bring their own OpenAI/Gemini/Anthropic key), VibeCheck (pulse surveys, vibe ratings, rep system), FreeMium JayRain (music bot; host your own node = free forever, $1.49/mo Mobile tier free during beta).
-- GIF-to-QR Converter: 5 free generations, $0.99 for unlimited.
+- 8 Discord bots, all FREE while in beta: Bouncer (anti-scam moderation, quarantine), Chat-Mate (channel content enforcement, pattern learning, Ask-to-DM), Tim (AI chatbot; owners bring their own OpenAI/Gemini/Anthropic key), VibeCheck (pulse surveys, vibe ratings, rep system), FreeMium JayRain (music bot; host your own node = free forever, $1.49/mo Mobile tier free during beta), Voice-Cord (cross-server voice rooms), Navi-Bot (opt-in ping panels — VC/stream alerts), Board-Cord (multiplayer chat games, Battleships today, chess next). Add any of them from /apps-bots/ (Add to Server buttons live there).
+- Web apps at /web-apps/: GIF-to-QR Converter (5 free generations, $0.99 for unlimited) and Perpetual Helper (live crypto perpetual tracker — over/under predictions for the cycle close refreshed every 3 seconds, snipe alerts, self-scoring; free in the browser at demos.rivaleclipse.dev/perp-helper/ plus a floating Android app — APK download linked on /web-apps/).
 - Custom dev services: quote via /dev-request/ (basic users limited to 1 request/week); business owners and brand ambassadors apply at /apply/.
 - Sign-in: one account for everything — magic link email (check spam), passkeys/biometrics, one-time Discord pairing. Every *.rivaleclipse.dev dashboard then opens without another login.
 - Roles: user, client, tester, team, admin (promotions handled by the team).
-- Key pages: / (home), /products/ (browse everything, no account needed), /dashboards/ (post-login hub), /apps-bots/, /web-apps/, /dev-request/, /apply/, /client/ (client portal), /team/ (team area), /admin/ (admin area), /help/ (FAQs), /ToS-Privacy-legal/.`;
+- Key pages: / (home — Browse as guest, Discord Bots, Web Apps, Website demos, Request Build from Dev team, plus dashboards/help/legal boxes), /products/ (guest catalog — browse everything, no account needed), /dashboards/ (post-login hub), /apps-bots/ (Discord Bots portal), /web-apps/ (Web Apps portal), https://demos.rivaleclipse.dev (website demos), /dev-request/, /apply/, /client/ (client portal), /team/ (team area), /admin/ (admin area), /help/ (FAQs, support, feedback, contact), /ToS-Privacy-legal/ (site-wide + per-app legal pages).`;
 
 const ROLE_NOTES = {
   guest: 'The visitor is not signed in: public info only. Invite them to sign in at /sign-in/ or register at /sign-up/ for account features.',
