@@ -6,6 +6,20 @@
 <title>Help — FAQs, Support, Feedback &amp; Contact — Rival Eclipse</title>
 <meta name="description" content="FAQs, support, feedback, and contact routes for Rival Eclipse accounts, dashboards, bots, and billing.">
 <link rel="stylesheet" href="/style.css">
+<style>
+.tmsg { margin-top: 14px; font-size: .95rem; display: none; }
+.tmsg.ok { display: block; color: var(--ok); }
+.tmsg.err { display: block; color: #ff7070; }
+.lc-thread { display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow-y: auto; margin: 12px 0; }
+.lc-msg { padding: 10px 14px; border-radius: 12px; font-size: .92rem; line-height: 1.55; max-width: 85%; }
+.lc-msg .who { font-size: .75rem; color: var(--muted); margin-bottom: 4px; }
+.lc-msg.staff { align-self: flex-start; background: #1d1a10; border: 1px solid #4a3f1c; }
+.lc-msg.me { align-self: flex-end; background: #101019; border: 1px solid var(--line); }
+.lc-status { font-weight: 700; font-size: 1rem; }
+.lc-wait { color: #f3d27a; }
+.lc-live { color: #7ee2a0; }
+.lc-none { color: #ff9d6b; }
+</style>
 </head>
 <body>
 <canvas id="sky" aria-hidden="true"></canvas>
@@ -42,27 +56,256 @@
   <div class="section-label">Support</div>
   <div class="block">
     <h2>Getting support</h2>
-    <p class="sub">Fastest first answers come from the <b>site assistant</b> — the chat button on every page knows the whole site and answers instantly, day or night. For anything it can't solve, or anything account-specific, reach the dev team through the contact form below and we'll take it from there. Signed-in clients can also message the team directly from the <a href="/client/dashboard/">client dashboard</a>.</p>
-    <div class="cta-row" style="text-align:left;margin-top:6px"><a class="btn" href="/dev-request/casual-other/">Contact the dev team</a></div>
+    <p class="sub">Fastest first answers come from the <b>site assistant</b> — the chat button on every page knows the whole site and answers instantly, day or night. For anything it can't solve, or anything account-specific, send the form below — it files a support ticket with the team, and you can follow the conversation under <b>My requests</b> on <a href="/profile/">your profile</a>. Signed-in clients can also message the team directly from the <a href="/client/dashboard/">client dashboard</a>.</p>
+    <form class="quote" data-ticket="support">
+      <label for="s-name">Your name</label>
+      <input id="s-name" name="name" required autocomplete="name">
+      <label for="s-email">Email</label>
+      <input id="s-email" name="email" type="email" required autocomplete="email">
+      <label for="s-area">What is it about?</label>
+      <input id="s-area" name="area" placeholder="e.g. Bouncer dashboard, billing, sign-in…">
+      <label for="s-details">What's happening?</label>
+      <textarea id="s-details" name="details" required placeholder="Which bot or page, what you clicked, what you expected, what happened instead…"></textarea>
+      <button class="btn" type="submit" style="margin-top:18px">Send support request</button>
+      <p class="tmsg"></p>
+    </form>
   </div>
 
   <div class="section-label">Feedback</div>
   <div class="block">
     <h2>Send feedback</h2>
-    <p class="sub">Ideas, complaints, feature requests, "this page confused me" — we read all of it, and a lot of what's on this site exists because someone sent feedback. Send it through the contact form and mention it's feedback; it lands with the dev team the same way.</p>
-    <div class="cta-row" style="text-align:left;margin-top:6px"><a class="btn" href="/dev-request/casual-other/">Send feedback</a></div>
+    <p class="sub">Ideas, complaints, feature requests, "this page confused me" — we read all of it, and a lot of what's on this site exists because someone sent feedback. It lands with the dev team as a feedback ticket.</p>
+    <form class="quote" data-ticket="feedback">
+      <label for="f-name">Your name</label>
+      <input id="f-name" name="name" required autocomplete="name">
+      <label for="f-email">Email</label>
+      <input id="f-email" name="email" type="email" required autocomplete="email">
+      <label for="f-details">Your feedback</label>
+      <textarea id="f-details" name="details" required placeholder="Tell us what you think…"></textarea>
+      <button class="btn" type="submit" style="margin-top:18px">Send feedback</button>
+      <p class="tmsg"></p>
+    </form>
   </div>
 
   <div class="section-label">Contact Us</div>
   <div class="block">
+    <h2>🔴 Live Chat Request</h2>
+    <p class="sub">Want a human right now? Request a live chat — the team gets pinged immediately. If someone is free they'll claim it and the chat opens right here. If nobody is available, we'll ask you to leave the details as a ticket instead so nothing gets lost.</p>
+    <div id="lc-start">
+      <form class="quote" id="lc-form" style="margin-top:0">
+        <label for="lc-name">Your name</label>
+        <input id="lc-name" name="name" required autocomplete="name">
+        <label for="lc-email">Email (optional — for follow-up)</label>
+        <input id="lc-email" name="email" type="email" autocomplete="email">
+        <label for="lc-topic">What do you need help with?</label>
+        <input id="lc-topic" name="topic" required placeholder="One line is fine — e.g. “My bot dashboard is empty”">
+        <button class="btn" type="submit" style="margin-top:18px">Request live chat</button>
+        <p class="tmsg" id="lc-req-msg"></p>
+      </form>
+    </div>
+    <div id="lc-live" style="display:none">
+      <p class="lc-status" id="lc-status">Waiting…</p>
+      <div class="lc-thread" id="lc-thread"></div>
+      <div id="lc-composer" style="display:none">
+        <form class="quote" id="lc-send-form" style="margin-top:0">
+          <label for="lc-input">Your message</label>
+          <textarea id="lc-input" rows="2" maxlength="4000" placeholder="Type your message…"></textarea>
+          <button class="btn" type="submit" style="margin-top:12px">Send</button>
+        </form>
+      </div>
+      <div id="lc-fallback" style="display:none">
+        <form class="quote" id="lc-fallback-form" style="margin-top:0">
+          <label for="lc-fb-details">Tell us what you need</label>
+          <textarea id="lc-fb-details" name="details" required placeholder="Explain the request — the more detail, the faster we can help when we're back."></textarea>
+          <label for="lc-fb-contact">Best way to reach you</label>
+          <input id="lc-fb-contact" name="contact_method" required placeholder="e.g. email me at…, or Discord @name">
+          <button class="btn" type="submit" style="margin-top:18px">Submit as a ticket</button>
+          <p class="tmsg" id="lc-fb-msg"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="block">
     <h2>Contact us</h2>
-    <p class="sub">The working route to a human is the contact form — describe what's happening and where, and be as specific as you can (which bot or page, what you clicked, what you expected). The more specific, the faster we fix it. Want something built instead? The <a href="/dev-request/">dev request forms</a> get you a fixed-price quote.</p>
-    <div class="cta-row" style="text-align:left;margin-top:6px"><a class="btn" href="/dev-request/casual-other/">Contact us</a></div>
+    <p class="sub">Prefer to write it out? Describe what's happening and where, and be as specific as you can (which bot or page, what you clicked, what you expected). The more specific, the faster we fix it. Want something built instead? The <a href="/dev-request/">dev request forms</a> get you a fixed-price quote.</p>
+    <form class="quote" data-ticket="contact">
+      <label for="c-name">Your name</label>
+      <input id="c-name" name="name" required autocomplete="name">
+      <label for="c-email">Email</label>
+      <input id="c-email" name="email" type="email" required autocomplete="email">
+      <label for="c-method">Best way to reach you</label>
+      <input id="c-method" name="contact_method" placeholder="e.g. email is fine, or Discord @name">
+      <label for="c-details">Your message</label>
+      <textarea id="c-details" name="details" required placeholder="How can we help?"></textarea>
+      <button class="btn" type="submit" style="margin-top:18px">Send message</button>
+      <p class="tmsg"></p>
+    </form>
   </div>
 </div>
 </main>
 <footer><div class="wrap"><span>© 2026 Rival Eclipse</span><nav><a href="/apps-bots/">Discord Bots</a><a href="/web-apps/">Web Apps</a><a href="/ToS-Privacy-legal/">ToS &amp; Privacy</a><a href="/sign-in/">Sign in</a><a href="/client/">Client Portal</a></nav></div></footer>
 <script src="/sky.js"></script>
+<script>
+const AUTH = 'https://auth.rivaleclipse.dev';
+const escH = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+async function postTicket(category, name, email, payload) {
+  const r = await fetch(AUTH + '/api/tickets', {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ category, name, email, payload }),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !d.ok) throw new Error(d.error || 'send_failed');
+  return d;
+}
+function formPayload(form) {
+  const payload = {};
+  new FormData(form).forEach((v, k) => { if (typeof v === 'string' && v.trim() !== '') payload[k] = v; });
+  return payload;
+}
+
+// ---- feedback / support / contact forms -> tickets ----
+document.querySelectorAll('form[data-ticket]').forEach((form) => {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = form.querySelector('.tmsg');
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true; msg.className = 'tmsg'; msg.textContent = 'Sending…'; msg.style.display = 'block';
+    try {
+      const payload = formPayload(form);
+      const d = await postTicket(form.dataset.ticket, payload.name, payload.email, payload);
+      msg.className = 'tmsg ok';
+      msg.innerHTML = 'Sent — your reference is <b>' + escH(d.ref || '') + '</b>. ' +
+        'We reply on the ticket; follow it under <a href="/profile/">My requests</a> (sign in with this email to see it there).';
+      form.reset();
+    } catch {
+      msg.className = 'tmsg err';
+      msg.innerHTML = 'That didn’t go through — please try again in a moment, or use the <a href="/dev-request/casual-other/">general form</a>.';
+    }
+    btn.disabled = false;
+  });
+});
+
+// ---- Live Chat Request ----
+const lc = { id: null, token: null, timer: null, done: false, name: '', email: '' };
+const lcStatus = document.getElementById('lc-status');
+const lcThread = document.getElementById('lc-thread');
+const lcComposer = document.getElementById('lc-composer');
+const lcFallback = document.getElementById('lc-fallback');
+
+function lcHeaders() {
+  return lc.token ? { 'x-ticket-token': lc.token } : {};
+}
+function renderLcMessages(messages) {
+  lcThread.innerHTML = (messages || []).map((m) => `
+    <div class="lc-msg ${m.author_kind === 'staff' ? 'staff' : 'me'}">
+      <div class="who">${escH(m.author_name || m.author_kind)}</div>${escH(m.body)}</div>`).join('');
+  lcThread.scrollTop = lcThread.scrollHeight;
+}
+async function pollLc() {
+  if (!lc.id || lc.done) return;
+  try {
+    const r = await fetch(AUTH + '/api/tickets/' + encodeURIComponent(lc.id) + '/thread', {
+      credentials: 'include', headers: lcHeaders(),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.ok) return;
+    renderLcMessages(d.messages);
+    const t = d.ticket, live = d.live || {};
+    if (t.status === 'claimed') {
+      lcStatus.className = 'lc-status lc-live';
+      lcStatus.textContent = (t.claimed_by_name || 'A team member') + ' is with you — say hello.';
+      lcComposer.style.display = '';
+      lcFallback.style.display = 'none';
+    } else if (t.status === 'resolved' || t.status === 'closed') {
+      lcStatus.className = 'lc-status';
+      lcStatus.textContent = 'This chat has ended — thanks for reaching out. Anything else, the contact form below files a ticket.';
+      lc.done = true;
+      clearInterval(lc.timer);
+    } else if (live.all_unavailable || live.timed_out) {
+      lcStatus.className = 'lc-status lc-none';
+      lcStatus.textContent = live.all_unavailable
+        ? 'Nobody on the team is available right now.'
+        : 'Nobody was able to pick this up in time.';
+      lcComposer.style.display = 'none';
+      lcFallback.style.display = '';
+      lc.done = true;
+      clearInterval(lc.timer);
+    } else {
+      lcStatus.className = 'lc-status lc-wait';
+      lcStatus.textContent = '⏳ Waiting for a team member — the team has been pinged. Keep this page open.';
+    }
+  } catch { /* next poll retries */ }
+}
+function startLc(id, token, name, email) {
+  lc.id = id; lc.token = token || null; lc.name = name || ''; lc.email = email || ''; lc.done = false;
+  try { sessionStorage.setItem('lc_ticket', JSON.stringify({ id, token, name, email })); } catch {}
+  document.getElementById('lc-start').style.display = 'none';
+  document.getElementById('lc-live').style.display = '';
+  lcStatus.className = 'lc-status lc-wait';
+  lcStatus.textContent = '⏳ Waiting for a team member — the team has been pinged. Keep this page open.';
+  pollLc();
+  lc.timer = setInterval(pollLc, 4000);
+}
+document.getElementById('lc-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('lc-req-msg');
+  const btn = e.target.querySelector('button[type="submit"]');
+  const name = document.getElementById('lc-name').value.trim();
+  const email = document.getElementById('lc-email').value.trim();
+  const topic = document.getElementById('lc-topic').value.trim();
+  btn.disabled = true; msg.className = 'tmsg'; msg.textContent = 'Requesting…'; msg.style.display = 'block';
+  try {
+    const d = await postTicket('live-chat', name, email, { topic, ...(email ? { email } : {}) });
+    startLc(d.id, d.guest_token, name, email);
+  } catch {
+    msg.className = 'tmsg err';
+    msg.textContent = 'Couldn’t start the request — try again, or use the contact form below.';
+    btn.disabled = false;
+  }
+});
+document.getElementById('lc-send-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const ta = document.getElementById('lc-input');
+  const body = ta.value.trim();
+  if (!body || !lc.id) return;
+  const r = await fetch(AUTH + '/api/tickets/' + encodeURIComponent(lc.id) + '/reply', {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...lcHeaders() },
+    body: JSON.stringify({ body, ...(lc.token ? { ticket_token: lc.token } : {}) }),
+  });
+  if (r.ok) { ta.value = ''; pollLc(); }
+});
+document.getElementById('lc-fallback-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('lc-fb-msg');
+  const btn = e.target.querySelector('button[type="submit"]');
+  btn.disabled = true; msg.className = 'tmsg'; msg.textContent = 'Sending…'; msg.style.display = 'block';
+  try {
+    const details = document.getElementById('lc-fb-details').value.trim();
+    const contact = document.getElementById('lc-fb-contact').value.trim();
+    const d = await postTicket('contact', lc.name || 'Live chat visitor', lc.email || '', {
+      details, contact_method: contact, from_live_chat_fallback: 'yes',
+      ...(lc.email ? { email: lc.email } : {}),
+      ...(lc.id ? { live_chat_ticket: lc.id } : {}),
+    });
+    msg.className = 'tmsg ok';
+    msg.innerHTML = 'Got it — ticket <b>' + escH(d.ref || '') + '</b> is filed for the team. We’ll reach out using the contact method you gave.';
+    e.target.reset();
+  } catch {
+    msg.className = 'tmsg err';
+    msg.textContent = 'That didn’t go through — please use the contact form below instead.';
+    btn.disabled = false;
+  }
+});
+// resume a chat in progress on this tab session
+try {
+  const saved = JSON.parse(sessionStorage.getItem('lc_ticket') || 'null');
+  if (saved && saved.id) startLc(saved.id, saved.token, saved.name, saved.email);
+} catch { /* fresh start */ }
+</script>
 <script src="/assistant.js"></script>
 <script src="/_lib/menu.js"></script>
 </body>
