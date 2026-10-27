@@ -411,12 +411,14 @@ form.addEventListener('submit', async (e) => {
     rate_limited: 'You’ve already sent a request this week — one per week per account. We’ll reply to your original soon.',
     delivery_failed: 'Something went wrong on our end. Please try again in a minute.',
   };
+  const ticketP = window.fileTicket ? window.fileTicket(form, 'dev-request-other') : Promise.resolve(null);
   try {
     const res = await fetch('/quote', { method: 'POST', body: new FormData(form) });
     const out = await res.json();
     if (out.ok) {
+      const tref = await ticketP;
       msg.className = 'ok';
-      msg.textContent = 'Application received — we’ll be in touch.';
+      msg.textContent = 'Application received — we’ll be in touch.' + (tref ? ' Your ticket reference is ' + tref + ' — follow it under My requests on your profile.' : '');
       form.reset();
       biz.hidden = true; amb.hidden = true; shared.hidden = true;
       setEnabled(biz, false); setEnabled(amb, false); setEnabled(shared, false);
@@ -437,6 +439,7 @@ form.addEventListener('submit', async (e) => {
   btn.textContent = 'Submit application';
 });
 </script>
+<script src="/_lib/ticket-form.js"></script>
 <script src="/assistant.js"></script>
 <script src="/_lib/menu.js"></script>
 </body>
