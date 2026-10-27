@@ -126,6 +126,7 @@
       <button class="tab-btn" data-tab="team">Team</button>
       <button class="tab-btn" data-tab="codes">Invite Codes</button>
       <button class="tab-btn" data-tab="crq">Change Requests</button>
+      <button class="tab-btn" data-tab="support">Support Inbox<span id="support-badge"></span></button>
       <a class="tab-btn" href="/briefing/" style="text-decoration:none">Briefing →</a>
     </div>
     <div class="block" id="tab-users">
@@ -179,6 +180,17 @@
       <h2>Change Requests — escalated</h2>
       <p class="sub">Requests the team sent up for admin review. Accept or decline with an optional note.</p>
       <div id="crq-list"><p class="dim">Loading…</p></div>
+    </div>
+    <div class="block" id="tab-support" style="display:none">
+      <h2>Support inbox</h2>
+      <p class="sub">Every form on the site files a ticket here — the same inbox the Team dashboard shows. Claim a ticket to own it; claims land in the team log below and on the Team dashboard.</p>
+      <div id="support-inbox"><p class="dim">Loading…</p></div>
+      <h3 style="margin:26px 0 6px">Team log</h3>
+      <p class="sub">Latest ticket activity — claims especially — across the whole team.</p>
+      <div id="team-log"><p class="dim">Loading…</p></div>
+      <h3 style="margin:26px 0 6px">Support alert forwarding</h3>
+      <p class="sub">Forward new tickets in your categories to your own email and phone.</p>
+      <div id="support-prefs"><p class="dim">Loading…</p></div>
     </div>
   </div>
 </div>
@@ -267,8 +279,33 @@ document.querySelectorAll('.tab-btn[data-tab]').forEach((b) => {
     });
     if (t === 'crq') loadCRQ();
     if (t === 'codes') loadCodes();
+    if (t === 'support') mountSupportOnce();
   };
 });
+
+// ---------- support inbox (shared component, lazy-mounted on first open) ----------
+let supportMounted = false;
+function mountSupportOnce() {
+  if (supportMounted) return;
+  supportMounted = true;
+  import('/_lib/support.js').then(({ mountSupportInbox, mountTeamLog, mountNotifyPrefs }) => {
+    mountSupportInbox(document.getElementById('support-inbox'));
+    mountTeamLog(document.getElementById('team-log'));
+    mountNotifyPrefs(document.getElementById('support-prefs'));
+  }).catch(() => {
+    document.getElementById('support-inbox').innerHTML = '<p class="dim">Couldn’t load the support inbox — try refreshing.</p>';
+  });
+}
+// unread badge on the Support tab
+(async () => {
+  try {
+    const { status, data } = await api('/api/notifications');
+    if (status === 200 && data.unread) {
+      document.getElementById('support-badge').innerHTML =
+        ` <span style="display:inline-block;min-width:20px;text-align:center;background:#e74c3c;color:#fff;border-radius:999px;font-size:.72rem;font-weight:800;padding:1px 6px">${data.unread}</span>`;
+    }
+  } catch { /* badge is best-effort */ }
+})();
 
 // ---------- user registry ----------
 const usersBody = document.getElementById('users-body');
