@@ -3,11 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Web Apps / Services — Rival Eclipse</title>
-<meta name="description" content="Web apps and online services by Rival Eclipse: QR tools, bot builders, and utilities.">
+<title>Web Apps — Rival Eclipse</title>
+<meta name="description" content="Web apps and online services by Rival Eclipse: the Perpetual Helper crypto tracker, the GIF to QR Converter, and more.">
 <link rel="stylesheet" href="/style.css">
 <style>
 .card .needs-line{font-size:.82rem;color:var(--accent);font-weight:700;margin-top:8px;letter-spacing:.02em}
+.card .actions{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+div.card{cursor:default}
+.btn.sm{padding:11px 18px;font-size:.95rem;text-align:center;border-radius:10px}
+.btn.ghosty{background:none;border:1px solid var(--accent);color:var(--accent)}
+.btn.ghosty:hover{transform:translateY(-2px)}
 </style>
 </head>
 <body>
@@ -15,9 +20,20 @@
 <main>
   <div class="wrap">
     <div class="crumb"><a href="/">← Rival Eclipse</a></div>
-    <h1 class="page-title">Web Apps / Services</h1>
+    <h1 class="page-title">Web Apps</h1>
     <p class="page-sub">Our web apps and online services — open in your browser, nothing to install.</p>
     <div class="grid">
+      <div class="card">
+        <div class="icon"><img src="/perp-helper.webp" alt="Perpetual Helper icon"></div>
+        <span class="badge open">Open to everyone</span>
+        <h2>Perpetual Helper</h2>
+        <p>Live crypto perpetual tracker. Pick up to 6 coins, set your over/under line, and get a fresh prediction every 3 seconds for where the cycle closes — with snipe alerts for sudden jumps and drops, an estimate graph beside the live feed, and a scoreboard that grades every call it makes. It keeps score and retunes itself as it learns.</p>
+        <div class="needs-line">Needs: nothing — runs in your browser. The Android app floats on top of your other apps.</div>
+        <div class="actions">
+          <a class="btn sm" href="https://demos.rivaleclipse.dev/perp-helper/">Open the tracker</a>
+          <a class="btn sm ghosty" href="https://demos.rivaleclipse.dev/perp-helper/perpetual-helper.apk">Download the Android app (APK)</a>
+        </div>
+      </div>
       <a class="card" href="https://customqr.rivaleclipse.dev">
         <div class="icon"><img src="/qr-converter.webp" alt="QR Converter icon"></div>
         <span class="badge open">Open to everyone</span>
@@ -34,10 +50,10 @@
     <div>© 2026 Rival Eclipse. All things under rivaleclipse.dev.</div>
     <nav>
       <a href="/">Home</a>
+      <a href="/apps-bots/">Discord Bots</a>
+      <a href="/dashboards/">Dashboards</a>
       <a href="/sign-in/">Sign in</a>
-      <a href="/client/">Client Portal</a>
-      <a href="https://bouncer.rivaleclipse.dev/terms">Terms of Service</a>
-      <a href="https://bouncer.rivaleclipse.dev/privacy">Privacy Policy</a>
+      <a href="/ToS-Privacy-legal/">ToS &amp; Privacy</a>
     </nav>
   </div>
 </footer>
