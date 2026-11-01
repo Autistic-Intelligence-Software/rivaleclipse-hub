@@ -77,7 +77,7 @@ document.getElementById('magic-form').onsubmit = async (e) => {
     document.getElementById('magic-form').style.display = 'none';
     say('Check your inbox — your sign-up link expires in 15 minutes.', true);
   } else {
-    say(data.error === 'rate_limited' ? 'Too many requests — wait a few minutes.' : 'Couldn’t send the email. Try again.', false);
+    say(data.error === 'rate_limited' ? 'Too many requests — wait a few minutes.' : data.error === 'timeout' ? 'The sign-in service is answering slowly right now. If an email still arrives, the link works — otherwise wait a moment and try again.' : 'Couldn’t send the email. Try again.', false);
     btn.disabled = false; btn.textContent = 'Email me my sign-up link';
   }
 };
