@@ -121,9 +121,16 @@ document.getElementById('passkey-btn').onclick = async () => {
 document.getElementById('magic-form').onsubmit = async (e) => {
   e.preventDefault();
   const email = document.getElementById('email').value.trim();
+  const btn = e.target.querySelector('button[type="submit"]');
+  btn.disabled = true; btn.textContent = 'Sending…';
   say('Sending…', true);
   const { status, data } = await requestMagicLink(email, next);
-  say(status === 200 ? 'Check your inbox — the link expires in 15 minutes.' : (data.error === 'rate_limited' ? 'Too many requests — wait a few minutes.' : 'Couldn’t send the email. Try again.'), status === 200);
+  btn.disabled = false; btn.textContent = 'Email me a link';
+  if (status === 200) { say('Check your inbox — the link expires in 15 minutes.', true); return; }
+  say(data.error === 'rate_limited' ? 'Too many requests — wait a few minutes.'
+    : data.error === 'timeout' ? 'The sign-in service is answering slowly right now. If an email still arrives, the link works — otherwise wait a moment and try again.'
+    : (data.error === 'email_failed' || data.error === 'email_unavailable') ? 'We couldn’t send the email just now. Try again in a moment.'
+    : 'Couldn’t send the email. Try again.', false);
 };
 </script>
 <script src="/_lib/menu.js"></script>
