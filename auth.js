@@ -3,13 +3,14 @@
 const AUTH = 'https://auth.rivaleclipse.dev';
 
 async function api(path, opts = {}) {
+  const { timeoutMs, ...fetchOpts } = opts;
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 20000);
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs || 20000);
   try {
     const r = await fetch(AUTH + path, {
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      ...opts,
+      ...fetchOpts,
       signal: ctrl.signal,
     });
     const data = await r.json().catch(() => ({}));
@@ -29,7 +30,10 @@ export async function session() {
 }
 
 export async function requestMagicLink(email, next) {
-  return api('/api/magic/request', { method: 'POST', body: JSON.stringify({ email, next }) });
+  // Mail sends get a longer budget than ordinary calls: the server bounds
+  // its provider send (2 attempts, hard deadlines), and 45s leaves room for
+  // a slow-but-successful send instead of abandoning it mid-flight.
+  return api('/api/magic/request', { method: 'POST', body: JSON.stringify({ email, next }), timeoutMs: 45000 });
 }
 
 export function discordLogin(next, action = 'login') {
