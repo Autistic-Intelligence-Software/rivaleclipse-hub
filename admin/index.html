@@ -105,6 +105,12 @@
 #merge-msg { margin-top: 12px; font-size: .92rem; }
 #merge-msg.ok { color: var(--ok); }
 #merge-msg.err { color: #ff7070; }
+.merge-queue { max-height: 260px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin: 10px 0; background: #0d0d15; }
+.merge-queue label { display: flex; gap: 8px; align-items: center; padding: 5px 2px; cursor: pointer; font-size: .94rem; }
+.merge-queue .dim { margin-left: auto; }
+.merge-email { width: 100%; background: #0d0d15; border: 1px solid var(--line); border-radius: 8px; color: inherit; padding: 8px 10px; margin: 4px 0 10px; box-sizing: border-box; }
+.merge-review { background: #0d0d15; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 10px 0; font-size: .94rem; }
+.lock-badge { color: #ffd479; }
 .merge-result { background: #0d0d15; border: 1px solid var(--line); border-radius: 10px;
   padding: 12px 14px; margin-top: 12px; font-size: .9rem; line-height: 1.7; }
 </style>
@@ -134,6 +140,7 @@
       <p class="sub">Search accounts and toggle tags — tags stack, each one adds its permissions. Client/tester/team apply immediately; the admin tag is owner-only.</p>
       <div class="search-row">
         <input id="user-search" type="search" placeholder="Search by email or Discord…" autocomplete="off">
+        <button class="merge-btn" id="merge-open-btn" style="display:none">Merge accounts…</button>
       </div>
       <div style="overflow-x:auto">
       <table class="utable">
@@ -196,14 +203,28 @@
 </div>
 <div id="merge-overlay" style="display:none">
   <div id="merge-box">
-    <h3 id="merge-title">Merge account</h3>
-    <p class="sub" id="merge-desc"></p>
-    <select id="merge-target"></select>
-    <p class="sub">Moves the Discord link, tags, purchases, and all data to the target account, then removes the source. This can&rsquo;t be undone.</p>
-    <p class="dim">If you were signed in as the merged-away account, sign in again on the surviving one.</p>
-    <div id="merge-actions">
-      <button class="gen-btn" id="merge-confirm">Merge accounts</button>
-      <button class="act-btn" id="merge-cancel">Cancel</button>
+    <h3 id="merge-title">Merge accounts</h3>
+    <div id="merge-entry-step">
+      <p class="sub">Tick two or more accounts to queue them for merging. Then type the PRIMARY account&rsquo;s email twice — the primary survives; every other queued account is merged into it and deleted. Moves the Discord link, tags, purchases, and all data. This can&rsquo;t be undone.</p>
+      <p class="sub">The account you&rsquo;re signed in with can never be merged away. A 🔒 locked account can only ever be the primary — it can&rsquo;t be merged away either.</p>
+      <div class="merge-queue" id="merge-queue"></div>
+      <label class="sub" for="merge-email1">Primary account email</label>
+      <input class="merge-email" id="merge-email1" type="email" autocomplete="off" placeholder="primary email">
+      <label class="sub" for="merge-email2">Type it again, exactly</label>
+      <input class="merge-email" id="merge-email2" type="email" autocomplete="off" placeholder="same email again">
+      <div id="merge-actions">
+        <button class="gen-btn" id="merge-review-btn">Review merge</button>
+        <button class="act-btn" id="merge-cancel">Cancel</button>
+      </div>
+    </div>
+    <div id="merge-review-step" style="display:none">
+      <p class="sub">Check this carefully — merging can&rsquo;t be undone.</p>
+      <div class="merge-review" id="merge-review-body"></div>
+      <div id="merge-actions">
+        <button class="gen-btn" id="merge-confirm">Confirm merge</button>
+        <button class="act-btn" id="merge-fix">Fix entries</button>
+        <button class="act-btn" id="merge-cancel2">Cancel</button>
+      </div>
     </div>
     <p id="merge-msg"></p>
   </div>
@@ -311,7 +332,7 @@ function mountSupportOnce() {
 const usersBody = document.getElementById('users-body');
 const adminMsg = document.getElementById('admin-msg');
 const say = (t, ok) => { adminMsg.textContent = t; adminMsg.className = ok === true ? 'ok' : ok === false ? 'err' : ''; };
-let lastUsers = []; // last registry snapshot, for the merge-target dropdown
+let lastUsers = []; // last registry snapshot, for the merge queue panel
 
 const fmtDate = (v) => { try { return v ? new Date(v).toLocaleDateString() : '—'; } catch { return '—'; } };
 const flagsOf = (u) => {
@@ -347,7 +368,7 @@ function renderUsers(users) {
   usersBody.innerHTML = users.map((u, i) => {
     const uid = u.id ?? u.user_id ?? '';
     return `<tr data-uid="${esc(uid)}">
-      <td>${esc(u.email || '—')}${u.is_owner ? ' <span class="role-tag">owner</span>' : ''}</td>
+      <td>${esc(u.email || '—')}${u.is_owner ? ' <span class="role-tag">owner</span>' : ''}${u.protected ? ' <span class="role-tag lock-badge" title="Locked: this account can never be merged away">🔒 Locked</span>' : ''}${(user.id && String(uid) === String(user.id)) || (!user.id && user.email && (u.email || '').toLowerCase() === user.email.toLowerCase()) ? ' <span class="dim">(you)</span>' : ''}</td>
       <td class="dim">${esc(discordOf(u))}</td>
       <td><div class="tag-checks">${tagCheckboxes(u)}</div></td>
       <td class="dim">${esc(flagsOf(u))}</td>
@@ -586,78 +607,148 @@ usersBody.addEventListener('click', async (e) => {
 });
 
 // ---------- account merge (owner only) ----------
+// Queue + double-email-entry flow: tick >=2 accounts, type the PRIMARY
+// (surviving) account's email twice, review, then confirm. The server
+// enforces every rule too (caller can never be a source; a protected
+// account can never be a source; primary_email must match the target).
 const mergeOverlay = document.getElementById('merge-overlay');
-const mergeTitle = document.getElementById('merge-title');
-const mergeDesc = document.getElementById('merge-desc');
-const mergeTarget = document.getElementById('merge-target');
+const mergeQueueEl = document.getElementById('merge-queue');
+const mergeEmail1 = document.getElementById('merge-email1');
+const mergeEmail2 = document.getElementById('merge-email2');
+const mergeReviewBtn = document.getElementById('merge-review-btn');
 const mergeConfirm = document.getElementById('merge-confirm');
-const mergeCancel = document.getElementById('merge-cancel');
 const mergeMsg = document.getElementById('merge-msg');
 const msay = (t, ok) => { mergeMsg.textContent = t; mergeMsg.className = ok === true ? 'ok' : ok === false ? 'err' : ''; };
 const mergeOnline = (status, data) => !(status === 404 && !data.error);
-let mergeSource = null;
+let mergeQueue = new Set();
+const uidOf = (u) => String(u.id ?? u.user_id ?? '');
+const isMe = (u) => (user.id && uidOf(u) === String(user.id)) || (!user.id && user.email && (u.email || '').toLowerCase() === String(user.email).toLowerCase());
+const queuedUsers = () => lastUsers.filter((u) => mergeQueue.has(uidOf(u)));
 
-async function doMerge() {
-  const targetId = mergeTarget.value;
-  if (!mergeSource || !targetId) return;
+function renderMergeQueue() {
+  mergeQueueEl.innerHTML = lastUsers.length ? lastUsers.map((u) => {
+    const id = uidOf(u);
+    const d = discordOf(u);
+    return `<label><input type="checkbox" class="merge-check" data-uid="${esc(id)}"${mergeQueue.has(id) ? ' checked' : ''}>` +
+      `<span>${esc(u.email || '—')}${isMe(u) ? ' <b>(you)</b>' : ''}${u.protected ? ' <span class="lock-badge">🔒 Locked</span>' : ''}</span>` +
+      `<span class="dim">${d !== '—' ? esc(d) : ''}</span></label>`;
+  }).join('') : '<p class="dim">No accounts loaded.</p>';
+  mergeQueueEl.querySelectorAll('.merge-check').forEach((cb) => {
+    cb.onchange = () => { cb.checked ? mergeQueue.add(cb.dataset.uid) : mergeQueue.delete(cb.dataset.uid); validateMerge(); };
+  });
+}
+
+// Returns { ok, msg, primary } — msg is shown live; Review stays
+// disabled until ok. Lock rules: a locked account in the queue forces
+// it to be the primary; two locked accounts can never merge together.
+function mergeValidation() {
+  const q = queuedUsers();
+  if (q.length < 2) return { ok: false, msg: 'Queue at least two accounts to merge.' };
+  const e1 = mergeEmail1.value.trim(), e2 = mergeEmail2.value.trim();
+  if (!e1 || !e2) return { ok: false, msg: 'Type the primary account\u2019s email twice.' };
+  if (e1 !== e2) return { ok: false, msg: 'The two email entries don\u2019t match — type the same email both times.' };
+  const primary = q.find((u) => (u.email || '').toLowerCase() === e1.toLowerCase());
+  if (!primary) return { ok: false, msg: 'That email isn\u2019t one of the queued accounts — the primary has to be in the queue.' };
+  const locked = q.filter((u) => u.protected);
+  if (locked.length > 1) return { ok: false, msg: 'Only one locked account can be in a merge, as the primary — remove the other locked account.' };
+  if (locked.length === 1 && uidOf(locked[0]) !== uidOf(primary)) {
+    return { ok: false, msg: `${locked[0].email} is locked — it can be the primary, but it can\u2019t be merged away.` };
+  }
+  const me = q.find(isMe);
+  if (me && uidOf(me) !== uidOf(primary)) {
+    return { ok: false, msg: 'You can\u2019t merge away the account you\u2019re signed in with — make it the primary or remove it from the queue.' };
+  }
+  return { ok: true, msg: '', primary };
+}
+function validateMerge() {
+  const v = mergeValidation();
+  msay(v.ok ? 'Ready — review the merge before confirming.' : v.msg, v.ok ? true : undefined);
+  mergeReviewBtn.disabled = !v.ok;
+  return v;
+}
+
+function showMergeStep(which) {
+  document.getElementById('merge-entry-step').style.display = which === 'entry' ? '' : 'none';
+  document.getElementById('merge-review-step').style.display = which === 'review' ? '' : 'none';
+}
+function showMergeReview() {
+  const v = validateMerge();
+  if (!v.ok) return;
+  const away = queuedUsers().filter((u) => uidOf(u) !== uidOf(v.primary));
+  document.getElementById('merge-review-body').innerHTML =
+    `<b>Primary (survives):</b> ${esc(v.primary.email || '—')}<br><br>` +
+    `<b>Merged away (deleted):</b><br>` + away.map((u) => '• ' + esc(u.email || '—')).join('<br>');
+  msay('', undefined);
+  showMergeStep('review');
+}
+function fixMergeEntries() { showMergeStep('entry'); validateMerge(); }
+
+async function confirmMerge() {
+  const v = mergeValidation();
+  if (!v.ok) { showMergeStep('entry'); msay(v.msg, false); return; }
+  const primary = v.primary;
+  const sourceIds = queuedUsers().filter((u) => uidOf(u) !== uidOf(primary)).map(uidOf);
   mergeConfirm.disabled = true;
   mergeConfirm.textContent = 'Merging…';
-  msay('', undefined);
   const { status, data } = await api('/api/admin/users/merge', {
-    method: 'POST', body: JSON.stringify({ source_id: mergeSource.uid, target_id: targetId }),
+    method: 'POST',
+    body: JSON.stringify({ source_ids: sourceIds, target_id: uidOf(primary), primary_email: mergeEmail1.value.trim() }),
   });
   mergeConfirm.disabled = false;
-  mergeConfirm.textContent = 'Merge accounts';
+  mergeConfirm.textContent = 'Confirm merge';
   if (!mergeOnline(status, data)) { msay('Merge system coming online — try again in a bit.', false); return; }
   if (status === 200 && data.ok) {
-    const mv = data.moved || {};
-    const tables = mv.tables && typeof mv.tables === 'object' && Object.keys(mv.tables).length
-      ? Object.entries(mv.tables).map(([t, n]) => `${esc(t)}: ${esc(n)}`).join('<br>')
-      : '—';
-    mergeMsg.innerHTML = `<div class="merge-result"><b>Merged.</b><br>` +
-      `Discord link moved: <b>${mv.discord_link ? 'yes' : 'no'}</b><br>` +
-      `Tags added: <b>${esc((mv.tags || []).join(', ') || 'none')}</b><br>` +
-      `Data moved:<br>${tables}</div>`;
+    const per = Array.isArray(data.moved) ? data.moved : [data.moved].filter(Boolean);
+    const movedTxt = per.map((mv) => {
+      const tables = mv && mv.tables && typeof mv.tables === 'object' && Object.keys(mv.tables).length
+        ? Object.entries(mv.tables).map(([t, n]) => `${esc(t)}: ${esc(n)}`).join(', ') : '—';
+      return `Discord link moved: <b>${mv && mv.discord_link ? 'yes' : 'no'}</b> · Data: ${tables}`;
+    }).join('<br>');
+    const allTags = [...new Set(per.flatMap((mv) => (mv && mv.tags) || []))];
+    mergeMsg.innerHTML = `<div class="merge-result"><b>Merged into ${esc(primary.email || '')}.</b><br>${movedTxt}<br>Tags added: <b>${esc(allTags.join(', ') || 'none')}</b></div>`;
     mergeMsg.className = 'ok';
-    mergeConfirm.textContent = 'Done';
-    mergeConfirm.onclick = () => {
-      closeMerge();
-      loadUsers(document.getElementById('user-search').value.trim());
-    };
+    mergeQueue.clear();
+    loadUsers(document.getElementById('user-search').value.trim());
+    setTimeout(closeMerge, 2500);
     return;
   }
-  if (status === 409 || data.error === 'target_has_discord') {
-    msay('That account already has a Discord linked — pick a different target.', false); return;
-  }
+  showMergeStep('entry');
+  if (data.error === 'target_has_discord') { msay('The primary already has a Discord linked, and a queued account has one too — a merge can only keep one link. Remove one of them from the queue.', false); return; }
+  if (data.error === 'multiple_discord_links') { msay('More than one queued account has a Discord linked — a merge can only keep one link. Keep at most one linked account in the queue.', false); return; }
   msay({
-    self_merge: 'You can\u2019t merge an account into itself.',
+    cannot_merge_away_current_account: 'You can\u2019t merge away the account you\u2019re signed in with — make it the primary or remove it from the queue.',
+    primary_email_mismatch: 'The email you typed doesn\u2019t match the primary account\u2019s email — check the spelling and try again.',
+    account_locked: 'One of the accounts set to be merged away is locked — locked accounts can only be the primary.',
+    self_merge: 'The primary can\u2019t also be in the merged-away list.',
     unknown_user: 'One of those accounts no longer exists — reload the list and try again.',
     forbidden: 'Only the owner can merge accounts.',
+    missing_ids: 'Pick at least one account to merge away and a primary.',
   }[data.error] || data.error || 'Couldn\u2019t merge the accounts.', false);
+  renderMergeQueue();
 }
 
-function openMerge(uid, email) {
-  mergeSource = { uid, email };
-  mergeTitle.textContent = 'Merge ' + (email || 'account') + ' into…';
-  mergeDesc.textContent = 'Pick the account that survives. Everything moves to it.';
-  msay('', undefined);
+function openMerge(preUid) {
+  mergeQueue = new Set(preUid ? [String(preUid)] : []);
+  mergeEmail1.value = '';
+  mergeEmail2.value = '';
+  mergeMsg.innerHTML = '';
   mergeMsg.className = '';
-  const others = lastUsers.filter((u) => String(u.id ?? u.user_id ?? '') !== String(uid));
-  mergeTarget.innerHTML = others.length
-    ? others.map((u) => {
-        const id = u.id ?? u.user_id ?? '';
-        const d = discordOf(u);
-        return `<option value="${esc(id)}">${esc(u.email || '—')}${d !== '—' ? ' (' + esc(d) + ')' : ''}</option>`;
-      }).join('')
-    : '<option value="">No other accounts to merge into</option>';
-  mergeConfirm.disabled = !others.length;
-  mergeConfirm.textContent = 'Merge accounts';
-  mergeConfirm.onclick = doMerge;
+  showMergeStep('entry');
+  renderMergeQueue();
+  validateMerge();
   mergeOverlay.style.display = 'flex';
 }
-function closeMerge() { mergeOverlay.style.display = 'none'; mergeSource = null; }
+function closeMerge() { mergeOverlay.style.display = 'none'; }
 
-mergeCancel.onclick = closeMerge;
+document.getElementById('merge-open-btn').style.display = isOwner ? '' : 'none';
+document.getElementById('merge-open-btn').onclick = () => openMerge();
+document.getElementById('merge-cancel').onclick = closeMerge;
+document.getElementById('merge-cancel2').onclick = closeMerge;
+document.getElementById('merge-fix').onclick = fixMergeEntries;
+mergeReviewBtn.onclick = showMergeReview;
+mergeConfirm.onclick = confirmMerge;
+mergeEmail1.addEventListener('input', validateMerge);
+mergeEmail2.addEventListener('input', validateMerge);
 mergeOverlay.addEventListener('click', (e) => { if (e.target === mergeOverlay) closeMerge(); });
 
 // ---------- team tab ----------
