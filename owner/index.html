@@ -32,6 +32,9 @@
 .ctable td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .ctable .mono { font-family: monospace; letter-spacing: .03em; }
 .dim { color: var(--muted); font-size: .85rem; }
+.rp-chip { border: 1px solid var(--line); background: none; color: var(--muted); border-radius: 999px;
+  padding: 4px 12px; cursor: pointer; font-size: .78rem; font-weight: 600; font-family: inherit; }
+.rp-chip.on { color: #0a0a12; background: linear-gradient(135deg, #d4af37, #8a6d1c); border-color: transparent; }
 .revoke-btn { background: none; border: 1px solid #6b2d2d; color: #ff7070; border-radius: 8px;
   padding: 6px 12px; cursor: pointer; font-size: .82rem; font-family: inherit; }
 .revoke-btn:hover { background: rgba(255,112,112,.08); }
@@ -88,7 +91,7 @@
     </div>
     <div class="block">
       <h2>Support alert routing</h2>
-      <p class="sub">Choose who gets pinged in the private Discord team channel when a form of each type comes in. The post names the category; the people you pick here are @-mentioned so the right person sees it first. Everyone authorized for a category still gets the dashboard notification — this only controls the Discord ping. (Requires the team-channel webhook to be connected on the server side.)</p>
+      <p class="sub">These boxes show each member's own alert opt-ins from their Account Settings — per ticket type: <b>Discord ping</b> (the checkbox), <b>Email</b> forward, and <b>Dashboard</b> notification. What you see is exactly what that member chose; you can also adjust any of them here when team duties change, and saving writes straight to that member's preferences. A checked Discord box means the member is @-mentioned in the private Discord team channel when that type of form comes in. (Discord pings need the member's Discord linked and the team-channel webhook connected on the server side.)</p>
       <div id="routing-list"><p class="dim">Loading…</p></div>
       <p id="routing-msg"></p>
     </div>
@@ -281,22 +284,45 @@ async function loadRouting() {
   el.innerHTML = (data.categories || []).map((c) => `
     <div style="border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px" data-rcat="${esc(c.category)}">
       <div style="font-weight:700;margin-bottom:8px">${esc(c.label)}</div>
-      ${members.length ? members.map((m) => `
-        <label style="display:inline-flex;gap:6px;align-items:center;margin:0 14px 8px 0;font-size:.9rem">
-          <input type="checkbox" data-rmember="${esc(m.id)}" ${c.user_ids.includes(m.id) ? 'checked' : ''}>
-          ${esc(m.name || m.email)} <span class="dim">${esc((m.tags || []).join(', ') || 'owner')}${m.discord_id ? '' : ' · no Discord linked (can’t be pinged)'}</span>
-        </label>`).join('') : '<p class="dim">No team/admin members yet.</p>'}
+      ${members.length ? members.map((m) => {
+        const mp = (c.prefs || {})[m.id] || {};
+        const isStaff = (c.staff_user_ids || []).includes(m.id);
+        return `
+        <div data-rmrow="${esc(m.id)}" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 8px 0;font-size:.9rem${isStaff ? '' : ';opacity:.55'}">
+          <label style="display:inline-flex;gap:6px;align-items:center" title="Discord ping for this category">
+            <input type="checkbox" data-rpref="discord" ${mp.discord ? 'checked' : ''}>
+            ${esc(m.name || m.email)} <span class="dim">${esc((m.tags || []).join(', ') || 'owner')}${m.discord_id ? '' : ' · no Discord linked (can’t be pinged)'}</span>
+          </label>
+          <button type="button" class="rp-chip${mp.email ? ' on' : ''}" data-rpref="email" aria-pressed="${mp.email ? 'true' : 'false'}">Email ${mp.email ? 'on' : 'off'}</button>
+          <button type="button" class="rp-chip${mp.dashboard !== false ? ' on' : ''}" data-rpref="dashboard" aria-pressed="${mp.dashboard !== false ? 'true' : 'false'}">Dashboard ${mp.dashboard !== false ? 'on' : 'off'}</button>
+          ${isStaff ? '' : '<span class="dim" style="font-size:.78rem">not staff for this category — saved, but no alerts until added</span>'}
+        </div>`; }).join('') : '<p class="dim">No team/admin members yet.</p>'}
       <div><button class="gen-btn" type="button" data-rsave="${esc(c.category)}">Save routing</button></div>
     </div>`).join('');
 }
 document.getElementById('routing-list').addEventListener('click', async (e) => {
+  const chip = e.target.closest('button[data-rpref]');
+  if (chip) {
+    const on = !chip.classList.contains('on');
+    chip.classList.toggle('on', on);
+    chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+    chip.textContent = `${chip.dataset.rpref === 'email' ? 'Email' : 'Dashboard'} ${on ? 'on' : 'off'}`;
+    return;
+  }
   const b = e.target.closest('[data-rsave]');
   if (!b) return;
   const box = b.closest('[data-rcat]');
-  const ids = [...box.querySelectorAll('[data-rmember]:checked')].map((x) => x.dataset.rmember);
+  const prefs = {};
+  box.querySelectorAll('[data-rmrow]').forEach((row) => {
+    prefs[row.dataset.rmrow] = {
+      discord: row.querySelector('[data-rpref="discord"]').checked,
+      email: row.querySelector('button[data-rpref="email"]').classList.contains('on'),
+      dashboard: row.querySelector('button[data-rpref="dashboard"]').classList.contains('on'),
+    };
+  });
   b.disabled = true;
   const { status, data } = await oapi('/api/routing', {
-    method: 'PUT', body: JSON.stringify({ category: b.dataset.rsave, user_ids: ids }),
+    method: 'PUT', body: JSON.stringify({ category: b.dataset.rsave, prefs }),
   });
   b.disabled = false;
   if (status === 200) { rsay('Routing saved.', true); loadRouting(); }
