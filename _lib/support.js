@@ -99,20 +99,16 @@ function injectCss() {
 .sup-empty { border:1px dashed var(--line); border-radius:12px; padding:18px;
   color:var(--muted); font-size:.9rem; position:sticky; top:12px; }
 .sup-notif-list { max-height:172px; overflow-y:auto; }
-/* Shane 2026-11-14: status bucket bar over the ticket list — tickets move
-   buckets automatically as their status changes (claim → Claimed/In
-   progress; resolve/close → Closed/Resolved). */
-.sup-buckets { display:flex; border:1px solid var(--line); border-radius:10px; overflow:hidden;
-  margin:12px 0 4px; }
-.sup-bucket { flex:1; background:none; border:none; border-right:1px solid var(--line);
-  color:var(--muted); font-family:inherit; font-size:.86rem; font-weight:700;
-  padding:11px 6px; cursor:pointer; text-align:center; }
-.sup-bucket:last-child { border-right:none; }
-.sup-bucket:hover { color:var(--text); }
-.sup-bucket.on { color:#0a0a12; background:linear-gradient(135deg,#d4af37,#8a6d1c); }
-.sup-bcount { display:inline-block; min-width:20px; padding:1px 6px; margin-left:4px;
-  border-radius:999px; background:rgba(0,0,0,.22); font-size:.78rem; }
-.sup-bucket:not(.on) .sup-bcount { background:#2a2a35; color:var(--text); }
+/* Shane 2026-11-14: status filter dropdown over the ticket list — tickets
+   sort themselves automatically as their status changes (claim → In
+   Progress; resolve/close → history). Labels are Shane's own wording. */
+.sup-filterrow { display:flex; align-items:center; gap:10px; margin:12px 0 4px; }
+.sup-filterlabel { color:var(--muted); font-size:.82rem; font-weight:700;
+  text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; }
+.sup-bucket-sel { flex:1; min-width:0; background:#0d0d15; color:var(--text);
+  border:1px solid #8a6d1c; border-radius:10px; padding:11px 12px;
+  font-family:inherit; font-size:.95rem; font-weight:700; cursor:pointer; }
+.sup-bucket-sel:focus { outline:2px solid rgba(201,162,39,.55); }
 /* Shane 2026-11-14: per-category notify matrix — one row per ticket type,
    a switch per delivery method (Discord ping / Email / Dashboard). */
 .np-head, .np-row { display:grid; grid-template-columns:1fr 84px 64px 92px; align-items:center;
@@ -150,7 +146,12 @@ export async function mountSupportInbox(root) {
   injectCss();
   root.innerHTML = `
     <div id="sup-notifs"><p class="dim">Loading notifications…</p></div>
-    <div class="sup-buckets" id="sup-buckets"></div>
+    <div class="sup-filterrow"><label class="sup-filterlabel" for="sup-bucket-sel">Show</label>
+    <select class="sup-bucket-sel" id="sup-bucket-sel">
+      <option value="open">Unclaimed / Needs addressed</option>
+      <option value="claimed">In Progress / claimed by team member</option>
+      <option value="done">Resolved / closed ticket history</option>
+    </select></div>
     <div class="sup-chips" id="sup-chips"></div>
     <div class="sup-workbench">
       <div id="sup-list"><p class="dim">Loading tickets…</p></div>
@@ -158,7 +159,7 @@ export async function mountSupportInbox(root) {
     </div>`;
   const listEl = root.querySelector('#sup-list');
   const chipsEl = root.querySelector('#sup-chips');
-  const bucketsEl = root.querySelector('#sup-buckets');
+  const bucketSel = root.querySelector('#sup-bucket-sel');
   const detailEl = root.querySelector('#sup-detail');
   const notifEl = root.querySelector('#sup-notifs');
   let tickets = [];
@@ -167,11 +168,11 @@ export async function mountSupportInbox(root) {
   let activeId = null;
   // Status buckets (Shane 2026-11-14): a ticket's bucket is derived from its
   // live status, so claiming / resolving / closing moves it automatically.
-  const BUCKETS = [['open', 'Open / Unclaimed'], ['claimed', 'Claimed / In progress'], ['done', 'Closed / Resolved']];
+  const BUCKETS = [['open', 'Unclaimed / Needs addressed'], ['claimed', 'In Progress / claimed by team member'], ['done', 'Resolved / closed ticket history']];
   const BUCKET_EMPTY = {
-    open: 'No open tickets — the queue is clear.',
-    claimed: 'Nothing claimed or in progress right now.',
-    done: 'No closed or resolved tickets yet.',
+    open: 'No unclaimed tickets — everything has been claimed or handled.',
+    claimed: 'Nothing in progress right now.',
+    done: 'No resolved or closed tickets yet.',
   };
   const bucketOf = (t) => {
     if (t.status === 'resolved' || t.status === 'closed') return 'done';
@@ -181,17 +182,18 @@ export async function mountSupportInbox(root) {
   let bucket = 'open';
   let followBucket = false;
 
-  function renderBuckets() {
+  function renderFilter() {
     const counts = { open: 0, claimed: 0, done: 0 };
     tickets.forEach((t) => { counts[bucketOf(t)] += 1; });
-    bucketsEl.innerHTML = BUCKETS.map(([k, label]) =>
-      `<button type="button" class="sup-bucket${bucket === k ? ' on' : ''}" data-bucket="${k}">${label}<span class="sup-bcount">${counts[k]}</span></button>`).join('');
+    BUCKETS.forEach(([k, label], i) => {
+      const opt = bucketSel.options[i];
+      if (opt) opt.textContent = `${label} (${counts[k]})`;
+    });
+    if (bucketSel.value !== bucket) bucketSel.value = bucket;
   }
-  bucketsEl.addEventListener('click', (e) => {
-    const b = e.target.closest('[data-bucket]');
-    if (!b) return;
-    bucket = b.dataset.bucket;
-    renderBuckets(); renderList();
+  bucketSel.addEventListener('change', () => {
+    bucket = bucketSel.value;
+    renderList();
   });
 
   async function loadNotifs() {
@@ -255,7 +257,7 @@ export async function mountSupportInbox(root) {
       if (t) bucket = bucketOf(t);
       followBucket = false;
     }
-    renderChips(); renderBuckets(); renderList();
+    renderChips(); renderFilter(); renderList();
     if (activeId) openDetail(activeId, true);
   }
 
@@ -357,7 +359,7 @@ export async function mountSupportInbox(root) {
     const t = tickets.find((x) => String(x.ref || '').toLowerCase() === ref.toLowerCase());
     if (t) {
       bucket = bucketOf(t);
-      renderBuckets(); renderList();
+      renderFilter(); renderList();
       openDetail(t.id);
       root.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else {
