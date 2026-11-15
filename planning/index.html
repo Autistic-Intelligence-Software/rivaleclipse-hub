@@ -206,7 +206,7 @@ function renderChrome() {
   document.title = p.title + ' — Planning — Rival Eclipse';
   document.getElementById('ptitle').textContent = p.title;
   const st = document.getElementById('pstatus');
-  st.textContent = p.status;
+  st.textContent = p.status + (p.locked ? ' · 🔒 locked' : '');
   st.className = 'pill ' + (p.status === 'active' ? 'ok' : p.status === 'pending' ? 'wait' : p.status === 'rejected' ? 'bad' : '');
   const pct = FULL.stats.overall_pct || 0;
   document.getElementById('ring-bar').style.strokeDashoffset = String(113 - (113 * pct) / 100);
@@ -233,6 +233,13 @@ function renderView() {
   ({ overview: vOverview, roadmap: vRoadmap, features: vFeatures, ui: vUI,
      requirements: vRequirements, notes: vNotes, suggestions: vSuggestions,
      files: vFiles, members: vMembers }[view] || vOverview)(el);
+  // Finalized projects are read-only: strip every edit form and disable
+  // every control (the server enforces the same lock — this is the UI
+  // half). The finalize card's own controls (unlock, downloads) exempt.
+  if (FULL.project.locked) {
+    el.querySelectorAll('form').forEach((f) => f.remove());
+    el.querySelectorAll('input, select, textarea, button').forEach((n) => { if (!n.closest('#finCard')) n.disabled = true; });
+  }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -306,6 +313,46 @@ const latestUp = (section, featureId) => FULL.uploads
   .sort((a, b) => b.version - a.version)[0];
 const featTitle = (fid) => (FULL.features.find((f) => f.id === fid) || {}).title || '';
 
+// ---------- Finalize ----------
+// Available only at 100% requirements. Finalizing locks every edit for
+// everyone (an admin can unlock) and serves one ready-to-compile build
+// package zip per platform.
+const PKG_PLATFORMS = [['website', 'Website'], ['browser-app', 'Browser app'], ['windows', 'Windows'], ['linux', 'Linux'], ['android', 'Android'], ['ios', 'iOS']];
+function finCard() {
+  const p = FULL.project, st = FULL.stats;
+  const done = st.requirements.done, total = st.requirements.total;
+  if (p.locked) {
+    return `<div class="card" id="finCard"><h3>🔒 Finalized — build packages ready</h3>
+      <p>Finalized by ${esc(p.finalized_by || '')} · ${esc(fmtDate(p.finalized_at))}. Every edit on this project is locked; an admin can unlock it below. Each package is a ready-to-compile zip for that platform: the full compiled spec, every uploaded file and version, and a platform scaffold with a build brief.</p>
+      <div class="row-flex" style="margin-top:10px">${PKG_PLATFORMS.map(([k, l]) => `<a class="btn ghost" href="${AUTH}/api/bp/projects/${p.id}/package?platform=${k}">⬇ ${l}</a>`).join('')}</div>
+      ${canAdmin ? '<div style="margin-top:12px"><button class="btn ghost" id="fin-unlock" type="button">Unlock for edits (admin)</button></div>' : ''}
+    </div>`;
+  }
+  const ready = total > 0 && done >= total;
+  return `<div class="card" id="finCard"><h3>Finalize &amp; build packages</h3>
+    <p>${done}/${total} requirements checked. When every requirement is met, Finalize locks the project — no more edits for anyone, unless an admin unlocks it — and generates the ready-to-compile build packages (website, browser app, Windows, Linux, Android, iOS) so the product can be built exactly to this plan, by anyone on the team or any builder.</p>
+    <div class="row-flex" style="margin-top:10px"><button class="btn" id="fin-finalize" type="button" ${ready ? '' : 'disabled'}>Finalize project</button>
+    ${ready ? '<span class="dim">All requirements met — ready to finalize.</span>' : `<span class="dim">${total - done} requirement${total - done === 1 ? '' : 's'} left to check.</span>`}</div>
+  </div>`;
+}
+function wireFinCard() {
+  const p = FULL.project;
+  const fb = document.getElementById('fin-finalize');
+  if (fb) fb.addEventListener('click', async () => {
+    if (!confirm('Finalize this project? Every edit locks for everyone until an admin unlocks it.')) return;
+    fb.disabled = true;
+    const { status, data } = await api(`/api/bp/projects/${p.id}/finalize`, { method: 'POST', body: '{}' });
+    if (status === 200) reload(); else { fb.disabled = false; alert('Could not finalize: ' + (data.error || status)); }
+  });
+  const ub = document.getElementById('fin-unlock');
+  if (ub) ub.addEventListener('click', async () => {
+    if (!confirm('Unlock this project for edits? It keeps its finalized stamp; finalize again to re-lock and regenerate the packages.')) return;
+    ub.disabled = true;
+    const { status, data } = await api(`/api/bp/projects/${p.id}/unlock`, { method: 'POST', body: '{}' });
+    if (status === 200) reload(); else { ub.disabled = false; alert('Could not unlock: ' + (data.error || status)); }
+  });
+}
+
 // ---------- Overview ----------
 function vOverview(el) {
   const p = FULL.project, st = FULL.stats;
@@ -318,6 +365,7 @@ function vOverview(el) {
     <p class="vsub">${esc(p.summary || '')}</p>
     ${p.description ? `<div class="card"><h3>About this project</h3><p style="white-space:pre-line;line-height:1.65;margin:0">${esc(p.description)}</p>
       <p class="dim" style="margin-top:10px">Created by ${esc(p.created_by_name || p.created_by_email)} · ${esc(fmtDate(p.created_at))}${p.target_launch ? ' · Target launch: ' + esc(p.target_launch) : ''}</p></div>` : ''}
+    ${finCard()}
     <div class="stat-grid">
       <div class="stat"><div class="n">${st.overall_pct}%</div><div class="l">Overall progress</div></div>
       <div class="stat"><div class="n">${st.requirements.done}/${st.requirements.total}</div><div class="l">Requirements done</div></div>
@@ -336,6 +384,7 @@ function vOverview(el) {
         <span class="dim">${st.byCategory[c].done}/${st.byCategory[c].total} · ${st.byCategory[c].pct}%</span></div>${pbar(st.byCategory[c].done, st.byCategory[c].total)}</div>`).join('') || '<p class="dim">No requirements yet.</p>'}
     </div>
     <div class="card"><h3>Recent activity</h3>${recent.map((r) => r.html).join('') || '<p class="dim">No notes or suggestions yet.</p>'}</div>`;
+  wireFinCard();
 }
 
 // ---------- Roadmap ----------
