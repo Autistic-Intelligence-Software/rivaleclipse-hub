@@ -82,6 +82,23 @@ function injectCss() {
 .sup-open { color:#ff9d6b; font-weight:700; }
 .sup-detail { border:1px solid var(--accent); border-radius:12px; padding:16px; margin:4px 0 16px;
   background:rgba(13,13,21,.85); }
+/* Shane 2026-11-14: inbox = small scrollable list + one fixed work panel.
+   The queue renders as compact rows in a capped, scrollable list; the chosen
+   ticket opens in the sticky detail panel beside it — one ticket at a time. */
+.sup-workbench { display:grid; grid-template-columns:minmax(250px,36%) 1fr; gap:14px;
+  align-items:start; margin-top:4px; }
+@media (max-width:860px) { .sup-workbench { grid-template-columns:1fr; } }
+.sup-workbench #sup-list { max-height:348px; overflow-y:auto; padding-right:4px; }
+.sup-workbench .sup-ticket { padding:9px 12px; margin-bottom:8px; border-radius:10px; }
+.sup-workbench .sup-ticket.sel { border-color:#d4af37; background:rgba(212,175,55,.09); }
+.sup-workbench .sup-ticket .sum { font-size:.88rem; margin:3px 0 0; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; }
+.sup-workbench .sup-ticket .meta { font-size:.78rem; margin-top:2px; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; }
+.sup-workbench #sup-detail .sup-detail { position:sticky; top:12px; margin:0; }
+.sup-empty { border:1px dashed var(--line); border-radius:12px; padding:18px;
+  color:var(--muted); font-size:.9rem; position:sticky; top:12px; }
+.sup-notif-list { max-height:172px; overflow-y:auto; }
 .sup-kv { width:100%; border-collapse:collapse; font-size:.88rem; margin:8px 0; }
 .sup-kv td { padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
 .sup-kv td:first-child { color:var(--muted); width:170px; text-transform:capitalize; }
@@ -109,8 +126,10 @@ export async function mountSupportInbox(root) {
   root.innerHTML = `
     <div id="sup-notifs"><p class="dim">Loading notifications…</p></div>
     <div class="sup-chips" id="sup-chips"></div>
-    <div id="sup-list"><p class="dim">Loading tickets…</p></div>
-    <div id="sup-detail"></div>`;
+    <div class="sup-workbench">
+      <div id="sup-list"><p class="dim">Loading tickets…</p></div>
+      <div id="sup-detail"><div class="sup-empty">Pick a ticket from the list — it opens here, in this fixed panel, one ticket at a time.</div></div>
+    </div>`;
   const listEl = root.querySelector('#sup-list');
   const chipsEl = root.querySelector('#sup-chips');
   const detailEl = root.querySelector('#sup-detail');
@@ -127,11 +146,11 @@ export async function mountSupportInbox(root) {
     const head = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
       <h3 style="margin:0;font-size:1rem">Notifications${data.unread ? `<span class="sup-badge">${data.unread}</span>` : ''}</h3>
       ${data.unread ? '<button class="act-btn" id="sup-readall" type="button">Mark all read</button>' : ''}</div>`;
-    notifEl.innerHTML = head + (items.length ? items.slice(0, 8).map((n) => `
+    notifEl.innerHTML = head + (items.length ? `<div class="sup-notif-list">${items.slice(0, 8).map((n) => `
       <div class="sup-notif${n.read ? '' : ' unread'}">
         <span>${esc(n.category_label || 'Notice')} · ${esc(n.kind.replace(/_/g, ' '))}${n.ref ? ' · ' + esc(n.ref) : ''}</span>
         <span class="dim">${esc(fmtDate(n.created_at))}</span>
-      </div>`).join('') : '<p class="dim">No notifications yet.</p>');
+      </div>`).join('')}</div>` : '<p class="dim">No notifications yet.</p>');
     const btn = notifEl.querySelector('#sup-readall');
     if (btn) btn.onclick = async () => { await api('/api/notifications/read', { method: 'POST', body: JSON.stringify({ all: true }) }); loadNotifs(); };
   }
@@ -155,7 +174,7 @@ export async function mountSupportInbox(root) {
     listEl.innerHTML = rows.length ? rows.map((t) => {
       const [cls, label] = STATUS_PILL[t.status] || ['', t.status];
       const active = ['open', 'claimed', 'waiting'].includes(t.status);
-      return `<div class="sup-ticket" data-tid="${esc(t.id)}">
+      return `<div class="sup-ticket${String(t.id) === String(activeId) ? ' sel' : ''}" data-tid="${esc(t.id)}">
         <div class="hd">
           <span class="ref">${esc(t.ref)}</span>
           <span class="badge cat">${esc(t.category_label)}</span>
@@ -185,6 +204,7 @@ export async function mountSupportInbox(root) {
 
   async function openDetail(id, keepScroll = false) {
     activeId = id;
+    listEl.querySelectorAll('.sup-ticket').forEach((el) => el.classList.toggle('sel', el.dataset.tid === String(id)));
     const { status, data } = await api('/api/tickets/' + encodeURIComponent(id) + '/thread');
     if (status !== 200) { detailEl.innerHTML = '<p class="dim">Couldn’t open that ticket.</p>'; return; }
     const t = data.ticket;
@@ -225,7 +245,7 @@ export async function mountSupportInbox(root) {
       <p class="dim" id="sup-msg"></p>
     </div>`;
     if (!keepScroll) detailEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    detailEl.querySelector('#sup-close').onclick = () => { activeId = null; detailEl.innerHTML = ''; };
+    detailEl.querySelector('#sup-close').onclick = () => { activeId = null; detailEl.innerHTML = '<div class="sup-empty">Pick a ticket from the list — it opens here, in this fixed panel, one ticket at a time.</div>'; listEl.querySelectorAll('.sup-ticket').forEach((el) => el.classList.remove('sel')); };
     detailEl.querySelector('#sup-send').onclick = async () => {
       const ta = detailEl.querySelector('#sup-reply');
       const body = ta.value.trim();
