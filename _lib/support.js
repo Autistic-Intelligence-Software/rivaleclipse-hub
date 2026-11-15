@@ -113,6 +113,17 @@ function injectCss() {
 .sup-bcount { display:inline-block; min-width:20px; padding:1px 6px; margin-left:4px;
   border-radius:999px; background:rgba(0,0,0,.22); font-size:.78rem; }
 .sup-bucket:not(.on) .sup-bcount { background:#2a2a35; color:var(--text); }
+/* Shane 2026-11-14: per-category notify matrix — one row per ticket type,
+   a switch per delivery method (Discord ping / Email / Dashboard). */
+.np-head, .np-row { display:grid; grid-template-columns:1fr 84px 64px 92px; align-items:center;
+  gap:8px; padding:9px 0; border-bottom:1px solid var(--line); }
+.np-head { color:var(--muted); font-size:.74rem; font-weight:700; text-transform:uppercase;
+  letter-spacing:.05em; padding-top:2px; }
+.np-head span:not(:first-child) { text-align:center; }
+.np-cell { display:flex; flex-direction:column; align-items:center; gap:2px; }
+.np-cat { font-size:.92rem; }
+.np-note { font-size:.68rem; color:var(--muted); }
+@media (max-width:560px) { .np-head, .np-row { grid-template-columns:1fr 72px 54px 78px; gap:5px; } }
 .sup-kv { width:100%; border-collapse:collapse; font-size:.88rem; margin:8px 0; }
 .sup-kv td { padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
 .sup-kv td:first-child { color:var(--muted); width:170px; text-transform:capitalize; }
@@ -368,10 +379,23 @@ export async function mountNotifyPrefs(root) {
   const { status, data } = await api('/api/notify-prefs');
   if (status !== 200) { root.innerHTML = '<p class="dim">Couldn’t load preferences.</p>'; return; }
   const p = data.prefs || {};
+  const cats = data.categories || [];
+  const cp = data.category_prefs || {};
+  const sw = (method, on) => `<label class="switch"><input type="checkbox" data-npm="${method}" ${on ? 'checked' : ''}><span class="tk"></span></label>`;
   root.innerHTML = `
-    <div class="notif-row"><span>Email me the <b>full submission</b> for new tickets in my categories</span>
-      <label class="switch"><input type="checkbox" id="np-email" ${p.email_opt_in ? 'checked' : ''}><span class="tk"></span></label></div>
-    <div class="notif-row"><span>SMS me a short alert for new tickets</span>
+    <p class="dim" style="margin-top:0">Opt in per ticket type, per delivery method: a <b>Discord ping</b> in the
+      team channel, the <b>full submission by email</b>, or a <b>dashboard</b> notification here.
+      Dashboard starts on — turn it off per type if you don't want those in your feed.</p>
+    <div class="np-head"><span>Ticket type</span><span>Discord ping</span><span>Email</span><span>Dashboard</span></div>
+    ${cats.map((c) => { const v = cp[c.category] || {}; return `
+    <div class="np-row" data-npcat="${esc(c.category)}">
+      <span class="np-cat">${esc(c.label)}</span>
+      <span class="np-cell">${sw('discord', !!v.discord)}${data.discord_linked ? '' : '<span class="np-note">not linked</span>'}</span>
+      <span class="np-cell">${sw('email', !!v.email)}</span>
+      <span class="np-cell">${sw('dashboard', v.dashboard !== false)}</span>
+    </div>`; }).join('')}
+    ${data.discord_linked ? '' : '<p class="dim" style="margin-top:8px">Your Discord account isn’t linked yet — Discord ping choices are saved anyway and start working as soon as you link it.</p>'}
+    <div class="notif-row"><span>SMS me a short alert for new tickets (all types)</span>
       <label class="switch"><input type="checkbox" id="np-sms" ${p.sms_opt_in ? 'checked' : ''}><span class="tk"></span></label></div>
     <input id="np-phone" type="tel" placeholder="Mobile number for SMS alerts (e.g. +1 555 123 4567)"
       value="${esc(p.phone || '')}" style="width:100%;box-sizing:border-box;background:#0d0d15;border:1px solid var(--line);
@@ -382,12 +406,20 @@ export async function mountNotifyPrefs(root) {
   root.querySelector('#np-save').onclick = async () => {
     const st = root.querySelector('#np-status');
     st.className = 'save-msg'; st.textContent = 'Saving…';
+    const category_prefs = {};
+    root.querySelectorAll('[data-npcat]').forEach((row) => {
+      category_prefs[row.dataset.npcat] = {
+        discord: row.querySelector('[data-npm="discord"]').checked,
+        email: row.querySelector('[data-npm="email"]').checked,
+        dashboard: row.querySelector('[data-npm="dashboard"]').checked,
+      };
+    });
     const { status: sc } = await api('/api/notify-prefs', {
       method: 'PUT',
       body: JSON.stringify({
-        email_opt_in: root.querySelector('#np-email').checked,
         sms_opt_in: root.querySelector('#np-sms').checked,
         phone: root.querySelector('#np-phone').value.trim() || null,
+        category_prefs,
       }),
     });
     st.className = 'save-msg ' + (sc === 200 ? 'ok' : 'err');
