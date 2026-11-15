@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team Suites — Rival Eclipse</title>
+<meta name="description" content="The Rival Eclipse team's own workspaces: Team dashboard, Brainstorming & Planning, Admin, and Owner — each opening to the tools your role unlocks.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.card.locked { opacity: .55; cursor: default; }
+.card.locked .go { color: var(--muted); }
+.who-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.btn.ghost { background: none; border: 1px solid var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+  <div class="wrap">
+    <div class="crumb"><a href="/">← Rival Eclipse</a></div>
+    <h1 class="page-title">Team suites</h1>
+    <p class="page-sub">The team's own workspaces. Each suite opens to the tools your role unlocks — the ones your account can't open show locked, so you always know where you stand.</p>
+
+    <div class="block">
+      <p class="sub" id="suite-who-text" style="margin:0">Checking your sign-in…</p>
+      <div class="who-btns" id="suite-who-btns"></div>
+    </div>
+
+    <div class="grid" style="margin-top:22px">
+      <a class="card suite" data-need="team" href="/team/">
+        <div class="dic">🗂️</div>
+        <h2>Team dashboard</h2>
+        <p>Support inbox, team ops, project workflow, and your notification settings — the panels the team runs the business from, all in one place.</p>
+        <div class="go">Open team <span>→</span></div>
+      </a>
+      <a class="card suite" data-need="team" href="/planning/">
+        <div class="dic">🧠</div>
+        <h2>Brainstorming &amp; Planning</h2>
+        <p>Project plans, roadmaps, feature lists with requirement checklists, notes, suggestions, and files — where builds get specced before they get built.</p>
+        <div class="go">Open planning <span>→</span></div>
+      </a>
+      <a class="card suite" data-need="admin" href="/admin/">
+        <div class="dic">🛡️</div>
+        <h2>Admin</h2>
+        <p>User registry, role management, promo &amp; team codes, planning approvals, and per-user messages.</p>
+        <div class="go">Open admin <span>→</span></div>
+      </a>
+      <a class="card suite" data-need="owner" href="/owner/">
+        <div class="dic">👑</div>
+        <h2>Owner</h2>
+        <p>Invite codes, support routing &amp; notification control, and full owner settings.</p>
+        <div class="go">Open owner <span>→</span></div>
+      </a>
+    </div>
+  </div>
+</main>
+<footer>
+  <div class="wrap">
+    <div>© 2026 Rival Eclipse. All things under rivaleclipse.dev.</div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/dashboards/">Dashboards</a>
+      <a href="/apps-bots/">Discord Bots</a>
+      <a href="/sign-in/">Sign in</a>
+      <a href="/ToS-Privacy-legal/">ToS &amp; Privacy</a>
+    </nav>
+  </div>
+</footer>
+<script src="/sky.js"></script>
+<script type="module">
+import { session } from '/auth.js';
+import { hasTag, isOwnerOf, tagsOf } from '/_lib/gates.js';
+
+// Session-aware portal (Shane 2026-11-14): the page renders for the
+// individual — guests get a sign-in route, signed-in users see their
+// roles and exactly which suites their account opens.
+const whoText = document.getElementById('suite-who-text');
+const whoBtns = document.getElementById('suite-who-btns');
+const NEED_LABEL = { team: 'Team', admin: 'Admin', owner: 'Owner' };
+function lock(card, msg) {
+  card.classList.add('locked');
+  card.removeAttribute('href');
+  card.querySelector('.go').innerHTML = '🔒 ' + msg;
+}
+const s = await session().catch(() => null);
+if (!s || !s.user) {
+  whoText.textContent = "You're browsing as a guest. The team suites are the Rival Eclipse team's own workspaces — sign in with your team account to open the ones your role unlocks.";
+  whoBtns.innerHTML = '<a class="btn" href="/sign-in/?next=/suites/">Sign in</a>';
+  document.querySelectorAll('.suite').forEach((c) => lock(c, 'Sign in to open'));
+} else {
+  const tags = tagsOf(s);
+  const roles = [];
+  if (isOwnerOf(s)) roles.push('Owner');
+  for (const [t, l] of [['admin', 'Admin'], ['team', 'Team'], ['client', 'Client'], ['tester', 'Tester']]) if (tags.includes(t)) roles.push(l);
+  if (!roles.length) roles.push('Member');
+  whoText.textContent = `Signed in as ${s.user.email} — ${roles.join(' · ')}. Suites your account can't open are shown locked.`;
+  whoBtns.innerHTML = '<a class="btn ghost" href="/dashboards/">Your dashboards</a><a class="btn ghost" href="/profile/">My profile</a>';
+  document.querySelectorAll('.suite').forEach((c) => {
+    const need = c.dataset.need;
+    if (!hasTag(s, need)) lock(c, 'Locked — needs ' + NEED_LABEL[need] + ' access');
+  });
+}
+</script>
+<script src="/assistant.js"></script>
+<script src="/_lib/menu.js"></script>
+</body>
+</html>
