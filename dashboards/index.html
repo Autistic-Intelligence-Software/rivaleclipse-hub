@@ -84,6 +84,12 @@
       <p>Everything the team is working on, organized in one place — the demo pipeline awaiting pre-approval, plus every dev request from new to delivered: status, notes, and deliverables.</p>
       <div class="go">Open team <span>→</span></div>
     </a>
+    <a class="card" id="planning-card" style="display:none" href="/planning/">
+      <div class="dic">🧠</div>
+      <h2>Brainstorming &amp; Planning</h2>
+      <p>Project plans, roadmaps, feature lists with requirement checklists, notes, suggestions, and files — where builds get specced before they get built.</p>
+      <div class="go">Open planning <span>→</span></div>
+    </a>
     <a class="card" id="owner-card" style="display:none" href="/owner/">
       <div class="dic">👑</div>
       <h2>Owner</h2>
@@ -133,6 +139,7 @@ if (hasTag(s, 'admin')) {
 }
 if (hasTag(s, 'team') || hasTag(s, 'admin')) {
   document.getElementById('team-card').style.display = '';
+  document.getElementById('planning-card').style.display = '';
 }
 if (hasTag(s, 'owner')) {
   document.getElementById('owner-card').style.display = '';
