@@ -29,7 +29,13 @@
 .doors.grid-3 .door .dic { font-size: 40px; margin-bottom: 12px; }
 .doors.grid-3 .door h2 { font-size: 1.18rem; }
 .doors.grid-3 .door p { font-size: .92rem; margin-bottom: 14px; }
-@media (max-width: 640px) { .doors.grid-2x2, .doors.grid-3 { grid-template-columns: 1fr; } }
+.doors.grid-4 { grid-template-columns: repeat(4, 1fr); margin-top: 22px; }
+.doors.grid-4 .door { padding: 30px 24px; }
+.doors.grid-4 .door .dic { font-size: 40px; margin-bottom: 12px; }
+.doors.grid-4 .door h2 { font-size: 1.18rem; }
+.doors.grid-4 .door p { font-size: .92rem; margin-bottom: 14px; }
+@media (max-width: 980px) { .doors.grid-4 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .doors.grid-2x2, .doors.grid-3, .doors.grid-4 { grid-template-columns: 1fr; } }
 a.door.apply-link { cursor: pointer; }
 </style>
 </head>
@@ -80,12 +86,18 @@ a.door.apply-link { cursor: pointer; }
       </a>
     </div>
 
-    <div class="doors grid-3">
+    <div class="doors grid-4">
       <a class="door" href="/dashboards/">
         <div class="dic">📊</div>
         <h2>Team/Admin/Client/Owner dashboards</h2>
         <p>Already working with us? Your dashboards live here — bot dashboards, client portal, and the team, admin, and owner areas.</p>
         <div class="go">Open dashboards <span>→</span></div>
+      </a>
+      <a class="door" href="/suites/">
+        <div class="dic">🧰</div>
+        <h2>Team suites</h2>
+        <p>The team's own workspaces — Team dashboard, Brainstorming &amp; Planning, Admin, and Owner. Each suite opens to the tools your role unlocks; the rest show locked.</p>
+        <div class="go">Open the team suites <span>→</span></div>
       </a>
       <a class="door" href="/help/">
         <div class="dic">💬</div>
@@ -101,7 +113,7 @@ a.door.apply-link { cursor: pointer; }
       </a>
     </div>
 
-    <div class="block auth-band">
+    <div class="block auth-band" id="auth-band">
       <h2>Sign in and new user registration</h2>
       <p class="sub">One account for every Rival Eclipse bot dashboard, web app, and service.</p>
       <div class="acct-btns">
@@ -131,7 +143,8 @@ a.door.apply-link { cursor: pointer; }
 </footer>
 <script src="/sky.js"></script>
 <script type="module">
-import { session } from '/auth.js';
+import { session, logout } from '/auth.js';
+import { hasTag, isOwnerOf, tagsOf } from '/_lib/gates.js';
 // Business/ambassador apply: signed-in users go straight to the
 // application; everyone else registers first, then lands on it.
 const goApply = async () => {
@@ -140,6 +153,35 @@ const goApply = async () => {
 };
 const link = document.getElementById('apply-link');
 link.addEventListener('click', (e) => { e.preventDefault(); goApply(); });
+
+// Session-aware account band (Shane 2026-11-14 — standing rule: a
+// signed-in user never sees Sign in / Register CTAs; the band renders
+// for the individual: their name, their roles, their options).
+(async () => {
+  const band = document.getElementById('auth-band');
+  if (!band) return;
+  const s = await session().catch(() => null);
+  if (!s || !s.user) return;
+  const esc = (x) => String(x ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const u = s.user;
+  const tags = tagsOf(s);
+  const roles = [];
+  if (isOwnerOf(s)) roles.push('Owner');
+  for (const [t, l] of [['admin', 'Admin'], ['team', 'Team'], ['client', 'Client'], ['tester', 'Tester']]) if (tags.includes(t)) roles.push(l);
+  if (!roles.length) roles.push('Member');
+  const btn = (href, label, ghost) => `<a class="btn${ghost ? ' ghost' : ''}" href="${href}">${label}</a>`;
+  let btns = btn('/profile/', 'My profile') + btn('/dashboards/', 'Your dashboards', true);
+  if (hasTag(s, 'client')) btns += btn('/client/', 'Client portal', true);
+  if (hasTag(s, 'team') || hasTag(s, 'admin')) btns += btn('/suites/', 'Team suites', true);
+  if (hasTag(s, 'admin')) btns += btn('/admin/', 'Admin', true);
+  if (isOwnerOf(s)) btns += btn('/owner/', 'Owner', true);
+  if (!hasTag(s, 'team') && !hasTag(s, 'admin')) btns += btn('/apply/', 'Business owner or brand ambassador? Apply here', true);
+  btns += '<button class="btn ghost" id="band-signout" type="button">Sign out</button>';
+  band.innerHTML = `<h2>Welcome back, ${esc(u.display_name || u.email)}</h2>
+    <p class="sub">Signed in as ${esc(u.email)} — ${roles.join(' · ')}. These are your account options:</p>
+    <div class="acct-btns">${btns}</div>`;
+  document.getElementById('band-signout').addEventListener('click', () => logout());
+})();
 </script>
 <script src="/assistant.js"></script>
 <script src="/_lib/menu.js"></script>
