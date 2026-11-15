@@ -348,6 +348,22 @@ export async function mountSupportInbox(root) {
 
   await loadNotifs();
   await loadQueue();
+
+  // Deep link from an alert post / email / SMS (#ticket=RE-XXXXXX): land in
+  // the ticket's bucket with the ticket open in the detail panel.
+  const hm = /#ticket=([A-Za-z0-9-]+)/.exec(location.hash || '');
+  if (hm) {
+    const ref = decodeURIComponent(hm[1]);
+    const t = tickets.find((x) => String(x.ref || '').toLowerCase() === ref.toLowerCase());
+    if (t) {
+      bucket = bucketOf(t);
+      renderBuckets(); renderList();
+      openDetail(t.id);
+      root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      detailEl.innerHTML = `<div class="sup-empty">Ticket ${esc(ref)} isn't in your queue — it may be outside your categories or already removed.</div>`;
+    }
+  }
 }
 
 // ---------------- team log (ticket events, claims highlighted) ----
