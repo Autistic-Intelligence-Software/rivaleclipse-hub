@@ -127,6 +127,7 @@
   <div class="app-top">
     <a class="back" href="/team/#brainstorm-block">← Team</a>
     <span class="ptitle" id="ptitle">Project</span>
+    <select id="pswitch" class="inp" style="width:auto;max-width:300px" title="Switch project"></select>
     <span class="pill wait" id="pstatus">…</span>
     <div class="pstatus">
       <span class="dim" id="pwho"></span>
@@ -149,7 +150,7 @@ import { tagsOf, hasTag, isOwnerOf, goBlocked } from '/_lib/gates.js';
 
 const AUTH = 'https://auth.rivaleclipse.dev';
 const CATEGORIES = ['Features & Functions', 'UI & Design', 'Integrations', 'Requirements', 'Launch & Release'];
-const slug = new URLSearchParams(location.search).get('project') || '';
+let slug = new URLSearchParams(location.search).get('project') || '';
 
 async function api(path, opts = {}) {
   const r = await fetch(AUTH + path, {
@@ -166,10 +167,13 @@ const fmtDate = (v) => { try { return v ? new Date(v).toLocaleString() : '—'; 
 const fmtSize = (n) => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : n > 1024 ? Math.round(n / 1024) + ' KB' : n + ' B';
 const dlUrl = (uid) => `${AUTH}/api/bp/uploads/${uid}/download`;
 
-// ---------- gate (team tag, admin tag, or owner — same as /team/) ----------
+// ---------- gate ----------
+// Sign-in required. Access itself is enforced by the API: dev-team
+// members (team/admin tag, or owner) see every project; invited
+// temporary helpers see only the project they were invited to. Anyone
+// else lands on an empty picker with an explanation.
 const s = await session();
 if (!s) goBlocked('signin', '/planning/');
-if (!(hasTag(s, 'team') || hasTag(s, 'admin'))) goBlocked('tag', '/planning/', { tag: 'team' });
 const me = (s && s.user) || {};
 const canAdmin = hasTag(s, 'admin') || isOwnerOf(s);
 document.getElementById('gate').style.display = 'none';
@@ -179,17 +183,74 @@ document.getElementById('pwho').textContent = s.discord?.username ? '@' + s.disc
 // ---------- state ----------
 let FULL = null;
 let view = 'overview';
+let LIST = null, flash = '';
 const VIEWS = [
   ['plan', 'Plan'],
   ['overview', 'Overview'], ['roadmap', 'Roadmap'],
   ['work', 'Work'],
   ['features', 'Features & Functions'], ['ui', 'UI & Design'], ['requirements', 'Requirements & Checklists'],
   ['team', 'People'],
-  ['notes', 'Notes'], ['suggestions', 'Suggestions'], ['files', 'Files & Uploads'], ['members', 'Team'],
+  ['notes', 'Notes'], ['suggestions', 'Suggestions'], ['files', 'Files & Uploads'], ['members', 'Team & access'],
+  ['review-grp', 'Review'],
+  ['review', 'Review queue'], ['submissions', 'My submissions'],
 ];
 
+// ---------- project list, picker, switcher ----------
+async function loadList() {
+  const { status, data } = await api('/api/bp/projects');
+  LIST = status === 200 ? data : { projects: [], error: data.error || ('http_' + status), status };
+  const sw = document.getElementById('pswitch');
+  sw.innerHTML = '<option value="">All projects…</option>' + (LIST.projects || [])
+    .map((p) => `<option value="${esc(p.slug)}"${p.slug === slug ? ' selected' : ''}>${esc(p.title)}</option>`).join('');
+  sw.value = slug;
+}
+function selectProject(newSlug) {
+  slug = newSlug || '';
+  FULL = null; view = 'overview';
+  history.pushState(null, '', slug ? '?project=' + encodeURIComponent(slug) : location.pathname);
+  reload(false);
+}
+document.getElementById('pswitch').addEventListener('change', (e) => selectProject(e.target.value));
+
+function renderPicker() {
+  document.title = 'Brainstorming & Planning — Rival Eclipse';
+  document.getElementById('ptitle').textContent = 'Brainstorming & Planning';
+  const st = document.getElementById('pstatus');
+  st.style.display = 'none';
+  document.getElementById('ring-txt').textContent = '—';
+  document.getElementById('ring-bar').style.strokeDashoffset = '113';
+  const projects = (LIST && LIST.projects) || [];
+  document.getElementById('sidebar').innerHTML =
+    '<div class="grp">Projects</div>' + (projects.map((p) =>
+      `<button type="button" class="side-btn" data-pick="${esc(p.slug)}">${esc(p.title)}${p.pending_changes ? `<span class="cnt">${p.pending_changes}</span>` : ''}</button>`).join('')
+      || '<p class="dim" style="padding:4px 10px">None</p>');
+  const el = document.getElementById('view');
+  if (LIST && LIST.error) {
+    el.innerHTML = `<h2 class="vt">Brainstorming &amp; Planning</h2>
+      <div class="card"><h3>No planning access yet</h3>
+      <p>Planning projects are visible to the Rival Eclipse dev team, and to temporary helpers on the specific project they were invited to. If you were invited as a helper, sign in with the exact email the invite was sent to. Otherwise, ask an admin to add you.</p></div>`;
+    return;
+  }
+  el.innerHTML = `
+    <h2 class="vt">Brainstorming &amp; Planning</h2>
+    <p class="vsub">Pick a project to open it. Dev-team members can view every project; edits from non-admins are held for admin review before they become permanent.${canAdmin && LIST.pending_reviews ? ` <b>${LIST.pending_reviews} change${LIST.pending_reviews === 1 ? '' : 's'} waiting for review</b> across all projects.` : ''}</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+      ${projects.map((p) => `
+        <button type="button" class="card" data-pick="${esc(p.slug)}" style="text-align:left;cursor:pointer;margin:0">
+          <div class="row-flex" style="justify-content:space-between"><b style="font-size:1.05rem">${esc(p.title)}</b>
+            <span class="pill ${p.status === 'active' ? 'ok' : p.status === 'pending' ? 'wait' : p.status === 'rejected' ? 'bad' : ''}">${esc(p.status)}</span></div>
+          ${p.summary ? `<div class="dim" style="margin-top:6px">${esc(p.summary)}</div>` : ''}
+          <div style="margin-top:12px">${pbar(p.stats.requirements.done, p.stats.requirements.total)}
+            <div class="dim" style="margin-top:6px">${p.stats.overall_pct}% overall · ${p.stats.requirements.done}/${p.stats.requirements.total} requirements · updated ${esc(fmtDate(p.updated_at))}${p.locked ? ' · 🔒 finalized' : ''}</div></div>
+          ${p.pending_changes ? `<div style="margin-top:8px"><span class="pill wait">${p.pending_changes} change${p.pending_changes === 1 ? '' : 's'} to review</span></div>` : ''}
+          ${p.my_pending ? `<div style="margin-top:8px"><span class="pill vio">${p.my_pending} of your changes pending</span></div>` : ''}
+        </button>`).join('') || '<p class="dim">No projects yet. New projects are created from the Team page\'s Brainstorming &amp; Planning section.</p>'}
+    </div>`;
+}
+
 async function reload(keepView = true) {
-  if (!slug) { document.getElementById('view').innerHTML = '<p class="dim">No project selected. Open one from the Team page\'s Brainstorming &amp; Planning section.</p>'; return; }
+  await loadList();
+  if (!slug) { renderPicker(); return; }
   const { status, data } = await api('/api/bp/projects/' + encodeURIComponent(slug) + '/full');
   if (status !== 200) {
     document.getElementById('view').innerHTML = `<p class="dim">Couldn't load this project (${esc(data.error || status)}). It may be pending approval, or you may not have access.</p>`;
@@ -206,6 +267,7 @@ function renderChrome() {
   document.title = p.title + ' — Planning — Rival Eclipse';
   document.getElementById('ptitle').textContent = p.title;
   const st = document.getElementById('pstatus');
+  st.style.display = '';
   st.textContent = p.status + (p.locked ? ' · 🔒 locked' : '');
   st.className = 'pill ' + (p.status === 'active' ? 'ok' : p.status === 'pending' ? 'wait' : p.status === 'rejected' ? 'bad' : '');
   const pct = FULL.stats.overall_pct || 0;
@@ -216,12 +278,15 @@ function renderChrome() {
     overview: '', roadmap: FULL.milestones.length,
     features: FULL.features.length, ui: FULL.uploads.filter((u) => u.section.startsWith('ui_') || u.section === 'design').length,
     requirements: `${FULL.stats.requirements.done}/${FULL.stats.requirements.total}`,
-    notes: FULL.notes.length, suggestions: openSugg || '', files: FULL.uploads.length, members: FULL.members.length,
+    notes: FULL.notes.length, suggestions: openSugg || '', files: FULL.uploads.length,
+    members: (FULL.dev_team || []).length + (FULL.helpers || []).length || FULL.members.length,
+    review: canAdmin ? (FULL.access?.pending_changes || '') : '',
+    submissions: FULL.access?.my_pending_changes || '',
   };
   let html = '';
   let lastGrp = null;
   for (const [key, label] of VIEWS) {
-    if (['plan', 'work', 'team'].includes(key)) { lastGrp = label; html += `<div class="grp">${esc(label)}</div>`; continue; }
+    if (['plan', 'work', 'team', 'review-grp'].includes(key)) { lastGrp = label; html += `<div class="grp">${esc(label)}</div>`; continue; }
     html += `<button type="button" class="side-btn${view === key ? ' on' : ''}" data-view="${key}">${esc(label)}${counts[key] !== '' ? `<span class="cnt">${esc(counts[key])}</span>` : ''}</button>`;
   }
   document.getElementById('sidebar').innerHTML = html;
@@ -232,13 +297,19 @@ function renderView() {
   if (!FULL) return;
   ({ overview: vOverview, roadmap: vRoadmap, features: vFeatures, ui: vUI,
      requirements: vRequirements, notes: vNotes, suggestions: vSuggestions,
-     files: vFiles, members: vMembers }[view] || vOverview)(el);
+     files: vFiles, members: vMembers, review: vReview, submissions: vSubmissions }[view] || vOverview)(el);
+  if (flash) {
+    el.insertAdjacentHTML('afterbegin', `<div class="card" style="border-color:var(--gold)"><b>📨 ${esc(flash)}</b></div>`);
+    flash = '';
+  }
   // Finalized projects are read-only: strip every edit form and disable
   // every control (the server enforces the same lock — this is the UI
-  // half). The finalize card's own controls (unlock, downloads) exempt.
+  // half). The finalize card's own controls (unlock, downloads) exempt,
+  // and so do the review/submission controls (denying or withdrawing a
+  // pending change is still allowed on a locked project).
   if (FULL.project.locked) {
-    el.querySelectorAll('form').forEach((f) => f.remove());
-    el.querySelectorAll('input, select, textarea, button').forEach((n) => { if (!n.closest('#finCard')) n.disabled = true; });
+    el.querySelectorAll('form').forEach((f) => { if (!f.closest('[data-review-ui]')) f.remove(); });
+    el.querySelectorAll('input, select, textarea, button').forEach((n) => { if (!n.closest('#finCard') && !n.closest('[data-review-ui]')) n.disabled = true; });
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -250,6 +321,7 @@ const reqRow = (r) => `
     <input type="checkbox" data-check-req="${r.id}" ${r.done ? 'checked' : ''}>
     <span class="rt">${esc(r.text)}</span>
     ${r.done ? `<span class="who">✓ ${esc(r.done_by || '')} · ${esc(fmtDate(r.done_at))}</span>` : ''}
+    <button class="btn ghost" type="button" data-del-req="${r.id}" title="Delete this requirement" style="padding:2px 9px;margin-left:auto">×</button>
   </div>`;
 const reqList = (reqs) => reqs.length ? reqs.map(reqRow).join('') : '<p class="dim">No checklist items yet.</p>';
 const noteRow = (n, featTitle) => `
@@ -365,13 +437,21 @@ function vOverview(el) {
     <p class="vsub">${esc(p.summary || '')}</p>
     ${p.description ? `<div class="card"><h3>About this project</h3><p style="white-space:pre-line;line-height:1.65;margin:0">${esc(p.description)}</p>
       <p class="dim" style="margin-top:10px">Created by ${esc(p.created_by_name || p.created_by_email)} · ${esc(fmtDate(p.created_at))}${p.target_launch ? ' · Target launch: ' + esc(p.target_launch) : ''}</p></div>` : ''}
+    <div class="card"><h3>Edit project details</h3>
+      <form data-form="project"><div class="form-grid">
+        <div><label>Title</label><input class="inp" name="title" maxlength="200" value="${esc(p.title)}" required></div>
+        <div><label>Target launch</label><input class="inp" name="target_launch" maxlength="60" value="${esc(p.target_launch || '')}" placeholder="e.g. March 2027"></div>
+        <div class="full"><label>One-line summary</label><input class="inp" name="summary" maxlength="500" value="${esc(p.summary || '')}"></div>
+        <div class="full"><label>Description</label><textarea class="inp" name="description" maxlength="20000">${esc(p.description || '')}</textarea></div>
+      </div><button class="btn" type="submit" style="margin-top:10px">Save details</button><p class="msg"></p></form>
+    </div>
     ${finCard()}
     <div class="stat-grid">
       <div class="stat"><div class="n">${st.overall_pct}%</div><div class="l">Overall progress</div></div>
       <div class="stat"><div class="n">${st.requirements.done}/${st.requirements.total}</div><div class="l">Requirements done</div></div>
       <div class="stat"><div class="n">${st.milestones.done}/${st.milestones.total}</div><div class="l">Milestones done</div></div>
       <div class="stat"><div class="n">${st.features}</div><div class="l">Features</div></div>
-      <div class="stat"><div class="n">${st.members}</div><div class="l">Team members</div></div>
+      <div class="stat"><div class="n">${(FULL.dev_team || []).length + (FULL.helpers || []).length}</div><div class="l">People with access</div></div>
     </div>
     <div class="card"><h3>Roadmap snapshot</h3>
       ${FULL.milestones.map((m) => `<div class="ms-row"><span class="ms-dot ${esc(m.status)}"></span>
@@ -404,6 +484,7 @@ function vRoadmap(el) {
               </select>
               <input class="inp" type="date" data-ms-due="${m.id}" value="${esc(m.due_date || '')}" style="width:auto">
               ${m.due_date ? `<span class="dim">due ${esc(m.due_date)}</span>` : '<span class="dim">no due date</span>'}
+              <button class="btn ghost" type="button" data-del-ms="${m.id}">Delete</button>
             </div>
           </div>
         </div>`).join('') || '<p class="dim">No milestones yet.</p>'}
@@ -427,7 +508,16 @@ function featureCard(f) {
       <span style="margin-left:auto"><select class="inp" data-feat-status="${f.id}" style="width:auto;padding:6px 10px">
         ${['planned', 'in_progress', 'done'].map((st) => `<option value="${st}"${f.status === st ? ' selected' : ''}>${st.replace('_', ' ')}</option>`).join('')}
       </select></span>
+      <button class="btn ghost" type="button" data-edit-feature="${f.id}">Edit</button>
+      <button class="btn ghost" type="button" data-del-feature="${f.id}">Delete</button>
     </div>
+    <form data-form="feature-edit" data-fid="${f.id}" id="fedit-${f.id}" hidden style="margin:12px 0"><div class="form-grid">
+      <div><label>Title</label><input class="inp" name="title" maxlength="200" value="${esc(f.title)}" required></div>
+      <div><label>Category</label><select class="inp" name="category">${CATEGORIES.map((c) => `<option${c === f.category ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select></div>
+      <div class="full"><label>How it will function</label><textarea class="inp" name="how_it_works">${esc(f.how_it_works || '')}</textarea></div>
+      <div class="full"><label>What is needed to integrate it</label><textarea class="inp" name="integration_needs">${esc(f.integration_needs || '')}</textarea></div>
+      <div class="full"><label>Function execution (step by step)</label><textarea class="inp" name="execution_notes">${esc(f.execution_notes || '')}</textarea></div>
+    </div><button class="btn" type="submit" style="margin-top:10px">Save feature</button><p class="msg"></p></form>
     ${f.how_it_works ? `<div class="sect"><div class="sl">How it will function</div><p>${esc(f.how_it_works)}</p></div>` : ''}
     ${f.integration_needs ? `<div class="sect"><div class="sl">What is needed to integrate it</div><p class="pre">${esc(f.integration_needs)}</p></div>` : ''}
     ${f.execution_notes ? `<div class="sect"><div class="sl">Function execution</div><p class="pre">${esc(f.execution_notes)}</p></div>` : ''}
@@ -567,51 +657,216 @@ function vFiles(el) {
     </div>`;
 }
 
-// ---------- Team ----------
-function vMembers(el) {
+// ---------- Review queue + My submissions ----------
+// Non-admin edits land here as pending changes; the live project does
+// not change until an admin approves. Deny discards (reason optional).
+const diffVal = (v) => {
+  if (v === null || v === undefined) return '<span class="dim">—</span>';
+  const t = typeof v === 'object' ? JSON.stringify(v) : String(v);
+  return esc(t.length > 300 ? t.slice(0, 300) + '…' : t);
+};
+const diffTable = (c) => (c.diff && c.diff.length) ? `
+  <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:.88rem">
+    ${c.diff.map((d) => `<tr>
+      <td style="padding:4px 8px;color:var(--muted);white-space:nowrap;vertical-align:top"><b>${esc(d.field)}</b></td>
+      <td style="padding:4px 8px;vertical-align:top">${diffVal(d.from)}</td>
+      <td style="padding:4px 2px;vertical-align:top">→</td>
+      <td style="padding:4px 8px;vertical-align:top">${diffVal(d.to)}</td>
+    </tr>`).join('')}
+  </table>` : '';
+const changeStatusPill = (c) => `<span class="pill ${c.status === 'approved' ? 'ok' : c.status === 'pending' ? 'wait' : c.status === 'denied' ? 'bad' : ''}">${esc(c.status)}</span>`;
+
+function vReview(el) {
+  if (!canAdmin) {
+    el.innerHTML = `<h2 class="vt">Review queue</h2>
+      <div class="card"><p>Only admins and the owner review changes. Your own submissions and their status live under <b>My submissions</b>.</p></div>`;
+    return;
+  }
   el.innerHTML = `
-    <h2 class="vt">Team</h2>
-    <p class="vsub">People working on this project. Invite by email — anyone with team access can collaborate once invited (active projects are open to the whole team).</p>
-    <div class="card">
-      ${FULL.members.map((m) => `<div class="file-row"><span><b>${esc(m.user_email)}</b> <span class="pill ${m.role === 'owner' ? 'wait' : ''}">${esc(m.role)}</span></span>
-        <span class="dim" style="margin-left:auto">added by ${esc(m.added_by || '')} · ${esc(fmtDate(m.created_at))}</span></div>`).join('') || '<p class="dim">No members yet.</p>'}
+    <h2 class="vt">Review queue</h2>
+    <p class="vsub">Changes proposed by team members and helpers for this project. Approving applies the change to the live project; denying discards it. Nothing here has touched the live project yet.</p>
+    <div data-review-ui id="revBody"><p class="dim">Loading…</p></div>`;
+  (async () => {
+    const body = document.getElementById('revBody');
+    if (!body) return;
+    const pid = FULL.project.id;
+    const pend = await api(`/api/bp/projects/${pid}/changes?status=pending`);
+    const all = await api(`/api/bp/projects/${pid}/changes`);
+    const counts = await api('/api/bp/changes/pending-counts');
+    const pending = pend.data.changes || [];
+    const decided = (all.data.changes || []).filter((c) => c.status !== 'pending').slice(0, 10);
+    const others = ((counts.data && counts.data.by_project) || []).filter((x) => x.project_id !== pid && x.count > 0);
+    body.innerHTML = `
+      ${others.length ? `<div class="card"><h3>Also waiting on other projects</h3>
+        ${others.map((x) => `<div class="file-row"><span><b>${esc(x.title)}</b></span>
+          <span style="margin-left:auto" class="row-flex"><span class="pill wait">${x.count} pending</span>
+          <button class="btn ghost" type="button" data-pick="${esc(x.slug)}">Open project</button></span></div>`).join('')}
+      </div>` : ''}
+      <div class="card"><h3>Pending (${pending.length})</h3>
+        ${pending.map((c) => `
+          <div style="border-bottom:1px solid rgba(35,35,47,.6);padding:12px 0">
+            <div><b>${esc(c.summary)}</b></div>
+            <div class="dim">${esc(c.submitter_name || c.submitter_email)} · ${esc(fmtDate(c.created_at))} · ${esc(c.entity_type)} ${esc(c.action)}</div>
+            ${diffTable(c)}
+            <div class="row-flex" style="margin-top:10px">
+              <button class="btn" type="button" data-approve="${c.id}">Approve &amp; apply</button>
+              <button class="btn ghost" type="button" data-deny="${c.id}">Deny</button>
+            </div>
+          </div>`).join('') || '<p class="dim">Nothing waiting. 🎉</p>'}
+      </div>
+      ${decided.length ? `<div class="card"><h3>Recently decided</h3>
+        ${decided.map((c) => `<div class="file-row"><span>${changeStatusPill(c)} <b>${esc(c.summary)}</b><br>
+          <span class="dim">${esc(c.submitter_name || c.submitter_email)} · decided by ${esc(c.decided_by || '')} · ${esc(fmtDate(c.decided_at))}${c.deny_reason ? ' · reason: ' + esc(c.deny_reason) : ''}</span></span></div>`).join('')}
+      </div>` : ''}`;
+  })();
+}
+
+function vSubmissions(el) {
+  el.innerHTML = `
+    <h2 class="vt">My submissions</h2>
+    <p class="vsub">Changes you proposed, across every project. They become permanent only when an admin approves them.</p>
+    <div data-review-ui id="subBody"><p class="dim">Loading…</p></div>`;
+  (async () => {
+    const body = document.getElementById('subBody');
+    if (!body) return;
+    const mine = await api('/api/bp/changes/mine');
+    const items = mine.data.changes || [];
+    body.innerHTML = `<div class="card">
+      ${items.map((c) => `<div class="file-row"><span>${changeStatusPill(c)} <b>${esc(c.summary)}</b><br>
+        <span class="dim">on <button class="btn ghost" type="button" data-pick="${esc(c.project_slug)}" style="padding:2px 8px">${esc(c.project_title)}</button> · ${esc(fmtDate(c.created_at))}${c.status === 'denied' && c.deny_reason ? ' · denied: ' + esc(c.deny_reason) : ''}${c.status === 'approved' ? ' · applied ' + esc(fmtDate(c.decided_at)) : ''}</span></span>
+        ${c.status === 'pending' ? `<span style="margin-left:auto"><button class="btn ghost" type="button" data-withdraw="${c.id}">Withdraw</button></span>` : ''}
+      </div>`).join('') || '<p class="dim">You have not submitted any changes yet. Edits you make as a non-admin will show up here.</p>'}
+    </div>`;
+  })();
+}
+
+// ---------- Team & access ----------
+function vMembers(el) {
+  const dev = FULL.dev_team || [];
+  const helpers = FULL.helpers || [];
+  const hPill = (h) => h.status === 'active' ? 'ok' : h.status === 'invited' ? 'wait' : 'bad';
+  el.innerHTML = `
+    <h2 class="vt">Team &amp; access</h2>
+    <p class="vsub">The whole dev team can open every planning project automatically. Edits by team members and temporary helpers are held as proposals until an admin approves them in the review queue; admins and the owner edit directly.</p>
+    <div class="card"><h3>Dev team — automatic access</h3>
+      <p class="dim">Everyone with a Rival Eclipse team, admin, or owner account can open and view this project — no invite needed.</p>
+      ${dev.map((m) => `<div class="file-row"><span><b>${esc(m.name || m.email)}</b> <span class="pill ${m.role === 'owner' ? 'wait' : m.role === 'admin' ? 'vio' : ''}">${esc(m.role)}</span><br>
+        <span class="dim">${esc(m.email)}</span></span>
+        <span class="dim" style="margin-left:auto">${m.role === 'owner' || m.role === 'admin' ? 'edits directly' : 'edits go to review'}</span></div>`).join('') || '<p class="dim">No dev-team accounts found.</p>'}
     </div>
-    <div class="card"><h3>Invite a team member</h3>
+    <div class="card"><h3>Temporary helpers</h3>
+      <p class="dim">Helpers are people <b>outside</b> the dev team, invited to <b>this project only</b> — they can't see other projects or the team suites, and their changes go through the same admin review. Access can expire and can be revoked at any time.</p>
+      ${helpers.map((h) => `<div class="file-row"><span><b>${esc(h.user_email)}</b> <span class="pill ${hPill(h)}">${esc(h.status)}</span><br>
+        <span class="dim">${h.expires_at ? 'expires ' + esc(fmtDate(h.expires_at)) : 'no expiry'} · invited by ${esc(h.added_by || '')} · ${esc(fmtDate(h.created_at))}</span></span>
+        ${canAdmin && (h.status === 'invited' || h.status === 'active') ? `<span style="margin-left:auto"><button class="btn ghost" type="button" data-revoke="${esc(h.user_email)}">Revoke</button></span>` : ''}
+      </div>`).join('') || '<p class="dim">No temporary helpers on this project.</p>'}
+      ${canAdmin ? `<h3 style="margin-top:18px">Invite a temporary helper</h3>
       <form data-form="member"><div class="row-flex">
-        <input class="inp" type="email" name="email" placeholder="teammate@example.com" required style="flex:1;min-width:200px">
-        <select class="inp" name="role" style="width:auto"><option value="member">member</option><option value="owner">owner</option></select>
-        <button class="btn" type="submit">Invite</button>
-      </div><p class="msg"></p></form>
+        <input class="inp" type="email" name="email" placeholder="helper@example.com" required style="flex:1;min-width:200px">
+        <select class="inp" name="expires_days" style="width:auto">
+          <option value="7">Expires in 7 days</option>
+          <option value="14">Expires in 14 days</option>
+          <option value="30" selected>Expires in 30 days</option>
+          <option value="0">No expiry</option>
+        </select>
+        <button class="btn" type="submit">Invite helper</button>
+      </div><p class="dim" style="margin-top:6px">They sign in with this exact email to get access. For dev-team members, use the Team page instead — they already have automatic access.</p><p class="msg"></p></form>`
+      : '<p class="dim" style="margin-top:12px">Only admins and the owner can invite temporary helpers.</p>'}
     </div>`;
 }
 
 // ---------- events ----------
 document.getElementById('sidebar').addEventListener('click', (e) => {
+  const pick = e.target.closest('[data-pick]');
+  if (pick) { selectProject(pick.dataset.pick); return; }
   const b = e.target.closest('[data-view]');
   if (!b) return;
   view = b.dataset.view;
   renderChrome(); renderView();
 });
 const viewEl = document.getElementById('view');
+const notePending = (data) => { if (data && data.pending) flash = 'Submitted for admin review — it becomes permanent once an admin approves it. Track it under My submissions.'; };
+viewEl.addEventListener('click', async (e) => {
+  const pick = e.target.closest('[data-pick]');
+  if (pick) { selectProject(pick.dataset.pick); return; }
+  const ap = e.target.closest('[data-approve]');
+  if (ap) {
+    ap.disabled = true;
+    const { status, data } = await api('/api/bp/changes/' + ap.dataset.approve + '/approve', { method: 'POST', body: '{}' });
+    if (status === 200) { flash = 'Change approved and applied to the live project.'; reload(); }
+    else { ap.disabled = false; alert(status === 409 ? 'This change no longer applies cleanly (' + (data.detail || data.error) + '). It stays pending — deny it or ask the submitter to redo it.' : 'Could not approve: ' + (data.error || status)); }
+    return;
+  }
+  const dn = e.target.closest('[data-deny]');
+  if (dn) {
+    const reason = prompt('Deny this change? Optional short reason for the submitter:', '');
+    if (reason === null) return;
+    dn.disabled = true;
+    const { status, data } = await api('/api/bp/changes/' + dn.dataset.deny + '/deny', { method: 'POST', body: JSON.stringify({ reason }) });
+    if (status === 200) { flash = 'Change denied and discarded.'; reload(); }
+    else { dn.disabled = false; alert('Could not deny: ' + (data.error || status)); }
+    return;
+  }
+  const wd = e.target.closest('[data-withdraw]');
+  if (wd) {
+    if (!confirm('Withdraw this pending change?')) return;
+    const { status } = await api('/api/bp/changes/' + wd.dataset.withdraw + '/withdraw', { method: 'POST', body: '{}' });
+    if (status === 200) { flash = 'Submission withdrawn.'; reload(); }
+    return;
+  }
+  const rv = e.target.closest('[data-revoke]');
+  if (rv) {
+    if (!confirm('Revoke this helper\'s access to this project?')) return;
+    const { status, data } = await api(`/api/bp/projects/${FULL.project.id}/members/revoke`, { method: 'POST', body: JSON.stringify({ email: rv.dataset.revoke }) });
+    if (status === 200) reload(); else alert('Could not revoke: ' + (data.error || status));
+    return;
+  }
+  const ef = e.target.closest('[data-edit-feature]');
+  if (ef) { const f = document.getElementById('fedit-' + ef.dataset.editFeature); if (f) f.hidden = !f.hidden; return; }
+  const df = e.target.closest('[data-del-feature]');
+  if (df) {
+    if (!confirm('Delete this feature? Its requirement checklist goes with it (notes and suggestions stay, unlinked).')) return;
+    const { status, data } = await api('/api/bp/features/' + df.dataset.delFeature, { method: 'DELETE' });
+    if (status === 200) { notePending(data); reload(); } else alert('Could not delete: ' + (data.error || status));
+    return;
+  }
+  const dr = e.target.closest('[data-del-req]');
+  if (dr) {
+    if (!confirm('Delete this requirement?')) return;
+    const { status, data } = await api('/api/bp/requirements/' + dr.dataset.delReq, { method: 'DELETE' });
+    if (status === 200) { notePending(data); reload(); } else alert('Could not delete: ' + (data.error || status));
+    return;
+  }
+  const dm = e.target.closest('[data-del-ms]');
+  if (dm) {
+    if (!confirm('Delete this milestone?')) return;
+    const { status, data } = await api('/api/bp/milestones/' + dm.dataset.delMs, { method: 'DELETE' });
+    if (status === 200) { notePending(data); reload(); } else alert('Could not delete: ' + (data.error || status));
+    return;
+  }
+});
 viewEl.addEventListener('change', async (e) => {
   const t = e.target;
   if (t.matches('[data-check-req]')) {
     t.disabled = true;
-    const { status } = await api('/api/bp/requirements/' + t.dataset.checkReq, {
+    const { status, data } = await api('/api/bp/requirements/' + t.dataset.checkReq, {
       method: 'PATCH', body: JSON.stringify({ done: t.checked }),
     });
-    if (status === 200) reload(); else { t.disabled = false; t.checked = !t.checked; }
+    if (status === 200) { notePending(data); reload(); } else { t.disabled = false; t.checked = !t.checked; }
   }
   if (t.matches('[data-feat-status]')) {
-    await api('/api/bp/features/' + t.dataset.featStatus, { method: 'PATCH', body: JSON.stringify({ status: t.value }) });
+    const { data } = await api('/api/bp/features/' + t.dataset.featStatus, { method: 'PATCH', body: JSON.stringify({ status: t.value }) });
+    notePending(data);
     reload();
   }
   if (t.matches('[data-ms-status]')) {
-    await api('/api/bp/milestones/' + t.dataset.msStatus, { method: 'PATCH', body: JSON.stringify({ status: t.value }) });
+    const { data } = await api('/api/bp/milestones/' + t.dataset.msStatus, { method: 'PATCH', body: JSON.stringify({ status: t.value }) });
+    notePending(data);
     reload();
   }
   if (t.matches('[data-ms-due]')) {
-    await api('/api/bp/milestones/' + t.dataset.msDue, { method: 'PATCH', body: JSON.stringify({ due_date: t.value || null }) });
+    const { data } = await api('/api/bp/milestones/' + t.dataset.msDue, { method: 'PATCH', body: JSON.stringify({ due_date: t.value || null }) });
+    notePending(data);
     reload();
   }
   if (t.matches('[data-sugg-status]')) {
@@ -633,21 +888,35 @@ viewEl.addEventListener('submit', async (e) => {
     if (kind === 'note') {
       const { status, data } = await api(`/api/bp/projects/${pid}/notes`, { method: 'POST', body: JSON.stringify({ body: fd.get('body'), feature_id: form.dataset.fid ? Number(form.dataset.fid) : undefined }) });
       if (status !== 200) throw new Error(data.error || 'failed');
+      notePending(data);
     } else if (kind === 'suggestion') {
       const { status, data } = await api(`/api/bp/projects/${pid}/suggestions`, { method: 'POST', body: JSON.stringify({ kind: fd.get('kind'), body: fd.get('body'), feature_id: form.dataset.fid ? Number(form.dataset.fid) : undefined }) });
       if (status !== 200) throw new Error(data.error || 'failed');
+      notePending(data);
     } else if (kind === 'req') {
       const { status, data } = await api(`/api/bp/projects/${pid}/requirements`, { method: 'POST', body: JSON.stringify({ text: fd.get('text'), category: fd.get('category') || undefined, feature_id: form.dataset.fid ? Number(form.dataset.fid) : undefined }) });
       if (status !== 200) throw new Error(data.error || 'failed');
+      notePending(data);
     } else if (kind === 'feature') {
       const { status, data } = await api(`/api/bp/projects/${pid}/features`, { method: 'POST', body: JSON.stringify({ title: fd.get('title'), category: fd.get('category'), how_it_works: fd.get('how_it_works'), integration_needs: fd.get('integration_needs'), execution_notes: fd.get('execution_notes') }) });
       if (status !== 200) throw new Error(data.error || 'failed');
+      notePending(data);
     } else if (kind === 'milestone') {
       const { status, data } = await api(`/api/bp/projects/${pid}/milestones`, { method: 'POST', body: JSON.stringify({ title: fd.get('title'), description: fd.get('description'), due_date: fd.get('due_date') || undefined }) });
       if (status !== 200) throw new Error(data.error || 'failed');
+      notePending(data);
     } else if (kind === 'member') {
-      const { status, data } = await api(`/api/bp/projects/${pid}/members`, { method: 'POST', body: JSON.stringify({ email: fd.get('email'), role: fd.get('role') }) });
+      const { status, data } = await api(`/api/bp/projects/${pid}/members`, { method: 'POST', body: JSON.stringify({ email: fd.get('email'), expires_days: Number(fd.get('expires_days') ?? 30) }) });
       if (status !== 200) throw new Error(data.error || 'failed');
+      notePending(data);
+    } else if (kind === 'project') {
+      const { status, data } = await api(`/api/bp/projects/${pid}`, { method: 'PATCH', body: JSON.stringify({ title: fd.get('title'), summary: fd.get('summary'), description: fd.get('description'), target_launch: fd.get('target_launch') }) });
+      if (status !== 200) throw new Error(data.error || 'failed');
+      notePending(data);
+    } else if (kind === 'feature-edit') {
+      const { status, data } = await api(`/api/bp/features/${form.dataset.fid}`, { method: 'PATCH', body: JSON.stringify({ title: fd.get('title'), category: fd.get('category'), how_it_works: fd.get('how_it_works'), integration_needs: fd.get('integration_needs'), execution_notes: fd.get('execution_notes') }) });
+      if (status !== 200) throw new Error(data.error || 'failed');
+      notePending(data);
     } else if (kind === 'upload') {
       const file = fd.get('file');
       if (!file || !file.size) throw new Error('pick a file');
@@ -661,6 +930,7 @@ viewEl.addEventListener('submit', async (e) => {
         body: JSON.stringify({ section: form.dataset.section, title, filename: file.name, mime: file.type || 'application/octet-stream', data_base64: b64, feature_id: form.dataset.fid ? Number(form.dataset.fid) : undefined }),
       });
       if (status !== 200) throw new Error(data.error || 'failed');
+      notePending(data);
     }
     reload();
   } catch (err) {
