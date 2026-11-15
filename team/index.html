@@ -92,6 +92,34 @@ a.act-btn { text-decoration: none; display: inline-block; }
   border-bottom: 1px solid var(--line); font-size: .92rem; }
 .coming-soon { background: #0d0d15; border: 1px dashed var(--line); border-radius: 8px; color: var(--muted);
   padding: 10px 12px; font-size: .88rem; width: 100%; box-sizing: border-box; margin-top: 6px; }
+/* Shane 2026-11-14: top bar menu — dropdown mini-menus navigate to each
+   workflow subsection; panel racks are viewed through this bar, one rack
+   at a time, instead of one endless page scroll. */
+.wf-bar { position: sticky; top: 8px; z-index: 40; display: flex; gap: 0; flex-wrap: wrap;
+  border: 1px solid var(--line); border-radius: 12px; overflow: visible; margin: 18px 0 20px;
+  background: rgba(10,10,18,.92); backdrop-filter: blur(8px); }
+.wf-seg { position: relative; flex: 1 1 auto; display: flex; border-right: 1px solid var(--line); }
+.wf-seg:last-child { border-right: none; }
+.wf-seg-main { flex: 1; background: none; border: none; color: var(--muted); font-family: inherit;
+  font-size: .9rem; font-weight: 700; padding: 13px 10px; cursor: pointer; white-space: nowrap; }
+.wf-seg-main:hover { color: var(--text); }
+.wf-seg.on .wf-seg-main { color: #f3d27a; box-shadow: inset 0 -3px 0 #d4af37; }
+.wf-seg-caret { background: none; border: none; border-left: 1px solid var(--line); color: var(--muted);
+  padding: 0 12px; cursor: pointer; font-size: .8rem; }
+.wf-seg-caret:hover { color: var(--text); }
+.wf-menu { display: none; position: absolute; top: calc(100% + 6px); left: 0; min-width: 230px;
+  background: #0d0d15; border: 1px solid var(--accent); border-radius: 12px; padding: 6px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.55); z-index: 60; }
+.wf-seg.open .wf-menu { display: block; }
+.wf-menu button, .wf-menu a { display: block; width: 100%; box-sizing: border-box; text-align: left;
+  background: none; border: none; color: var(--text); font-family: inherit; font-size: .9rem;
+  padding: 10px 12px; border-radius: 8px; cursor: pointer; text-decoration: none; }
+.wf-menu button:hover, .wf-menu a:hover { background: rgba(212,175,55,.12); }
+.wf-menu .dim { display: block; font-size: .78rem; margin-top: 2px; }
+.block.flash { animation: wfFlash 1.6s ease; }
+@keyframes wfFlash { 0%, 60% { outline: 2px solid #d4af37; outline-offset: 4px; } 100% { outline: none; } }
+@media (max-width: 640px) { .wf-seg { flex: 1 1 46%; border-bottom: 1px solid var(--line); }
+  .wf-menu { min-width: 190px; } }
 </style>
 </head>
 <body>
@@ -103,11 +131,51 @@ a.act-btn { text-decoration: none; display: inline-block; }
   <div id="team-ui" style="display:none">
     <div class="dash-head">
       <div><h1 class="page-title">Team</h1>
-      <p class="page-sub">Team members and the project workflow board — every dev request from new to delivered.</p></div>
+      <p class="page-sub">Team members and the project workflow board — use the bar below to jump between sections; each section opens through its dropdown mini-menu.</p></div>
       <div class="user-chip"><span id="who"></span><button id="logout">Sign out</button></div>
     </div>
 
-    <div class="block" id="chats-block">
+    <nav class="wf-bar" id="wf-bar" aria-label="Workflow sections">
+      <div class="wf-seg" data-seg="support">
+        <button type="button" class="wf-seg-main" data-rack-go="support">Support</button>
+        <button type="button" class="wf-seg-caret" data-caret aria-label="Support menu">▾</button>
+        <div class="wf-menu">
+          <button type="button" data-go="support:chats-block">Client chats<span class="dim">Read and reply to client threads</span></button>
+          <button type="button" data-go="support:support-block">Support inbox<span class="dim">Ticket queue — pick one, work it in the fixed panel</span></button>
+        </div>
+      </div>
+      <div class="wf-seg" data-seg="ops">
+        <button type="button" class="wf-seg-main" data-rack-go="ops">Team ops</button>
+        <button type="button" class="wf-seg-caret" data-caret aria-label="Team ops menu">▾</button>
+        <div class="wf-menu">
+          <button type="button" data-go="ops:teamlog-block">Team log<span class="dim">Latest ticket activity across the team</span></button>
+          <button type="button" data-go="ops:support-prefs-block">Support alert forwarding<span class="dim">Forward new tickets to your email / phone</span></button>
+          <button type="button" data-go="ops:crq-block">Change request queue<span class="dim">Pending client change requests</span></button>
+          <button type="button" data-go="ops:clients-block">Clients &amp; features<span class="dim">Per-client module toggles</span></button>
+          <button type="button" data-go="ops:notif-block">My notifications<span class="dim">Your own email alerts</span></button>
+          <button type="button" data-go="ops:members-block">Team members<span class="dim">Everyone with team access</span></button>
+        </div>
+      </div>
+      <div class="wf-seg" data-seg="workflow">
+        <button type="button" class="wf-seg-main" data-rack-go="workflow">Project Workflow</button>
+        <button type="button" class="wf-seg-caret" data-caret aria-label="Project Workflow menu">▾</button>
+        <div class="wf-menu">
+          <button type="button" data-go="workflow:board-block">Project Workflow board<span class="dim">Demo pipeline + dev requests, new to delivered</span></button>
+          <button type="button" data-go="workflow:brainstorm-block">Brainstorming &amp; Planning<span class="dim">Project plans, feature lists, UI edits</span></button>
+          <a href="/briefing/">Briefing portal →<span class="dim">Demo pre-approval reviews (admins)</span></a>
+        </div>
+      </div>
+      <div class="wf-seg" data-seg="workflow">
+        <button type="button" class="wf-seg-main" data-go="workflow:brainstorm-block">Brainstorming &amp; Planning</button>
+        <button type="button" class="wf-seg-caret" data-caret aria-label="Brainstorming and Planning menu">▾</button>
+        <div class="wf-menu">
+          <button type="button" data-go="workflow:brainstorm-block">Project #1 — Payment App<span class="dim">Eclipse Pay · 22 features in planning</span></button>
+          <button type="button" data-go="workflow:brainstorm-block">How planning works<span class="dim">Member plans → submission queue → admin approval</span></button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="block" id="chats-block" data-rack="support">
       <h2>Client chats</h2>
       <p class="sub">Every client, with the same thread they see. Pick one to read and reply.</p>
       <div id="client-list"><p class="dim">Loading…</p></div>
@@ -122,37 +190,37 @@ a.act-btn { text-decoration: none; display: inline-block; }
       </div>
     </div>
 
-    <div class="block" id="support-block">
+    <div class="block" id="support-block" data-rack="support">
       <h2>Support inbox</h2>
-      <p class="sub">Every form on the site files a ticket here — dev requests, feedback, support, contact, and live chat requests. Claim a ticket to own it; the claim is logged for the whole team. Live chat requests need a claim fast (the visitor is waiting) or a “Not available”.</p>
+      <p class="sub">Every form on the site files a ticket here — dev requests, feedback, support, contact, and live chat requests. The queue is a small scrollable list: pick a ticket and it opens in the fixed panel beside the list, one ticket at a time. Claim a ticket to own it; the claim is logged for the whole team. Live chat requests need a claim fast (the visitor is waiting) or a “Not available”.</p>
       <div id="support-inbox"><p class="dim">Loading…</p></div>
     </div>
 
-    <div class="block" id="teamlog-block">
+    <div class="block" id="teamlog-block" data-rack="ops">
       <h2>Team log</h2>
       <p class="sub">The latest ticket activity across the team — claims, replies, and status changes, mirrored on the Admin dashboard.</p>
       <div id="team-log"><p class="dim">Loading…</p></div>
     </div>
 
-    <div class="block" id="support-prefs-block">
+    <div class="block" id="support-prefs-block" data-rack="ops">
       <h2>Support alert forwarding</h2>
       <p class="sub">On top of the dashboard notifications and the Discord team-channel alerts, you can forward new tickets in your categories to your own email and phone.</p>
       <div id="support-prefs"><p class="dim">Loading…</p></div>
     </div>
 
-    <div class="block" id="crq-block">
+    <div class="block" id="crq-block" data-rack="ops">
       <h2>Change request queue</h2>
       <p class="sub">Pending client change requests — accept, decline, or send one to an admin for review.</p>
       <div id="crq-list"><p class="dim">Loading…</p></div>
     </div>
 
-    <div class="block" id="clients-block">
+    <div class="block" id="clients-block" data-rack="ops">
       <h2>Clients &amp; features</h2>
       <p class="sub">Per-client modules — toggling a module greys that section out on the client’s dashboard with a “disabled by the team” note. The server still enforces everything.</p>
       <div id="clients-feats"><p class="dim">Loading…</p></div>
     </div>
 
-    <div class="block" id="notif-block">
+    <div class="block" id="notif-block" data-rack="ops">
       <h2>My notifications</h2>
       <p class="sub">Email alerts for your own account. Phone / WhatsApp notifications are coming soon.</p>
       <div class="notif-row"><span>Email me when I get a message</span>
@@ -165,16 +233,30 @@ a.act-btn { text-decoration: none; display: inline-block; }
       <span class="save-msg" id="nt-status"></span></div>
     </div>
 
-    <div class="block" id="members-block">
+    <div class="block" id="members-block" data-rack="ops">
       <h2>Team members</h2>
       <p class="sub">Everyone with team access.</p>
       <div id="team-list"><p class="dim">Loading…</p></div>
     </div>
 
-    <div class="block" id="board-block">
+    <div class="block" id="board-block" data-rack="workflow">
       <h2>Project Workflow</h2>
       <p class="sub">Everything the team is working on — the demo pipeline awaiting pre-approval, plus dev requests filed by users and clients. Open any item’s page to inspect it before approval; admins set status, notes, and the code or deliverable URL on dev requests, then save.</p>
       <div id="board-list"><p class="dim">Loading…</p></div>
+    </div>
+
+    <div class="block" id="brainstorm-block" data-rack="workflow">
+      <h2>Brainstorming &amp; Planning</h2>
+      <p class="sub">Where the team plans new projects before anyone builds them. Every project gets its own portal — its own pages and menu — with a full feature list: how each feature will function, what it needs to integrate, collaborator notes on every section, change / addition / removal suggestion lists, and a UI edits area per feature with the “before” render to download and a place to upload suggested updates. Uploads are versioned, so two people never overwrite each other’s work.</p>
+      <div class="proj-card">
+        <div class="proj-head">
+          <span class="nm">Project #1 — Payment App (“Eclipse Pay”, working name)</span>
+          <span class="pill wait">In planning</span>
+        </div>
+        <p class="dim" style="margin:0">One app, licensed partners underneath — the app never touches the money. Charge type picks the rail: Stripe for goods &amp; services, freelancers and independent contractors; a separate personal rail for gifts and pay-it-forward. 22 features specced, each with its function, integration needs, notes, suggestion lists, and UI edit sections.</p>
+      </div>
+      <h3 class="wf-h">How planning works</h3>
+      <p class="dim" style="margin:0">Any team member can draft a project plan, solo or with collaborators. Regular team member plans go to a <b>submission queue for admin approval</b> before the project opens up for the whole team to work on; admin plans go live right away. Nothing gets built from a plan until it’s approved.</p>
     </div>
   </div>
 </div>
@@ -510,6 +592,49 @@ document.getElementById('nt-save').onclick = async () => {
     status.className = 'save-msg err'; status.textContent = 'Couldn’t save — try again in a moment.';
   }
 };
+
+// ---------- top bar: panel racks + dropdown mini-menus ----------
+// Shane 2026-11-14: the page's panels live in racks (Support / Team ops /
+// Project Workflow) and are viewed through the bar menu at the top — one
+// rack at a time. A dropdown item opens its rack and jumps to that panel.
+const rackBlocks = [...document.querySelectorAll('[data-rack]')];
+const wfSegs = [...document.querySelectorAll('.wf-seg')];
+function closeMenus() { wfSegs.forEach((sg) => sg.classList.remove('open')); }
+function showRack(rack) {
+  rackBlocks.forEach((b) => { b.style.display = b.dataset.rack === rack ? '' : 'none'; });
+  wfSegs.forEach((sg) => sg.classList.toggle('on', sg.dataset.seg === rack));
+  closeMenus();
+}
+function goToPanel(rack, blockId) {
+  showRack(rack);
+  const el = document.getElementById(blockId);
+  if (!el) return;
+  requestAnimationFrame(() => {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  });
+}
+document.getElementById('wf-bar').addEventListener('click', (e) => {
+  const caret = e.target.closest('[data-caret]');
+  if (caret) {
+    const seg = caret.closest('.wf-seg');
+    const wasOpen = seg.classList.contains('open');
+    closeMenus();
+    if (!wasOpen) seg.classList.add('open');
+    return;
+  }
+  const go = e.target.closest('[data-go]');
+  if (go) { const [rack, blockId] = go.dataset.go.split(':'); goToPanel(rack, blockId); return; }
+  const rg = e.target.closest('[data-rack-go]');
+  if (rg) { showRack(rg.dataset.rackGo); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+});
+document.addEventListener('click', (e) => { if (!e.target.closest('.wf-seg')) closeMenus(); });
+{
+  const hashId = location.hash.replace('#', '');
+  const hashBlock = hashId && document.getElementById(hashId);
+  showRack(hashBlock && hashBlock.dataset.rack ? hashBlock.dataset.rack : 'support');
+  if (hashBlock && hashBlock.dataset.rack) goToPanel(hashBlock.dataset.rack, hashId);
+}
 
 loadTeam();
 loadBoard();
