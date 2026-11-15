@@ -99,6 +99,20 @@ function injectCss() {
 .sup-empty { border:1px dashed var(--line); border-radius:12px; padding:18px;
   color:var(--muted); font-size:.9rem; position:sticky; top:12px; }
 .sup-notif-list { max-height:172px; overflow-y:auto; }
+/* Shane 2026-11-14: status bucket bar over the ticket list — tickets move
+   buckets automatically as their status changes (claim → Claimed/In
+   progress; resolve/close → Closed/Resolved). */
+.sup-buckets { display:flex; border:1px solid var(--line); border-radius:10px; overflow:hidden;
+  margin:12px 0 4px; }
+.sup-bucket { flex:1; background:none; border:none; border-right:1px solid var(--line);
+  color:var(--muted); font-family:inherit; font-size:.86rem; font-weight:700;
+  padding:11px 6px; cursor:pointer; text-align:center; }
+.sup-bucket:last-child { border-right:none; }
+.sup-bucket:hover { color:var(--text); }
+.sup-bucket.on { color:#0a0a12; background:linear-gradient(135deg,#d4af37,#8a6d1c); }
+.sup-bcount { display:inline-block; min-width:20px; padding:1px 6px; margin-left:4px;
+  border-radius:999px; background:rgba(0,0,0,.22); font-size:.78rem; }
+.sup-bucket:not(.on) .sup-bcount { background:#2a2a35; color:var(--text); }
 .sup-kv { width:100%; border-collapse:collapse; font-size:.88rem; margin:8px 0; }
 .sup-kv td { padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
 .sup-kv td:first-child { color:var(--muted); width:170px; text-transform:capitalize; }
@@ -125,6 +139,7 @@ export async function mountSupportInbox(root) {
   injectCss();
   root.innerHTML = `
     <div id="sup-notifs"><p class="dim">Loading notifications…</p></div>
+    <div class="sup-buckets" id="sup-buckets"></div>
     <div class="sup-chips" id="sup-chips"></div>
     <div class="sup-workbench">
       <div id="sup-list"><p class="dim">Loading tickets…</p></div>
@@ -132,12 +147,41 @@ export async function mountSupportInbox(root) {
     </div>`;
   const listEl = root.querySelector('#sup-list');
   const chipsEl = root.querySelector('#sup-chips');
+  const bucketsEl = root.querySelector('#sup-buckets');
   const detailEl = root.querySelector('#sup-detail');
   const notifEl = root.querySelector('#sup-notifs');
   let tickets = [];
   let categories = [];
   let filter = '';
   let activeId = null;
+  // Status buckets (Shane 2026-11-14): a ticket's bucket is derived from its
+  // live status, so claiming / resolving / closing moves it automatically.
+  const BUCKETS = [['open', 'Open / Unclaimed'], ['claimed', 'Claimed / In progress'], ['done', 'Closed / Resolved']];
+  const BUCKET_EMPTY = {
+    open: 'No open tickets — the queue is clear.',
+    claimed: 'Nothing claimed or in progress right now.',
+    done: 'No closed or resolved tickets yet.',
+  };
+  const bucketOf = (t) => {
+    if (t.status === 'resolved' || t.status === 'closed') return 'done';
+    if (t.status === 'claimed' || t.claimed_by) return 'claimed';
+    return 'open';
+  };
+  let bucket = 'open';
+  let followBucket = false;
+
+  function renderBuckets() {
+    const counts = { open: 0, claimed: 0, done: 0 };
+    tickets.forEach((t) => { counts[bucketOf(t)] += 1; });
+    bucketsEl.innerHTML = BUCKETS.map(([k, label]) =>
+      `<button type="button" class="sup-bucket${bucket === k ? ' on' : ''}" data-bucket="${k}">${label}<span class="sup-bcount">${counts[k]}</span></button>`).join('');
+  }
+  bucketsEl.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-bucket]');
+    if (!b) return;
+    bucket = b.dataset.bucket;
+    renderBuckets(); renderList();
+  });
 
   async function loadNotifs() {
     const { status, data } = await api('/api/notifications');
@@ -170,7 +214,7 @@ export async function mountSupportInbox(root) {
   });
 
   function renderList() {
-    const rows = tickets.filter((t) => !filter || t.category === filter);
+    const rows = tickets.filter((t) => bucketOf(t) === bucket && (!filter || t.category === filter));
     listEl.innerHTML = rows.length ? rows.map((t) => {
       const [cls, label] = STATUS_PILL[t.status] || ['', t.status];
       const active = ['open', 'claimed', 'waiting'].includes(t.status);
@@ -185,7 +229,7 @@ export async function mountSupportInbox(root) {
         <p class="meta">${esc(t.submitter_name || '')} &lt;${esc(t.submitter_email || 'no email')}&gt; · ${esc(fmtDate(t.created_at))}
         ${active ? ` · <span class="sup-open">Open for <span data-openfor="${esc(t.id)}">${esc(fmtElapsed(t.open_for_ms))}</span></span>` : ''}</p>
       </div>`;
-    }).join('') : '<p class="dim">No tickets in this view.</p>';
+    }).join('') : `<p class="dim">${BUCKET_EMPTY[bucket] || 'No tickets in this view.'}</p>`;
   }
 
   async function loadQueue() {
@@ -193,7 +237,14 @@ export async function mountSupportInbox(root) {
     if (status !== 200) { listEl.innerHTML = '<p class="dim">Couldn’t load the ticket queue.</p>'; return; }
     tickets = data.tickets || [];
     categories = data.categories || [];
-    renderChips(); renderList();
+    // After a claim / resolve / close on the open ticket, follow it into its
+    // new bucket so the move is visible instead of the ticket just vanishing.
+    if (followBucket && activeId) {
+      const t = tickets.find((x) => String(x.id) === String(activeId));
+      if (t) bucket = bucketOf(t);
+      followBucket = false;
+    }
+    renderChips(); renderBuckets(); renderList();
     if (activeId) openDetail(activeId, true);
   }
 
@@ -268,7 +319,7 @@ export async function mountSupportInbox(root) {
         else if (act === 'unavailable') res = await api('/api/tickets/' + encodeURIComponent(id) + '/unavailable', { method: 'POST', body: '{}' });
         else if (act === 'unclaim') res = await api('/api/tickets/' + encodeURIComponent(id) + '/status', { method: 'POST', body: JSON.stringify({ action: 'unclaim' }) });
         else res = await api('/api/tickets/' + encodeURIComponent(id) + '/status', { method: 'POST', body: JSON.stringify({ status: act }) });
-        if (res.status === 200) { openDetail(id, true); loadQueue(); loadNotifs(); }
+        if (res.status === 200) { followBucket = true; openDetail(id, true); loadQueue(); loadNotifs(); }
         else if (msg) { msg.textContent = res.data.error === 'already_claimed' ? `Already claimed by ${res.data.claimed_by_name || 'someone else'}.` : (res.data.error || 'Action failed.'); b.disabled = false; }
       };
     });
