@@ -116,6 +116,20 @@ a.act-btn { text-decoration: none; display: inline-block; }
   padding: 10px 12px; border-radius: 8px; cursor: pointer; text-decoration: none; }
 .wf-menu button:hover, .wf-menu a:hover { background: rgba(212,175,55,.12); }
 .wf-menu .dim { display: block; font-size: .78rem; margin-top: 2px; }
+/* Brainstorming & Planning block (dynamic, fed by /api/bp) */
+.bp-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: rgba(13,13,21,.6);
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer;
+  color: var(--text); font-family: inherit; font-size: .92rem; }
+.bp-row:hover { border-color: var(--accent); }
+.bp-row.sel { border-color: #d4af37; background: rgba(212,175,55,.08); }
+.bp-row .nm { font-weight: 700; }
+.bp-row .pct { margin-left: auto; color: #f3d27a; font-weight: 800; white-space: nowrap; }
+.bp-enter { display: block; width: 100%; box-sizing: border-box; text-align: center; text-decoration: none;
+  background: linear-gradient(135deg, #d4af37, #8a6d1c); color: #0a0a12; font-weight: 800; font-size: 1rem;
+  border-radius: 12px; padding: 15px 18px; margin: 4px 0 12px; }
+.bp-enter:hover { transform: translateY(-1px); }
+.bp-pbar { height: 9px; border-radius: 999px; background: #23232f; overflow: hidden; margin-top: 8px; }
+.bp-pbar > div { height: 100%; background: linear-gradient(90deg, #8a6d1c, #d4af37); }
 .block.flash { animation: wfFlash 1.6s ease; }
 @keyframes wfFlash { 0%, 60% { outline: 2px solid #d4af37; outline-offset: 4px; } 100% { outline: none; } }
 @media (max-width: 640px) { .wf-seg { flex: 1 1 46%; border-bottom: 1px solid var(--line); }
@@ -168,9 +182,8 @@ a.act-btn { text-decoration: none; display: inline-block; }
       <div class="wf-seg" data-seg="workflow">
         <button type="button" class="wf-seg-main" data-go="workflow:brainstorm-block">Brainstorming &amp; Planning</button>
         <button type="button" class="wf-seg-caret" data-caret aria-label="Brainstorming and Planning menu">▾</button>
-        <div class="wf-menu">
-          <button type="button" data-go="workflow:brainstorm-block">Project #1 — Payment App<span class="dim">Eclipse Pay · 22 features in planning</span></button>
-          <button type="button" data-go="workflow:brainstorm-block">How planning works<span class="dim">Member plans → submission queue → admin approval</span></button>
+        <div class="wf-menu" id="bp-menu">
+          <button type="button" data-go="workflow:brainstorm-block">Loading projects…</button>
         </div>
       </div>
     </nav>
@@ -247,16 +260,35 @@ a.act-btn { text-decoration: none; display: inline-block; }
 
     <div class="block" id="brainstorm-block" data-rack="workflow">
       <h2>Brainstorming &amp; Planning</h2>
-      <p class="sub">Where the team plans new projects before anyone builds them. Every project gets its own portal — its own pages and menu — with a full feature list: how each feature will function, what it needs to integrate, collaborator notes on every section, change / addition / removal suggestion lists, and a UI edits area per feature with the “before” render to download and a place to upload suggested updates. Uploads are versioned, so two people never overwrite each other’s work.</p>
-      <div class="proj-card">
-        <div class="proj-head">
-          <span class="nm">Project #1 — Payment App (“Eclipse Pay”, working name)</span>
-          <span class="pill wait">In planning</span>
+      <p class="sub">Where the team plans new projects before anyone builds them. Every approved project gets its own full dashboard — roadmap, categorized feature list with function + integration + execution notes, requirement checklists, notes, suggestion lists, UI before/suggested uploads, and versioned files. Pick a project to see its summary; enter its dashboard to do the work.</p>
+      <div id="bp-list"><p class="dim">Loading projects…</p></div>
+      <div id="bp-summary"></div>
+      <div id="bp-queue"></div>
+      <h3 class="wf-h">Create a project plan</h3>
+      <form id="bp-create">
+        <div class="proj-grid">
+          <div class="field">
+            <label for="bp-title">Project title</label>
+            <input id="bp-title" maxlength="200" required placeholder="e.g. Booking site for local salons">
+          </div>
+          <div class="field">
+            <label for="bp-launch">Target launch (optional)</label>
+            <input id="bp-launch" maxlength="40" placeholder="e.g. March 2027">
+          </div>
+          <div class="field full">
+            <label for="bp-summary-in">Summary — one or two sentences</label>
+            <input id="bp-summary-in" maxlength="2000" placeholder="What is it, who is it for?">
+          </div>
+          <div class="field full">
+            <label for="bp-desc">Description — the fuller pitch</label>
+            <textarea id="bp-desc" maxlength="20000" placeholder="What it does, why it matters, anything the team should know before planning it…"></textarea>
+          </div>
         </div>
-        <p class="dim" style="margin:0">One app, licensed partners underneath — the app never touches the money. Charge type picks the rail: Stripe for goods &amp; services, freelancers and independent contractors; a separate personal rail for gifts and pay-it-forward. 22 features specced, each with its function, integration needs, notes, suggestion lists, and UI edit sections.</p>
-      </div>
+        <button class="save-btn" type="submit">Submit project plan</button>
+        <p class="save-msg" id="bp-create-msg"></p>
+      </form>
       <h3 class="wf-h">How planning works</h3>
-      <p class="dim" style="margin:0">Any team member can draft a project plan, solo or with collaborators. Regular team member plans go to a <b>submission queue for admin approval</b> before the project opens up for the whole team to work on; admin plans go live right away. Nothing gets built from a plan until it’s approved.</p>
+      <p class="dim" style="margin:0">Any team member can draft a project plan, solo or with collaborators. Regular team member plans go to a <b>submission queue for admin approval</b> before the project opens up for the whole team to work on; admin plans go live right away and generate their dashboard (roadmap + starter checklists) on the spot. Nothing gets built from a plan until it’s approved.</p>
     </div>
   </div>
 </div>
@@ -636,6 +668,154 @@ document.addEventListener('click', (e) => { if (!e.target.closest('.wf-seg')) cl
   if (hashBlock && hashBlock.dataset.rack) goToPanel(hashBlock.dataset.rack, hashId);
 }
 
+// ---------- brainstorming & planning (live, /api/bp) ----------
+// Project list + selected-project summary + create form + (admins) the
+// submission queue. The top bar's Brainstorming & Planning dropdown is
+// rebuilt from the same data; picking a project there selects it here.
+let bpProjects = [];
+let bpQueue = [];
+let bpSelectedSlug = null;
+const BP_STATUS_PILL = {
+  active: ['ok', 'Active'], pending: ['wait', 'Pending approval'],
+  changes_requested: ['wait', 'Changes requested'], rejected: ['bad', 'Rejected'], archived: ['', 'Archived'],
+};
+function bpPbar(done, total) {
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  return `<div class="bp-pbar"><div style="width:${pct}%"></div></div>`;
+}
+function renderBpSummary() {
+  const box = document.getElementById('bp-summary');
+  const p = bpProjects.find((x) => x.slug === bpSelectedSlug) || bpProjects[0];
+  if (!p) { box.innerHTML = ''; return; }
+  bpSelectedSlug = p.slug;
+  document.querySelectorAll('[data-bp-row]').forEach((el) => el.classList.toggle('sel', el.dataset.bpRow === p.slug));
+  const [cls, label] = BP_STATUS_PILL[p.status] || ['', p.status];
+  const st = p.stats || { requirements: { done: 0, total: 0, pct: 0 }, features: 0, milestones: { done: 0, total: 0 }, members: 0 };
+  box.innerHTML = `<div class="proj-card" style="margin-top:12px">
+    <a class="bp-enter" href="/planning/?project=${encodeURIComponent(p.slug)}">${esc(p.title)} — Enter project dashboard →</a>
+    <div class="proj-head">
+      <span class="pill ${cls}">${label}</span>
+      <span class="dim">by ${esc(p.created_by_name || p.created_by_email)} · updated ${esc(fmtDate(p.updated_at))}${p.target_launch ? ' · target launch ' + esc(p.target_launch) : ''}</span>
+    </div>
+    ${p.summary ? `<p style="margin:0 0 6px">${esc(p.summary)}</p>` : ''}
+    <div class="row-flex" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px">
+      <span class="dim"><b style="color:#f3d27a">${st.requirements.pct}%</b> requirements done (${st.requirements.done}/${st.requirements.total})</span>
+      <span class="dim">${st.features} features</span>
+      <span class="dim">${st.milestones.done}/${st.milestones.total} milestones</span>
+      <span class="dim">${st.members} team members</span>
+    </div>
+    ${bpPbar(st.requirements.done, st.requirements.total)}
+    ${p.review_note ? `<p class="dim" style="margin-top:8px">Admin review note: ${esc(p.review_note)}</p>` : ''}
+  </div>`;
+}
+function renderBpList() {
+  const list = document.getElementById('bp-list');
+  list.innerHTML = bpProjects.length ? bpProjects.map((p) => {
+    const [cls, label] = BP_STATUS_PILL[p.status] || ['', p.status];
+    const pct = p.stats ? p.stats.requirements.pct : 0;
+    return `<button type="button" class="bp-row" data-bp-row="${esc(p.slug)}">
+      <span class="nm">${esc(p.title)}</span>
+      <span class="pill ${cls}">${label}</span>
+      <span class="pct">${pct}%</span>
+    </button>`;
+  }).join('') : '<p class="dim">No projects yet — create the first plan below.</p>';
+  const menu = document.getElementById('bp-menu');
+  if (menu) {
+    menu.innerHTML = (bpProjects.length ? bpProjects.map((p) =>
+      `<button type="button" data-bp-pick="${esc(p.slug)}">${esc(p.title)}<span class="dim">${esc((BP_STATUS_PILL[p.status] || ['', p.status])[1])} · ${p.stats ? p.stats.requirements.pct : 0}% planned</span></button>`).join('')
+      : '<button type="button" data-go="workflow:brainstorm-block">No projects yet<span class="dim">Create the first plan</span></button>')
+      + '<button type="button" data-go="workflow:brainstorm-block">How planning works<span class="dim">Member plans → submission queue → admin approval</span></button>';
+  }
+  renderBpSummary();
+}
+function renderBpQueue() {
+  const box = document.getElementById('bp-queue');
+  if (!canAdmin) { box.innerHTML = ''; return; }
+  box.innerHTML = `<h3 class="wf-h">Submission queue (${bpQueue.length})</h3>` + (bpQueue.length ? bpQueue.map((p) => `
+    <div class="proj-card" data-bpq="${esc(p.id)}">
+      <div class="proj-head"><span class="nm">${esc(p.title)}</span><span class="pill wait">Pending approval</span>
+        <span class="dim">${esc(p.created_by_name || p.created_by_email)} · ${esc(fmtDate(p.created_at))}</span></div>
+      ${p.summary ? `<p style="margin:0 0 6px">${esc(p.summary)}</p>` : ''}
+      ${p.description ? `<p class="dim" style="margin:0">${esc(p.description.slice(0, 400))}</p>` : ''}
+      <div class="link-row">
+        <input class="note" data-bp-note placeholder="Review note (optional)…" maxlength="2000"
+          style="flex:1;min-width:180px;background:#0d0d15;border:1px solid var(--line);border-radius:8px;color:var(--text);padding:8px 12px;font-size:.88rem;font-family:inherit">
+        <button class="act-btn" data-bp-review="approve">Approve</button>
+        <button class="act-btn" data-bp-review="request_changes">Request changes</button>
+        <button class="act-btn" data-bp-review="reject">Reject</button>
+      </div>
+      <p class="dim" data-bp-qmsg></p>
+    </div>`).join('') : '<p class="dim">Nothing waiting for approval.</p>');
+}
+async function loadBp() {
+  const list = document.getElementById('bp-list');
+  try {
+    const { status, data } = await api('/api/bp/projects');
+    if (status !== 200) throw new Error(data.error || 'load_failed');
+    bpProjects = data.projects || [];
+    bpQueue = data.queue || [];
+    if (!bpProjects.some((p) => p.slug === bpSelectedSlug)) bpSelectedSlug = bpProjects[0]?.slug || null;
+    renderBpList();
+    renderBpQueue();
+  } catch {
+    list.innerHTML = '<p class="dim">Couldn’t load projects — try refreshing in a moment.</p>';
+  }
+}
+function selectBpProject(slug) {
+  bpSelectedSlug = slug;
+  renderBpSummary();
+  goToPanel('workflow', 'brainstorm-block');
+}
+document.getElementById('bp-list').addEventListener('click', (e) => {
+  const row = e.target.closest('[data-bp-row]');
+  if (row) { bpSelectedSlug = row.dataset.bpRow; renderBpSummary(); }
+});
+document.getElementById('wf-bar').addEventListener('click', (e) => {
+  const pick = e.target.closest('[data-bp-pick]');
+  if (pick) selectBpProject(pick.dataset.bpPick);
+});
+document.getElementById('bp-queue').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-bp-review]');
+  if (!b) return;
+  const card = b.closest('[data-bpq]');
+  const note = card.querySelector('[data-bp-note]').value.trim();
+  const msg = card.querySelector('[data-bp-qmsg]');
+  b.disabled = true; msg.textContent = 'Working…';
+  const { status, data } = await api('/api/bp/projects/' + encodeURIComponent(card.dataset.bpq) + '/review', {
+    method: 'POST', body: JSON.stringify({ action: b.dataset.bpReview, note: note || undefined }),
+  });
+  if (status === 200) { loadBp(); }
+  else { msg.textContent = data.error || 'Couldn’t review that plan.'; b.disabled = false; }
+});
+document.getElementById('bp-create').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('bp-create-msg');
+  const btn = e.target.querySelector('button[type="submit"]');
+  btn.disabled = true; msg.className = 'save-msg'; msg.textContent = 'Submitting…';
+  const { status, data } = await api('/api/bp/projects', {
+    method: 'POST',
+    body: JSON.stringify({
+      title: document.getElementById('bp-title').value,
+      summary: document.getElementById('bp-summary-in').value,
+      description: document.getElementById('bp-desc').value,
+      target_launch: document.getElementById('bp-launch').value || undefined,
+    }),
+  });
+  btn.disabled = false;
+  if (status === 200) {
+    e.target.reset();
+    bpSelectedSlug = data.project.slug;
+    msg.className = 'save-msg ok';
+    msg.textContent = data.project.status === 'active'
+      ? 'Project is live — its dashboard has been generated. Open it from the summary above.'
+      : 'Plan submitted — it’s in the submission queue for admin approval.';
+    loadBp();
+  } else {
+    msg.className = 'save-msg err';
+    msg.textContent = data.error || 'Couldn’t submit — try again in a moment.';
+  }
+});
+
 loadTeam();
 loadBoard();
 loadClients();
@@ -643,6 +823,7 @@ loadCRQ();
 mountSupportInbox(document.getElementById('support-inbox'));
 mountTeamLog(document.getElementById('team-log'));
 mountNotifyPrefs(document.getElementById('support-prefs'));
+loadBp();
 </script>
 <script src="/assistant.js"></script>
 <script src="/_lib/menu.js"></script>
