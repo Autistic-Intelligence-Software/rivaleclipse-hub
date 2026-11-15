@@ -666,6 +666,7 @@ document.addEventListener('click', (e) => { if (!e.target.closest('.wf-seg')) cl
   const hashBlock = hashId && document.getElementById(hashId);
   showRack(hashBlock && hashBlock.dataset.rack ? hashBlock.dataset.rack : 'support');
   if (hashBlock && hashBlock.dataset.rack) goToPanel(hashBlock.dataset.rack, hashId);
+  else if (hashId.startsWith('ticket=')) goToPanel('support', 'support-block');
 }
 
 // ---------- brainstorming & planning (live, /api/bp) ----------
