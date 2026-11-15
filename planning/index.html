@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planning — Rival Eclipse</title>
+<meta name="description" content="Rival Eclipse project planning dashboard — roadmap, features, requirements, notes, suggestions, and files for one project.">
+<meta name="theme-color" content="#0a0a12">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Planning">
+<link rel="manifest" href="/planning/manifest.webmanifest">
+<link rel="stylesheet" href="/style.css">
+<style>
+  /* Project dashboard app shell — deliberately app-like, denser than the
+     marketing pages: fixed top bar, sidebar navigation, card work areas. */
+  body { background: #07070e; }
+  .app-top { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 14px;
+    padding: 10px 18px; background: rgba(9,9,16,.94); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line); }
+  .app-top .back { color: var(--muted); text-decoration: none; font-size: .88rem; font-weight: 600; white-space: nowrap; }
+  .app-top .back:hover { color: var(--text); }
+  .app-top .ptitle { font-weight: 800; font-size: 1.02rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .app-top .pstatus { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .ring { width: 44px; height: 44px; flex: 0 0 auto; }
+  .ring .track { stroke: #26263a; }
+  .ring .bar { stroke: #d4af37; transition: stroke-dashoffset .4s; }
+  .ring text { fill: var(--text); font-size: 11px; font-weight: 800; }
+  .app-shell { display: grid; grid-template-columns: 232px 1fr; gap: 0; max-width: 1440px; margin: 0 auto; width: 100%; }
+  .app-side { border-right: 1px solid var(--line); padding: 16px 10px; position: sticky; top: 65px;
+    height: calc(100vh - 65px); overflow-y: auto; }
+  .app-side .grp { font-size: .7rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--muted); margin: 16px 10px 6px; }
+  .app-side .grp:first-child { margin-top: 2px; }
+  .side-btn { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none;
+    border: none; border-radius: 10px; color: var(--muted); font-family: inherit; font-size: .92rem;
+    font-weight: 600; padding: 10px 12px; cursor: pointer; }
+  .side-btn:hover { color: var(--text); background: rgba(255,255,255,.03); }
+  .side-btn.on { color: #f3d27a; background: rgba(212,175,55,.1); box-shadow: inset 3px 0 0 #d4af37; }
+  .side-btn .cnt { margin-left: auto; font-size: .75rem; background: #23232f; color: var(--muted);
+    border-radius: 999px; padding: 2px 8px; }
+  .side-btn.on .cnt { background: rgba(212,175,55,.25); color: #f3d27a; }
+  .app-main { padding: 22px 26px 70px; min-width: 0; }
+  .app-main h2.vt { font-size: 1.35rem; margin: 0 0 4px; }
+  .app-main .vsub { color: var(--muted); font-size: .9rem; margin: 0 0 18px; }
+  .card { border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 16px;
+    background: rgba(13,13,21,.65); }
+  .card h3 { margin: 0 0 8px; font-size: 1.02rem; }
+  .dim { color: var(--muted); font-size: .85rem; }
+  .pill { font-size: .75rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .pill.ok { color: #7ee2a0; border-color: #2c5a3a; }
+  .pill.bad { color: #ff9a9a; border-color: #6e2f2f; }
+  .pill.wait { color: #f3d27a; border-color: #5a4a1c; }
+  .pill.vio { color: #c4b0ff; border-color: #4a3f7a; }
+  .pbar { height: 9px; border-radius: 999px; background: #23232f; overflow: hidden; margin-top: 8px; }
+  .pbar > div { height: 100%; background: linear-gradient(90deg, #8a6d1c, #d4af37); border-radius: 999px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .stat { border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: rgba(13,13,21,.65); }
+  .stat .n { font-size: 1.45rem; font-weight: 800; color: #f3d27a; }
+  .stat .l { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+  .feat-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+  .feat-head .nm { font-weight: 700; font-size: 1rem; }
+  .sect { margin-top: 12px; }
+  .sect .sl { font-size: .74rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--accent2, #7c5cff); margin-bottom: 4px; }
+  .sect p, .sect .pre { font-size: .9rem; line-height: 1.6; color: var(--text); white-space: pre-line; margin: 0; }
+  .sect .pre { color: #cfcbe0; }
+  select.inp, input.inp, textarea.inp { background: #0d0d15; border: 1px solid var(--line); border-radius: 9px;
+    color: var(--text); padding: 8px 11px; font-size: .88rem; font-family: inherit; box-sizing: border-box; }
+  select.inp:focus, input.inp:focus, textarea.inp:focus { outline: none; border-color: var(--accent); }
+  textarea.inp { width: 100%; min-height: 58px; resize: vertical; }
+  input.inp { width: 100%; }
+  .btn { background: linear-gradient(135deg, #d4af37, #8a6d1c); color: #0a0a12; font-weight: 800; border: none;
+    border-radius: 9px; padding: 9px 18px; cursor: pointer; font-size: .88rem; font-family: inherit; }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:disabled { opacity: .5; cursor: default; transform: none; }
+  .btn.ghost { background: none; border: 1px solid var(--line); color: var(--text); }
+  .btn.ghost:hover { border-color: var(--accent); }
+  .row-flex { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .req-row { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; border-bottom: 1px solid rgba(35,35,47,.6); font-size: .9rem; }
+  .req-row:last-child { border-bottom: none; }
+  .req-row input[type="checkbox"] { width: 17px; height: 17px; margin-top: 2px; accent-color: #d4af37; flex: 0 0 auto; cursor: pointer; }
+  .req-row.done .rt { color: var(--muted); text-decoration: line-through; }
+  .req-row .who { margin-left: auto; font-size: .75rem; color: var(--muted); white-space: nowrap; }
+  .note-row { padding: 10px 0; border-bottom: 1px solid rgba(35,35,47,.6); }
+  .note-row:last-child { border-bottom: none; }
+  .note-row .nh { font-size: .78rem; color: var(--muted); margin-bottom: 3px; }
+  .note-row .nb { font-size: .9rem; line-height: 1.55; white-space: pre-line; }
+  .sugg-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+  .sugg-col h4 { margin: 0 0 8px; font-size: .9rem; }
+  .sugg-item { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; background: rgba(13,13,21,.5); font-size: .88rem; }
+  .sugg-item .sh { font-size: .74rem; color: var(--muted); margin-bottom: 3px; }
+  .ms-row { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid rgba(35,35,47,.6); }
+  .ms-row:last-child { border-bottom: none; }
+  .ms-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--muted); margin-top: 3px; flex: 0 0 auto; }
+  .ms-dot.done { background: #3ddc84; border-color: #3ddc84; }
+  .ms-dot.in_progress { background: #d4af37; border-color: #d4af37; }
+  .ui-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 700px) { .ui-grid { grid-template-columns: 1fr; } }
+  .ui-box { border: 1px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .ui-box h4 { margin: 0 0 8px; font-size: .9rem; }
+  .ui-box img { max-width: 100%; border-radius: 10px; border: 1px solid var(--line); display: block; margin-bottom: 8px; }
+  .file-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 9px 0; border-bottom: 1px solid rgba(35,35,47,.6); font-size: .9rem; }
+  .file-row:last-child { border-bottom: none; }
+  a.dl { color: #f3d27a; text-decoration: none; font-weight: 700; font-size: .85rem; }
+  a.dl:hover { text-decoration: underline; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .form-grid label { display: block; font-size: .76rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 5px; }
+  .msg { font-size: .88rem; margin-top: 8px; }
+  .msg.ok { color: var(--ok); } .msg.err { color: #ff7070; }
+  .cat-h { margin: 24px 0 10px; font-size: 1.05rem; color: #f3d27a; }
+  .cat-h:first-of-type { margin-top: 4px; }
+  @media (max-width: 860px) {
+    .app-shell { grid-template-columns: 1fr; }
+    .app-side { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line);
+      display: flex; gap: 4px; overflow-x: auto; padding: 10px; }
+    .app-side .grp { display: none; }
+    .side-btn { white-space: nowrap; width: auto; }
+    .app-main { padding: 18px 14px 60px; }
+  }
+</style>
+</head>
+<body>
+<div id="gate"><p style="padding:24px;color:var(--muted)">Loading…</p></div>
+<div id="app" style="display:none">
+  <div class="app-top">
+    <a class="back" href="/team/#brainstorm-block">← Team</a>
+    <span class="ptitle" id="ptitle">Project</span>
+    <span class="pill wait" id="pstatus">…</span>
+    <div class="pstatus">
+      <span class="dim" id="pwho"></span>
+      <svg class="ring" viewBox="0 0 44 44" aria-hidden="true">
+        <circle class="track" cx="22" cy="22" r="18" fill="none" stroke-width="5"></circle>
+        <circle class="bar" id="ring-bar" cx="22" cy="22" r="18" fill="none" stroke-width="5"
+          stroke-linecap="round" transform="rotate(-90 22 22)" stroke-dasharray="113" stroke-dashoffset="113"></circle>
+        <text x="22" y="26" text-anchor="middle" id="ring-txt">0%</text>
+      </svg>
+    </div>
+  </div>
+  <div class="app-shell">
+    <aside class="app-side" id="sidebar"></aside>
+    <main class="app-main" id="view"><p class="dim">Loading project…</p></main>
+  </div>
+</div>
+<script type="module">
+import { session, logout } from '/auth.js';
+import { tagsOf, hasTag, isOwnerOf, goBlocked } from '/_lib/gates.js';
+
+const AUTH = 'https://auth.rivaleclipse.dev';
+const CATEGORIES = ['Features & Functions', 'UI & Design', 'Integrations', 'Requirements', 'Launch & Release'];
+const slug = new URLSearchParams(location.search).get('project') || '';
+
+async function api(path, opts = {}) {
+  const r = await fetch(AUTH + path, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  const data = await r.json().catch(() => ({}));
+  return { status: r.status, data };
+}
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtDate = (v) => { try { return v ? new Date(v).toLocaleString() : '—'; } catch { return '—'; } };
+const fmtSize = (n) => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : n > 1024 ? Math.round(n / 1024) + ' KB' : n + ' B';
+const dlUrl = (uid) => `${AUTH}/api/bp/uploads/${uid}/download`;
+
+// ---------- gate (team tag, admin tag, or owner — same as /team/) ----------
+const s = await session();
+if (!s) goBlocked('signin', '/planning/');
+if (!(hasTag(s, 'team') || hasTag(s, 'admin'))) goBlocked('tag', '/planning/', { tag: 'team' });
+const me = (s && s.user) || {};
+const canAdmin = hasTag(s, 'admin') || isOwnerOf(s);
+document.getElementById('gate').style.display = 'none';
+document.getElementById('app').style.display = '';
+document.getElementById('pwho').textContent = s.discord?.username ? '@' + s.discord.username : (me.email || '');
+
+// ---------- state ----------
+let FULL = null;
+let view = 'overview';
+const VIEWS = [
+  ['plan', 'Plan'],
+  ['overview', 'Overview'], ['roadmap', 'Roadmap'],
+  ['work', 'Work'],
+  ['features', 'Features & Functions'], ['ui', 'UI & Design'], ['requirements', 'Requirements & Checklists'],
+  ['team', 'People'],
+  ['notes', 'Notes'], ['suggestions', 'Suggestions'], ['files', 'Files & Uploads'], ['members', 'Team'],
+];
+
+async function reload(keepView = true) {
+  if (!slug) { document.getElementById('view').innerHTML = '<p class="dim">No project selected. Open one from the Team page\'s Brainstorming &amp; Planning section.</p>'; return; }
+  const { status, data } = await api('/api/bp/projects/' + encodeURIComponent(slug) + '/full');
+  if (status !== 200) {
+    document.getElementById('view').innerHTML = `<p class="dim">Couldn't load this project (${esc(data.error || status)}). It may be pending approval, or you may not have access.</p>`;
+    return;
+  }
+  FULL = data;
+  renderChrome();
+  renderView();
+  if (!keepView) window.scrollTo({ top: 0 });
+}
+
+function renderChrome() {
+  const p = FULL.project;
+  document.title = p.title + ' — Planning — Rival Eclipse';
+  document.getElementById('ptitle').textContent = p.title;
+  const st = document.getElementById('pstatus');
+  st.textContent = p.status;
+  st.className = 'pill ' + (p.status === 'active' ? 'ok' : p.status === 'pending' ? 'wait' : p.status === 'rejected' ? 'bad' : '');
+  const pct = FULL.stats.overall_pct || 0;
+  document.getElementById('ring-bar').style.strokeDashoffset = String(113 - (113 * pct) / 100);
+  document.getElementById('ring-txt').textContent = pct + '%';
+  const openSugg = FULL.suggestions.filter((x) => x.status === 'open').length;
+  const counts = {
+    overview: '', roadmap: FULL.milestones.length,
+    features: FULL.features.length, ui: FULL.uploads.filter((u) => u.section.startsWith('ui_') || u.section === 'design').length,
+    requirements: `${FULL.stats.requirements.done}/${FULL.stats.requirements.total}`,
+    notes: FULL.notes.length, suggestions: openSugg || '', files: FULL.uploads.length, members: FULL.members.length,
+  };
+  let html = '';
+  let lastGrp = null;
+  for (const [key, label] of VIEWS) {
+    if (['plan', 'work', 'team'].includes(key)) { lastGrp = label; html += `<div class="grp">${esc(label)}</div>`; continue; }
+    html += `<button type="button" class="side-btn${view === key ? ' on' : ''}" data-view="${key}">${esc(label)}${counts[key] !== '' ? `<span class="cnt">${esc(counts[key])}</span>` : ''}</button>`;
+  }
+  document.getElementById('sidebar').innerHTML = html;
+}
+
+function renderView() {
+  const el = document.getElementById('view');
+  if (!FULL) return;
+  ({ overview: vOverview, roadmap: vRoadmap, features: vFeatures, ui: vUI,
+     requirements: vRequirements, notes: vNotes, suggestions: vSuggestions,
+     files: vFiles, members: vMembers }[view] || vOverview)(el);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ---------- shared fragments ----------
+const pbar = (done, total) => `<div class="pbar"><div style="width:${total ? Math.round((done / total) * 100) : 0}%"></div></div>`;
+const reqRow = (r) => `
+  <div class="req-row${r.done ? ' done' : ''}">
+    <input type="checkbox" data-check-req="${r.id}" ${r.done ? 'checked' : ''}>
+    <span class="rt">${esc(r.text)}</span>
+    ${r.done ? `<span class="who">✓ ${esc(r.done_by || '')} · ${esc(fmtDate(r.done_at))}</span>` : ''}
+  </div>`;
+const reqList = (reqs) => reqs.length ? reqs.map(reqRow).join('') : '<p class="dim">No checklist items yet.</p>';
+const noteRow = (n, featTitle) => `
+  <div class="note-row">
+    <div class="nh">${esc(n.author_name || n.author_email)} · ${esc(fmtDate(n.created_at))}${featTitle ? ' · on ' + esc(featTitle) : ''}</div>
+    <div class="nb">${esc(n.body)}</div>
+  </div>`;
+const noteForm = (featureId) => `
+  <form data-form="note" data-fid="${featureId || ''}" style="margin-top:10px">
+    <textarea class="inp" name="body" maxlength="8000" placeholder="Add a note… (notes are permanent — append-only)" required></textarea>
+    <div style="margin-top:8px"><button class="btn" type="submit">Add note</button></div>
+  </form>`;
+const suggForm = (featureId) => `
+  <form data-form="suggestion" data-fid="${featureId || ''}" style="margin-top:10px">
+    <div class="row-flex">
+      <select class="inp" name="kind" style="width:auto">
+        <option value="change">Change</option><option value="addition">Addition</option><option value="removal">Removal</option>
+      </select>
+      <input class="inp" name="body" maxlength="8000" placeholder="Suggest a change, addition, or removal…" required style="flex:1;min-width:180px">
+      <button class="btn ghost" type="submit">Suggest</button>
+    </div>
+  </form>`;
+const suggItem = (x, featTitle) => `
+  <div class="sugg-item">
+    <div class="sh">${esc(x.author_name || x.author_email)} · ${esc(fmtDate(x.created_at))}${featTitle ? ' · ' + esc(featTitle) : ''} · <b>${esc(x.status)}</b></div>
+    <div>${esc(x.body)}</div>
+    ${canAdmin || FULL.project.created_by_email === (me.email || '') ? `<div style="margin-top:6px"><select class="inp" data-sugg-status="${x.id}" style="width:auto;padding:5px 9px">
+      ${['open', 'accepted', 'declined'].map((st) => `<option value="${st}"${x.status === st ? ' selected' : ''}>${st}</option>`).join('')}
+    </select></div>` : ''}
+  </div>`;
+const suggCols = (items, titleOf) => `
+  <div class="sugg-cols">${['change', 'addition', 'removal'].map((kind) => `
+    <div class="sugg-col"><h4>${kind === 'change' ? 'Changes' : kind === 'addition' ? 'Additions' : 'Removals'}</h4>
+    ${items.filter((x) => x.kind === kind).map((x) => suggItem(x, titleOf ? titleOf(x) : '')).join('') || '<p class="dim">None yet.</p>'}
+    </div>`).join('')}
+  </div>`;
+function readFileB64(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result).split(',')[1] || '');
+    fr.onerror = reject;
+    fr.readAsDataURL(file);
+  });
+}
+const uploadForm = (section, featureId, label) => `
+  <form data-form="upload" data-section="${section}" data-fid="${featureId || ''}" style="margin-top:10px">
+    <div class="row-flex">
+      <input class="inp" type="file" name="file" required style="width:auto;flex:1;min-width:170px">
+      <button class="btn ghost" type="submit">${esc(label || 'Upload')}</button>
+    </div>
+    <p class="msg"></p>
+  </form>`;
+const upRow = (u) => `
+  <div class="file-row">
+    <span><b>${esc(u.title)}</b> <span class="pill vio">v${u.version}</span><br>
+    <span class="dim">${esc(u.filename)} · ${esc(fmtSize(u.size))} · ${esc(u.author_name || u.author_email)} · ${esc(fmtDate(u.created_at))}</span></span>
+    <span style="margin-left:auto"><a class="dl" href="${dlUrl(u.id)}">Download ↓</a></span>
+  </div>`;
+const latestUp = (section, featureId) => FULL.uploads
+  .filter((u) => u.section === section && (u.feature_id || null) === (featureId || null))
+  .sort((a, b) => b.version - a.version)[0];
+const featTitle = (fid) => (FULL.features.find((f) => f.id === fid) || {}).title || '';
+
+// ---------- Overview ----------
+function vOverview(el) {
+  const p = FULL.project, st = FULL.stats;
+  const recent = [
+    ...FULL.notes.map((n) => ({ t: n.created_at, html: noteRow(n, n.feature_id ? featTitle(n.feature_id) : '') })),
+    ...FULL.suggestions.map((x) => ({ t: x.created_at, html: suggItem(x, x.feature_id ? featTitle(x.feature_id) : '') })),
+  ].sort((a, b) => String(b.t).localeCompare(String(a.t))).slice(0, 6);
+  el.innerHTML = `
+    <h2 class="vt">${esc(p.title)}</h2>
+    <p class="vsub">${esc(p.summary || '')}</p>
+    ${p.description ? `<div class="card"><h3>About this project</h3><p style="white-space:pre-line;line-height:1.65;margin:0">${esc(p.description)}</p>
+      <p class="dim" style="margin-top:10px">Created by ${esc(p.created_by_name || p.created_by_email)} · ${esc(fmtDate(p.created_at))}${p.target_launch ? ' · Target launch: ' + esc(p.target_launch) : ''}</p></div>` : ''}
+    <div class="stat-grid">
+      <div class="stat"><div class="n">${st.overall_pct}%</div><div class="l">Overall progress</div></div>
+      <div class="stat"><div class="n">${st.requirements.done}/${st.requirements.total}</div><div class="l">Requirements done</div></div>
+      <div class="stat"><div class="n">${st.milestones.done}/${st.milestones.total}</div><div class="l">Milestones done</div></div>
+      <div class="stat"><div class="n">${st.features}</div><div class="l">Features</div></div>
+      <div class="stat"><div class="n">${st.members}</div><div class="l">Team members</div></div>
+    </div>
+    <div class="card"><h3>Roadmap snapshot</h3>
+      ${FULL.milestones.map((m) => `<div class="ms-row"><span class="ms-dot ${esc(m.status)}"></span>
+        <div style="flex:1"><b>${esc(m.title)}</b> <span class="pill ${m.status === 'done' ? 'ok' : m.status === 'in_progress' ? 'wait' : ''}">${esc(m.status.replace('_', ' '))}</span>
+        ${m.description ? `<div class="dim">${esc(m.description)}</div>` : ''}</div></div>`).join('') || '<p class="dim">No milestones yet.</p>'}
+    </div>
+    <div class="card"><h3>Progress by category</h3>
+      ${CATEGORIES.filter((c) => st.byCategory[c]).map((c) => `
+        <div style="margin-bottom:12px"><div class="row-flex" style="justify-content:space-between"><b>${esc(c)}</b>
+        <span class="dim">${st.byCategory[c].done}/${st.byCategory[c].total} · ${st.byCategory[c].pct}%</span></div>${pbar(st.byCategory[c].done, st.byCategory[c].total)}</div>`).join('') || '<p class="dim">No requirements yet.</p>'}
+    </div>
+    <div class="card"><h3>Recent activity</h3>${recent.map((r) => r.html).join('') || '<p class="dim">No notes or suggestions yet.</p>'}</div>`;
+}
+
+// ---------- Roadmap ----------
+function vRoadmap(el) {
+  el.innerHTML = `
+    <h2 class="vt">Roadmap</h2>
+    <p class="vsub">The path to completion and launch. Progress: ${FULL.stats.milestones.done}/${FULL.stats.milestones.total} milestones done.</p>
+    ${pbar(FULL.stats.milestones.done, FULL.stats.milestones.total)}
+    <div class="card" style="margin-top:16px">
+      ${FULL.milestones.map((m) => `
+        <div class="ms-row"><span class="ms-dot ${esc(m.status)}"></span>
+          <div style="flex:1"><b>${esc(m.title)}</b>
+            ${m.description ? `<div class="dim" style="margin-top:2px">${esc(m.description)}</div>` : ''}
+            <div class="row-flex" style="margin-top:8px">
+              <select class="inp" data-ms-status="${m.id}" style="width:auto;padding:6px 10px">
+                ${['upcoming', 'in_progress', 'done'].map((st) => `<option value="${st}"${m.status === st ? ' selected' : ''}>${st.replace('_', ' ')}</option>`).join('')}
+              </select>
+              <input class="inp" type="date" data-ms-due="${m.id}" value="${esc(m.due_date || '')}" style="width:auto">
+              ${m.due_date ? `<span class="dim">due ${esc(m.due_date)}</span>` : '<span class="dim">no due date</span>'}
+            </div>
+          </div>
+        </div>`).join('') || '<p class="dim">No milestones yet.</p>'}
+    </div>
+    <div class="card"><h3>Add a milestone</h3>
+      <form data-form="milestone"><div class="form-grid">
+        <div><label>Title</label><input class="inp" name="title" maxlength="200" required></div>
+        <div><label>Due date</label><input class="inp" type="date" name="due_date"></div>
+        <div class="full"><label>Description</label><textarea class="inp" name="description" maxlength="2000"></textarea></div>
+      </div><button class="btn" type="submit" style="margin-top:10px">Add milestone</button></form>
+    </div>`;
+}
+
+// ---------- Features & Functions ----------
+function featureCard(f) {
+  const notes = FULL.notes.filter((n) => n.feature_id === f.id);
+  const sugg = FULL.suggestions.filter((x) => x.feature_id === f.id);
+  return `<div class="card" id="feat-${f.id}">
+    <div class="feat-head"><span class="nm">${esc(f.title)}</span>
+      <span class="pill vio">${esc(f.category)}</span>
+      <span style="margin-left:auto"><select class="inp" data-feat-status="${f.id}" style="width:auto;padding:6px 10px">
+        ${['planned', 'in_progress', 'done'].map((st) => `<option value="${st}"${f.status === st ? ' selected' : ''}>${st.replace('_', ' ')}</option>`).join('')}
+      </select></span>
+    </div>
+    ${f.how_it_works ? `<div class="sect"><div class="sl">How it will function</div><p>${esc(f.how_it_works)}</p></div>` : ''}
+    ${f.integration_needs ? `<div class="sect"><div class="sl">What is needed to integrate it</div><p class="pre">${esc(f.integration_needs)}</p></div>` : ''}
+    ${f.execution_notes ? `<div class="sect"><div class="sl">Function execution</div><p class="pre">${esc(f.execution_notes)}</p></div>` : ''}
+    <div class="sect"><div class="sl">Requirement checklist — ${f.requirements.filter((r) => r.done).length}/${f.requirements.length} done</div>
+      ${reqList(f.requirements)}
+      <form data-form="req" data-fid="${f.id}" style="margin-top:8px"><div class="row-flex">
+        <input class="inp" name="text" maxlength="500" placeholder="Add a requirement…" required style="flex:1;min-width:180px">
+        <button class="btn ghost" type="submit">Add</button>
+      </div></form>
+    </div>
+    <div class="sect"><div class="sl">Notes (${notes.length})</div>
+      ${notes.map((n) => noteRow(n, '')).join('') || '<p class="dim">No notes yet.</p>'}
+      ${noteForm(f.id)}
+    </div>
+    <div class="sect"><div class="sl">Suggestions (${sugg.filter((x) => x.status === 'open').length} open)</div>
+      ${suggCols(sugg, null)}
+      ${suggForm(f.id)}
+    </div>
+  </div>`;
+}
+function vFeatures(el) {
+  const groups = CATEGORIES.filter((c) => FULL.features.some((f) => f.category === c));
+  el.innerHTML = `
+    <h2 class="vt">Features &amp; Functions</h2>
+    <p class="vsub">Every feature with how it functions, what it needs to integrate, how it executes, its requirement checklist, notes, and suggestions — grouped by category.</p>
+    ${groups.map((c) => `<h3 class="cat-h">${esc(c)}</h3>` + FULL.features.filter((f) => f.category === c).map(featureCard).join('')).join('') || '<p class="dim">No features yet — add the first one below.</p>'}
+    <div class="card"><h3>Add a feature</h3>
+      <form data-form="feature"><div class="form-grid">
+        <div><label>Title</label><input class="inp" name="title" maxlength="200" required></div>
+        <div><label>Category</label><select class="inp" name="category">${CATEGORIES.map((c) => `<option>${esc(c)}</option>`).join('')}</select></div>
+        <div class="full"><label>How it will function</label><textarea class="inp" name="how_it_works"></textarea></div>
+        <div class="full"><label>What is needed to integrate it</label><textarea class="inp" name="integration_needs"></textarea></div>
+        <div class="full"><label>Function execution (step by step)</label><textarea class="inp" name="execution_notes"></textarea></div>
+      </div><button class="btn" type="submit" style="margin-top:10px">Add feature</button></form>
+    </div>`;
+}
+
+// ---------- UI & Design ----------
+function uiBox(kind, section, f) {
+  const latest = latestUp(section, f.id);
+  const all = FULL.uploads.filter((u) => u.section === section && (u.feature_id || null) === f.id);
+  return `<div class="ui-box"><h4>${kind} — ${esc(f.title)}</h4>
+    ${latest ? (String(latest.mime).startsWith('image/')
+      ? `<img src="${dlUrl(latest.id)}" alt="${esc(kind)} render for ${esc(f.title)}">`
+      : `<p class="dim">Latest: ${esc(latest.filename)}</p>`)
+      + `<div class="row-flex"><span class="pill vio">v${latest.version}</span><a class="dl" href="${dlUrl(latest.id)}">Download ↓</a>
+        <span class="dim">${esc(latest.author_name || latest.author_email)} · ${esc(fmtDate(latest.created_at))}</span></div>
+        ${all.length > 1 ? `<div style="margin-top:8px">${all.filter((u) => u.id !== latest.id).map((u) => `<div class="file-row"><span class="dim">v${u.version} · ${esc(u.filename)} · ${esc(fmtDate(u.created_at))}</span><span style="margin-left:auto"><a class="dl" href="${dlUrl(u.id)}">Download ↓</a></span></div>`).join('')}</div>` : ''}`
+      : '<p class="dim">Nothing uploaded yet.</p>'}
+    ${uploadForm(section, f.id, kind === 'Before' ? 'Upload before render' : 'Upload suggested update')}
+  </div>`;
+}
+function vUI(el) {
+  const designs = FULL.uploads.filter((u) => u.section === 'design');
+  el.innerHTML = `
+    <h2 class="vt">UI &amp; Design</h2>
+    <p class="vsub">Per feature: the “Before” render (download it, mark it up, re-upload as a suggested update) beside the suggested updates. Every upload is a new version — nothing is ever overwritten.</p>
+    ${FULL.features.map((f) => `<div class="card"><h3>${esc(f.title)}</h3><div class="ui-grid">${uiBox('Before', 'ui_before', f)}${uiBox('Suggested updates', 'ui_suggested', f)}</div></div>`).join('') || '<p class="dim">Add features first — each one gets its own Before / Suggested pair here.</p>'}
+    <div class="card"><h3>Design uploads</h3>
+      ${designs.map(upRow).join('') || '<p class="dim">No design uploads yet.</p>'}
+      ${uploadForm('design', '', 'Upload design')}
+    </div>`;
+}
+
+// ---------- Requirements & Checklists ----------
+function vRequirements(el) {
+  const st = FULL.stats;
+  const projReqs = FULL.requirements.filter((r) => !r.feature_id);
+  el.innerHTML = `
+    <h2 class="vt">Requirements &amp; Checklists</h2>
+    <p class="vsub">${st.requirements.done} of ${st.requirements.total} requirements done (${st.requirements.pct}%). Checking an item records who did it and when.</p>
+    ${pbar(st.requirements.done, st.requirements.total)}
+    <div class="card" style="margin-top:16px"><h3>Project checklist</h3>
+      ${reqList(projReqs)}
+      <form data-form="req" data-fid="" style="margin-top:8px"><div class="row-flex">
+        <input class="inp" name="text" maxlength="500" placeholder="Add a project requirement…" required style="flex:1;min-width:180px">
+        <select class="inp" name="category" style="width:auto">${CATEGORIES.map((c) => `<option${c === 'Requirements' ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>
+        <button class="btn ghost" type="submit">Add</button>
+      </div></form>
+    </div>
+    ${CATEGORIES.map((c) => {
+      const feats = FULL.features.filter((f) => f.category === c && f.requirements.length);
+      if (!feats.length) return '';
+      return `<h3 class="cat-h">${esc(c)}</h3>` + feats.map((f) => `
+        <div class="card"><h3>${esc(f.title)}</h3>
+          <div class="dim">${f.requirements.filter((r) => r.done).length}/${f.requirements.length} done</div>
+          ${pbar(f.requirements.filter((r) => r.done).length, f.requirements.length)}
+          <div style="margin-top:8px">${reqList(f.requirements)}</div>
+        </div>`).join('');
+    }).join('')}`;
+}
+
+// ---------- Notes ----------
+function vNotes(el) {
+  const proj = FULL.notes.filter((n) => !n.feature_id);
+  el.innerHTML = `
+    <h2 class="vt">Notes</h2>
+    <p class="vsub">Project notes are append-only — they can never be edited or deleted, so the record stays honest. Feature notes live on each feature card too.</p>
+    <div class="card"><h3>Project notes (${proj.length})</h3>
+      ${proj.map((n) => noteRow(n, '')).join('') || '<p class="dim">No project notes yet.</p>'}
+      ${noteForm(null)}
+    </div>
+    ${FULL.features.filter((f) => FULL.notes.some((n) => n.feature_id === f.id)).map((f) => `
+      <div class="card"><h3>${esc(f.title)}</h3>
+      ${FULL.notes.filter((n) => n.feature_id === f.id).map((n) => noteRow(n, '')).join('')}
+      </div>`).join('')}`;
+}
+
+// ---------- Suggestions ----------
+function vSuggestions(el) {
+  const proj = FULL.suggestions.filter((x) => !x.feature_id);
+  el.innerHTML = `
+    <h2 class="vt">Suggestions</h2>
+    <p class="vsub">Change, addition, and removal suggestions for the whole project. Feature-specific suggestions live on the feature cards. Admins and the project owner set their status.</p>
+    <div class="card">${suggCols(proj, null)}${suggForm(null)}</div>
+    ${FULL.features.filter((f) => FULL.suggestions.some((x) => x.feature_id === f.id)).map((f) => `
+      <div class="card"><h3>${esc(f.title)}</h3>${suggCols(FULL.suggestions.filter((x) => x.feature_id === f.id), null)}</div>`).join('')}`;
+}
+
+// ---------- Files & Uploads ----------
+function vFiles(el) {
+  el.innerHTML = `
+    <h2 class="vt">Files &amp; Uploads</h2>
+    <p class="vsub">Every upload is versioned under its title — uploading the same title again creates the next version, never an overwrite. Downloads are available for every version.</p>
+    <div class="card"><h3>All uploads (${FULL.uploads.length})</h3>
+      ${FULL.uploads.map(upRow).join('') || '<p class="dim">No uploads yet.</p>'}
+    </div>
+    <div class="card"><h3>Upload a file</h3>
+      <form data-form="upload" data-section="file" data-fid="">
+        <div class="form-grid">
+          <div><label>Title (versions group under it)</label><input class="inp" name="title" maxlength="200" required></div>
+          <div><label>File</label><input class="inp" type="file" name="file" required></div>
+        </div>
+        <button class="btn" type="submit" style="margin-top:10px">Upload</button><p class="msg"></p>
+      </form>
+      <p class="dim" style="margin-top:8px">Max 6 MB per file.</p>
+    </div>`;
+}
+
+// ---------- Team ----------
+function vMembers(el) {
+  el.innerHTML = `
+    <h2 class="vt">Team</h2>
+    <p class="vsub">People working on this project. Invite by email — anyone with team access can collaborate once invited (active projects are open to the whole team).</p>
+    <div class="card">
+      ${FULL.members.map((m) => `<div class="file-row"><span><b>${esc(m.user_email)}</b> <span class="pill ${m.role === 'owner' ? 'wait' : ''}">${esc(m.role)}</span></span>
+        <span class="dim" style="margin-left:auto">added by ${esc(m.added_by || '')} · ${esc(fmtDate(m.created_at))}</span></div>`).join('') || '<p class="dim">No members yet.</p>'}
+    </div>
+    <div class="card"><h3>Invite a team member</h3>
+      <form data-form="member"><div class="row-flex">
+        <input class="inp" type="email" name="email" placeholder="teammate@example.com" required style="flex:1;min-width:200px">
+        <select class="inp" name="role" style="width:auto"><option value="member">member</option><option value="owner">owner</option></select>
+        <button class="btn" type="submit">Invite</button>
+      </div><p class="msg"></p></form>
+    </div>`;
+}
+
+// ---------- events ----------
+document.getElementById('sidebar').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-view]');
+  if (!b) return;
+  view = b.dataset.view;
+  renderChrome(); renderView();
+});
+const viewEl = document.getElementById('view');
+viewEl.addEventListener('change', async (e) => {
+  const t = e.target;
+  if (t.matches('[data-check-req]')) {
+    t.disabled = true;
+    const { status } = await api('/api/bp/requirements/' + t.dataset.checkReq, {
+      method: 'PATCH', body: JSON.stringify({ done: t.checked }),
+    });
+    if (status === 200) reload(); else { t.disabled = false; t.checked = !t.checked; }
+  }
+  if (t.matches('[data-feat-status]')) {
+    await api('/api/bp/features/' + t.dataset.featStatus, { method: 'PATCH', body: JSON.stringify({ status: t.value }) });
+    reload();
+  }
+  if (t.matches('[data-ms-status]')) {
+    await api('/api/bp/milestones/' + t.dataset.msStatus, { method: 'PATCH', body: JSON.stringify({ status: t.value }) });
+    reload();
+  }
+  if (t.matches('[data-ms-due]')) {
+    await api('/api/bp/milestones/' + t.dataset.msDue, { method: 'PATCH', body: JSON.stringify({ due_date: t.value || null }) });
+    reload();
+  }
+  if (t.matches('[data-sugg-status]')) {
+    const { status } = await api('/api/bp/suggestions/' + t.dataset.suggStatus, { method: 'PATCH', body: JSON.stringify({ status: t.value }) });
+    if (status === 200) reload();
+  }
+});
+viewEl.addEventListener('submit', async (e) => {
+  const form = e.target.closest('form[data-form]');
+  if (!form) return;
+  e.preventDefault();
+  const kind = form.dataset.form;
+  const fd = new FormData(form);
+  const pid = FULL.project.id;
+  const btn = form.querySelector('button[type="submit"]');
+  const msg = form.querySelector('.msg');
+  if (btn) btn.disabled = true;
+  try {
+    if (kind === 'note') {
+      const { status, data } = await api(`/api/bp/projects/${pid}/notes`, { method: 'POST', body: JSON.stringify({ body: fd.get('body'), feature_id: form.dataset.fid ? Number(form.dataset.fid) : undefined }) });
+      if (status !== 200) throw new Error(data.error || 'failed');
+    } else if (kind === 'suggestion') {
+      const { status, data } = await api(`/api/bp/projects/${pid}/suggestions`, { method: 'POST', body: JSON.stringify({ kind: fd.get('kind'), body: fd.get('body'), feature_id: form.dataset.fid ? Number(form.dataset.fid) : undefined }) });
+      if (status !== 200) throw new Error(data.error || 'failed');
+    } else if (kind === 'req') {
+      const { status, data } = await api(`/api/bp/projects/${pid}/requirements`, { method: 'POST', body: JSON.stringify({ text: fd.get('text'), category: fd.get('category') || undefined, feature_id: form.dataset.fid ? Number(form.dataset.fid) : undefined }) });
+      if (status !== 200) throw new Error(data.error || 'failed');
+    } else if (kind === 'feature') {
+      const { status, data } = await api(`/api/bp/projects/${pid}/features`, { method: 'POST', body: JSON.stringify({ title: fd.get('title'), category: fd.get('category'), how_it_works: fd.get('how_it_works'), integration_needs: fd.get('integration_needs'), execution_notes: fd.get('execution_notes') }) });
+      if (status !== 200) throw new Error(data.error || 'failed');
+    } else if (kind === 'milestone') {
+      const { status, data } = await api(`/api/bp/projects/${pid}/milestones`, { method: 'POST', body: JSON.stringify({ title: fd.get('title'), description: fd.get('description'), due_date: fd.get('due_date') || undefined }) });
+      if (status !== 200) throw new Error(data.error || 'failed');
+    } else if (kind === 'member') {
+      const { status, data } = await api(`/api/bp/projects/${pid}/members`, { method: 'POST', body: JSON.stringify({ email: fd.get('email'), role: fd.get('role') }) });
+      if (status !== 200) throw new Error(data.error || 'failed');
+    } else if (kind === 'upload') {
+      const file = fd.get('file');
+      if (!file || !file.size) throw new Error('pick a file');
+      if (file.size > 6 * 1024 * 1024) throw new Error('file_too_large');
+      const b64 = await readFileB64(file);
+      const title = (fd.get('title') || '').toString().trim() ||
+        (form.dataset.section === 'ui_before' ? 'UI Before — ' + featTitle(Number(form.dataset.fid)) :
+         form.dataset.section === 'ui_suggested' ? 'UI Suggested — ' + featTitle(Number(form.dataset.fid)) : file.name);
+      const { status, data } = await api(`/api/bp/projects/${pid}/uploads`, {
+        method: 'POST',
+        body: JSON.stringify({ section: form.dataset.section, title, filename: file.name, mime: file.type || 'application/octet-stream', data_base64: b64, feature_id: form.dataset.fid ? Number(form.dataset.fid) : undefined }),
+      });
+      if (status !== 200) throw new Error(data.error || 'failed');
+    }
+    reload();
+  } catch (err) {
+    if (msg) { msg.className = 'msg err'; msg.textContent = 'Couldn\'t save: ' + err.message; }
+    if (btn) btn.disabled = false;
+  }
+});
+
+reload(false);
+</script>
+<script src="/assistant.js"></script>
+</body>
+</html>
