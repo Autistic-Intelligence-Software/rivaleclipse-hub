@@ -298,7 +298,7 @@ a.act-btn { text-decoration: none; display: inline-block; }
 <script type="module">
 import { session, logout } from '/auth.js';
 import { tagsOf, hasTag, goBlocked } from '/_lib/gates.js';
-import { mountSupportInbox, mountTeamLog, mountNotifyPrefs } from '/_lib/support.js';
+import { mountSupportInbox, mountTeamLog, mountNotifyPrefs } from '/_lib/support.js?v=20261114e';
 const AUTH = 'https://auth.rivaleclipse.dev';
 
 async function api(path, opts = {}) {
